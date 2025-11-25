@@ -74,7 +74,7 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
             className="animate-slide-in"
             style={{ animationDelay: `${idx * 0.05}s` }}>
             <div className="space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="flex flex-row items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`${mypurple} font-bold uppercase text-xs sm:text-sm shrink-0`}>Outpoint:</span>
                   {outpointTxid && (
@@ -90,7 +90,7 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
                   )}
                 </div>
 
-                <div className="flex items-center gap-1 flex-wrap">
+                <div className="flex items-end gap-1 flex-wrap">
                   {(vtxo as any).preconfirmed && <Badge variant="default">Preconfirmed</Badge>}
                   {vtxo.spentBy && <Badge variant="danger">Spent</Badge>}
                   {!vtxo.spentBy && isRecoverable && <Badge variant="warning">Recoverable</Badge>}
@@ -99,14 +99,14 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
               </div>
 
               <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between sm:block">
+                <div className="flex gap-2">
                   <span className="text-arkade-gray uppercase text-xs sm:text-sm">Amount:</span>
                   <span className="text-arkade-orange font-bold font-mono text-xs sm:text-sm sm:ml-2">
                     {formatSats(vtxo.value.toString())} sats
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between sm:block">
+                <div className="flex gap-2">
                   <span className="text-arkade-gray uppercase text-xs sm:text-sm">Created:</span>
                   <span className="text-arkade-gray font-mono text-xs sm:text-sm sm:ml-2 break-all">
                     {formatTimestamp(vtxo.createdAt.getTime())}
