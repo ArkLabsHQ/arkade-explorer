@@ -8,7 +8,7 @@ import { AddressStats } from '../components/Address/AddressStats';
 import { LoadingSpinner } from '../components/UI/LoadingSpinner';
 import { ErrorMessage } from '../components/UI/ErrorMessage';
 import { ParticleRain } from '../components/UI/ParticleRain';
-import { truncateHash, copyToClipboard } from '../lib/utils';
+import { copyToClipboard } from '../lib/utils';
 import { addressToScriptHex, scriptHexToAddress, isHex } from '../lib/decode';
 import { Copy, Check } from 'lucide-react';
 import { useRecentSearches } from '../hooks/useRecentSearches';
@@ -29,17 +29,11 @@ export function AddressPage() {
   
   const itemsPerPage = 20;
 
-  // Validate address exists
-  if (!address) {
-    return (
-      <div className="max-w-4xl mx-auto space-y-6">
-        <ErrorMessage message="No address provided" />
-      </div>
-    );
-  }
-
   // Convert address/script and handle validation
   const addressInfo = useMemo(() => {
+    if (!address) {
+      return { scriptHex: '', isScript: false, displayAddress: '', error: 'No address provided' };
+    }
     try {
       const scriptHex = addressToScriptHex(address);
       const isScript = isHex(address);
@@ -60,28 +54,7 @@ export function AddressPage() {
     }
   }, [address, serverInfo?.signerPubkey, serverInfo?.network]);
 
-  if (addressInfo.error) {
-    return (
-      <div className="max-w-4xl mx-auto space-y-6">
-        <ErrorMessage message="Invalid address format" />
-      </div>
-    );
-  }
-
   const { scriptHex, displayAddress } = addressInfo;
-
-  const handleCopyAddress = () => {
-    if (!displayAddress) return;
-    copyToClipboard(displayAddress);
-    setCopiedAddress(true);
-    setTimeout(() => setCopiedAddress(false), 2000);
-  };
-
-  const handleCopyScript = () => {
-    copyToClipboard(scriptHex);
-    setCopiedScript(true);
-    setTimeout(() => setCopiedScript(false), 2000);
-  };
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['address-vtxos', address],
@@ -199,8 +172,23 @@ export function AddressPage() {
     };
   }, [hasMore]);
 
-  if (!address) {
-    return <ErrorMessage message="No address provided" />;
+  // Handler functions
+  const handleCopyAddress = () => {
+    if (!displayAddress) return;
+    copyToClipboard(displayAddress);
+    setCopiedAddress(true);
+    setTimeout(() => setCopiedAddress(false), 2000);
+  };
+
+  const handleCopyScript = () => {
+    copyToClipboard(scriptHex);
+    setCopiedScript(true);
+    setTimeout(() => setCopiedScript(false), 2000);
+  };
+
+  // Conditional returns AFTER all hooks
+  if (addressInfo.error) {
+    return <ErrorMessage message={typeof addressInfo.error === 'string' ? addressInfo.error : "Invalid address format"} />;
   }
 
   if (isLoading) {
@@ -219,44 +207,44 @@ export function AddressPage() {
           <h1 className="text-2xl font-bold text-arkade-purple uppercase">Address Details</h1>
           
           <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
-              <span className="text-arkade-gray uppercase text-sm font-bold">Address</span>
-              <div className="flex items-center space-x-2">
+            <div className="border-b border-arkade-purple pb-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-arkade-gray uppercase text-sm font-bold">Address</span>
                 <button
                   onClick={handleCopyAddress}
-                  className="text-arkade-gray font-mono text-sm hover:text-arkade-purple transition-colors cursor-pointer"
-                  title="Click to copy"
-                >
-                  {truncateHash(displayAddress, 16, 16)}
-                </button>
-                <button
-                  onClick={handleCopyAddress}
-                  className="p-1 hover:text-arkade-purple transition-colors"
+                  className="p-1 hover:text-arkade-purple transition-colors flex-shrink-0"
                   title="Copy to clipboard"
                 >
                   {copiedAddress ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
                 </button>
               </div>
+              <button
+                onClick={handleCopyAddress}
+                className="text-arkade-gray font-mono text-xs sm:text-sm hover:text-arkade-purple transition-colors cursor-pointer break-all w-full text-left"
+                title="Click to copy"
+              >
+                {displayAddress}
+              </button>
             </div>
             
-            <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
-              <span className="text-arkade-gray uppercase text-sm font-bold">Script Hex</span>
-              <div className="flex items-center space-x-2">
+            <div className="border-b border-arkade-purple pb-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-arkade-gray uppercase text-sm font-bold">Script Hex</span>
                 <button
                   onClick={handleCopyScript}
-                  className="text-arkade-gray font-mono text-sm hover:text-arkade-purple transition-colors cursor-pointer"
-                  title="Click to copy"
-                >
-                  {truncateHash(scriptHex, 16, 16)}
-                </button>
-                <button
-                  onClick={handleCopyScript}
-                  className="p-1 hover:text-arkade-purple transition-colors"
+                  className="p-1 hover:text-arkade-purple transition-colors flex-shrink-0"
                   title="Copy to clipboard"
                 >
                   {copiedScript ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
                 </button>
               </div>
+              <button
+                onClick={handleCopyScript}
+                className="text-arkade-gray font-mono text-xs sm:text-sm hover:text-arkade-purple transition-colors cursor-pointer break-all w-full text-left"
+                title="Click to copy"
+              >
+                {scriptHex}
+              </button>
             </div>
           </div>
         </div>

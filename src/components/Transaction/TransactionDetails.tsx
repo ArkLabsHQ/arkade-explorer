@@ -33,12 +33,12 @@ export function TransactionDetails({ txid, type, data }: TransactionDetailsProps
         </div>
         
         <div className="space-y-4">
-          <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
-            <span className="text-arkade-gray uppercase text-sm font-bold">Transaction ID</span>
-            <div className="flex items-center space-x-2">
-              <span className="text-arkade-gray font-mono">{truncateHash(txid, 12, 12)}</span>
+          <div className="border-b border-arkade-purple pb-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-arkade-gray uppercase text-sm font-bold">Transaction ID</span>
               <CopyButton text={txid} />
             </div>
+            <span className="text-arkade-gray font-mono text-xs sm:text-sm break-all block">{txid}</span>
           </div>
 
           {type === 'commitment' && data && (

@@ -61,20 +61,20 @@ export function BatchList({ batches, commitmentTxid }: BatchListProps) {
                 )}
               </div>
               
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="text-arkade-gray uppercase block mb-1">Amount</span>
-                  <span className="text-arkade-orange font-bold font-mono">{formatSats(batch.totalOutputAmount)} sats</span>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-arkade-gray uppercase text-xs sm:text-sm font-bold">Amount</span>
+                  <span className="text-arkade-orange font-bold font-mono text-xs sm:text-sm">{formatSats(batch.totalOutputAmount)} sats</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-arkade-gray uppercase text-xs sm:text-sm font-bold">VTXOs</span>
+                  <span className="text-arkade-gray font-mono text-xs sm:text-sm">{batch.totalOutputVtxos}</span>
                 </div>
                 
                 <div>
-                  <span className="text-arkade-gray uppercase block mb-1">VTXOs</span>
-                  <span className="text-arkade-gray font-mono">{batch.totalOutputVtxos}</span>
-                </div>
-                
-                <div className="col-span-2">
-                  <span className="text-arkade-gray uppercase block mb-1">Expires At</span>
-                  <span className="text-arkade-gray font-mono text-xs">{formatTimestamp(batch.expiresAt)}</span>
+                  <span className="text-arkade-gray uppercase block mb-1 text-xs sm:text-sm font-bold">Expires At</span>
+                  <span className="text-arkade-gray font-mono text-xs block break-all">{formatTimestamp(batch.expiresAt)}</span>
                 </div>
               </div>
 
@@ -176,16 +176,16 @@ function BatchTreeContent({ commitmentTxid, vout }: { commitmentTxid: string; vo
                   const childTxids = hasChildren ? Object.values(node.children) : [];
                   
                   return (
-                    <div key={idx} className="border-l-2 border-arkade-purple pl-4 py-2">
-                      <div className="flex items-center space-x-2">
+                    <div key={idx} className="border-l-2 border-arkade-purple pl-2 sm:pl-4 py-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Link 
                           to={`/tx/${node.txid}`}
-                          className="font-mono text-sm text-arkade-purple hover:underline font-bold"
+                          className="font-mono text-xs sm:text-sm text-arkade-purple hover:underline font-bold break-all"
                         >
-                          {truncateHash(node.txid, 12, 12)}
+                          {truncateHash(node.txid, 8, 8)}
                         </Link>
                         {hasChildren && (
-                          <span className="text-xs text-arkade-gray">
+                          <span className="text-xs text-arkade-gray whitespace-nowrap">
                             ({childTxids.length} children)
                           </span>
                         )}
@@ -198,9 +198,10 @@ function BatchTreeContent({ commitmentTxid, vout }: { commitmentTxid: string; vo
                               <span className="text-arkade-gray">↳</span>
                               <Link 
                                 to={`/tx/${childTxid}`}
-                                className="font-mono text-arkade-purple hover:underline"
+                                className="font-mono text-arkade-purple hover:underline break-all"
                               >
-                                {truncateHash(childTxid, 10, 10)}
+                                <span className="sm:hidden">{truncateHash(childTxid, 6, 6)}</span>
+                                <span className="hidden sm:inline">{truncateHash(childTxid, 10, 10)}</span>
                               </Link>
                             </div>
                           ))}

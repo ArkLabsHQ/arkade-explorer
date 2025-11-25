@@ -201,23 +201,31 @@ function ActivityRow({ activity, index }: { activity: ActivityItem; index: numbe
   return (
     <Link 
       to={link || '#'}
-      className="flex w-full p-3 bg-arkade-black border border-arkade-purple hover:bg-arkade-purple hover:bg-opacity-30 transition-all duration-200 items-center justify-between space-x-3 no-underline animate-slide-in"
+      className="flex w-full p-3 bg-arkade-black border border-arkade-purple hover:bg-arkade-purple hover:bg-opacity-30 transition-all duration-200 items-start justify-between gap-3 no-underline animate-slide-in"
       style={{ animationDelay: `${index * 0.05}s` }}
     >
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center space-x-2 mb-1">
-          <span className="text-xs text-arkade-gray">
-            {getTimeAgo(activity.timestamp)}
-          </span>
+      <div className="flex-1 min-w-0 space-y-1">
+        <div className="text-xs text-arkade-gray">
+          {getTimeAgo(activity.timestamp)}
         </div>
         {(activity.txid || activity.address) && (
-          <div className="text-sm font-mono text-arkade-gray mb-1">
-            {activity.txid && truncateHash(activity.txid, 16, 16)}
-            {activity.address && truncateHash(activity.address, 16, 16)}
+          <div className="text-xs sm:text-sm font-mono text-arkade-gray break-all">
+            {activity.txid && (
+              <>
+                <span className="sm:hidden">{truncateHash(activity.txid, 8, 8)}</span>
+                <span className="hidden sm:inline">{truncateHash(activity.txid, 16, 16)}</span>
+              </>
+            )}
+            {activity.address && (
+              <>
+                <span className="sm:hidden">{truncateHash(activity.address, 8, 8)}</span>
+                <span className="hidden sm:inline">{truncateHash(activity.address, 16, 16)}</span>
+              </>
+            )}
           </div>
         )}
       </div>
-      <span className={`${getTypeBadgeColor(activity.type)} text-white text-xs px-2 py-1 uppercase font-bold flex-shrink-0`}>
+      <span className={`${getTypeBadgeColor(activity.type)} text-white text-[10px] sm:text-xs px-2 py-1 uppercase font-bold flex-shrink-0 whitespace-nowrap`}>
         {getTypeLabel(activity.type)}
       </span>
     </Link>
