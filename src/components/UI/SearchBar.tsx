@@ -4,11 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Search, Clock, X } from 'lucide-react';
 import { useRecentSearches } from '../../hooks/useRecentSearches';
 
-interface SearchBarProps {
-  className?: string;
-}
-
-export function SearchBar({ className = '' }: SearchBarProps) {
+export function SearchBar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchModal, setShowSearchModal] = useState(false);
   const navigate = useNavigate();

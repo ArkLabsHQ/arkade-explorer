@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { indexerClient, arkClient } from '../lib/api/indexer';
+import { indexerClient } from '../lib/api/indexer';
 import { Card } from '../components/UI/Card';
 import { VtxoList } from '../components/Address/VtxoList';
 import { AddressStats } from '../components/Address/AddressStats';

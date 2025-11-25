@@ -7,7 +7,9 @@ Views:
 Transaction view /tx/{txid} redirect to /commitment-tx/{txid} if it is a commitment tx. : show relevant info
 Address view /address/{addressOrScript} Show all vtxos associated to this address.
 
-There are 2 transaction types: arkade and commitment transactions. one is spending vtxos and creating new ones, the other is an onchain tx that creates abtch output that creates a tree that creates vtxos. Learn at https://docs.arkadeos.com/
+There are 2 transaction types: arkade and commitment transactions. one is spending vtxos and creating new ones, the other is an onchain tx that creates abtch output that creates a tree that creates vtxos. Learn at https://docs.arkadeos.com/ 
+
+Theme: space invaders, retro theme. branding kit attached. Figure out colors from the COlor image folder somehow
 
 
 

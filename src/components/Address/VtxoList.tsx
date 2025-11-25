@@ -35,7 +35,6 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
         const isRecoverable = !vtxo.spentBy && isExpired;
 
         // Extract script from PSBT if available
-        let scriptPubkey = '';
         let scriptAddress = '';
         if ((vtxo as any)._psbt) {
           try {
@@ -45,11 +44,6 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
             if (tx.outputsLength > outpointVout) {
               const output = tx.getOutput(outpointVout);
               if (output?.script) {
-                // Convert Uint8Array to hex string
-                scriptPubkey = Array.from(output.script)
-                  .map(b => b.toString(16).padStart(2, '0'))
-                  .join('');
-                
                 // Try to construct Ark address
                 try {
                   if (serverInfo?.signerPubkey && serverInfo?.network) {

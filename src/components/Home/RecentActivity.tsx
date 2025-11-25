@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { arkClient } from '../../lib/api/indexer';
 import { Card } from '../UI/Card';
-import { truncateHash, formatTimestamp } from '../../lib/utils';
-import { Activity, ArrowRight } from 'lucide-react';
+import { truncateHash } from '../../lib/utils';
+import { Activity } from 'lucide-react';
 
 interface ActivityItem {
   id: string;
