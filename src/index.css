@@ -1,0 +1,333 @@
+@import "tailwindcss";
+
+@theme {
+  /* Arkade Brand Colors */
+  --color-primary: rgb(57 25 152); /* #391998 - Main purple */
+  --color-primary-light: rgb(242 242 242); /* #F2F2F2 */
+  --color-primary-dark: rgb(16 16 19); /* #101013 */
+  --color-background-light: rgb(255 255 255); /* #FFFFFF */
+  --color-background-dark: rgb(14 14 16); /* #0E0E10 */
+  
+  /* Gray Scale */
+  --color-gray-50: rgb(244 243 247);
+  --color-gray-100: rgb(239 238 242);
+  --color-gray-200: rgb(224 223 227);
+  --color-gray-300: rgb(207 206 210);
+  --color-gray-400: rgb(160 159 163);
+  --color-gray-500: rgb(113 112 116);
+  --color-gray-600: rgb(81 80 84);
+  --color-gray-700: rgb(64 63 67);
+  --color-gray-800: rgb(39 38 41);
+  --color-gray-900: rgb(24 23 27);
+  --color-gray-950: rgb(11 10 14);
+  
+  /* Legacy color mappings */
+  --color-arkade-black: rgb(14 14 16);
+  --color-arkade-purple: rgb(57 25 152);
+  --color-arkade-orange: #FF6B35;
+  --color-arkade-gray: rgb(207 206 210);
+  
+  /* Typography */
+  --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-family-headings-custom: 'TT Firs Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-weight-headings-custom: 600;
+  --font-family-body-custom: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-weight-body-custom: 400;
+  --font-inter: 'Geist';
+  --font-mono: 'Courier New', 'Courier', monospace;
+}
+
+@keyframes grid-pulse {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modal-slide-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+}
+
+html {
+  overflow-x: hidden;
+}
+
+body {
+  background: 
+    linear-gradient(rgba(57, 25, 152, 0.15) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(57, 25, 152, 0.15) 2px, transparent 2px),
+    var(--color-background-dark);
+  background-size: 40px 40px;
+  color: var(--color-gray-300);
+  font-family: var(--font-family-body-custom);
+  font-weight: var(--font-weight-body-custom);
+  font-size: 16px;
+  line-height: 1.6;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-family-headings-custom);
+  font-weight: 700;
+  color: white;
+}
+
+h1 {
+  font-size: 2.5rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: 2rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+h3 {
+  font-size: 1.5rem;
+  line-height: 1.4;
+}
+
+h4, h5, h6 {
+  font-size: 1.25rem;
+  line-height: 1.5;
+}
+
+p {
+  color: var(--color-gray-400);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--color-primary-light);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 15% 25%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
+    radial-gradient(circle at 85% 75%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
+    radial-gradient(circle at 45% 85%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
+    radial-gradient(circle at 75% 15%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
+    radial-gradient(circle at 25% 55%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
+    radial-gradient(circle at 95% 45%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
+    radial-gradient(circle at 55% 65%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
+    radial-gradient(circle at 35% 35%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
+    radial-gradient(circle at 65% 95%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
+    radial-gradient(circle at 5% 85%, rgba(67, 24, 255, 0.6) 3px, transparent 3px);
+  background-size: 300px 300px;
+  background-position: 0 0, 150px 75px, 75px 225px, 225px 150px, 50px 100px, 250px 50px, 100px 200px, 200px 100px, 125px 250px, 25px 175px;
+  animation: grid-pulse 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+#root {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* Light mode overrides - only apply when .light class is present */
+html.light body {
+  background: 
+    linear-gradient(rgba(57, 25, 152, 0.1) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(57, 25, 152, 0.1) 2px, transparent 2px),
+    var(--color-background-light);
+  background-size: 40px 40px;
+  color: var(--color-gray-700);
+}
+
+html.light h1,
+html.light h2,
+html.light h3,
+html.light h4,
+html.light h5,
+html.light h6 {
+  color: rgb(17, 24, 39);
+}
+
+html.light body::before {
+  background-image: 
+    radial-gradient(circle at 15% 25%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
+    radial-gradient(circle at 85% 75%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
+    radial-gradient(circle at 45% 85%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
+    radial-gradient(circle at 75% 15%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
+    radial-gradient(circle at 25% 55%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
+    radial-gradient(circle at 95% 45%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
+    radial-gradient(circle at 55% 65%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
+    radial-gradient(circle at 35% 35%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
+    radial-gradient(circle at 65% 95%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
+    radial-gradient(circle at 5% 85%, rgba(67, 24, 255, 0.4) 3px, transparent 3px);
+}
+
+html.light .hover\:bg-arkade-purple:hover {
+  background-color: rgba(57, 25, 152, 0.05) !important;
+}
+
+.bg-arkade-black {
+  background: #0a0a0a !important;
+  position: relative;
+}
+
+.mobile-search-modal {
+  position: fixed !important;
+  animation: modal-slide-in 0.2s ease-out;
+}
+
+.modal-backdrop {
+  animation: modal-fade-in 0.2s ease-out;
+}
+
+.bg-arkade-black::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(rgba(67, 24, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(67, 24, 255, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bg-arkade-black > * {
+  position: relative;
+  z-index: 1;
+}
+
+html.light .bg-arkade-black {
+  background: #ffffff !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
+}
+
+html.light .bg-arkade-black::before {
+  background-image: 
+    linear-gradient(rgba(67, 24, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(67, 24, 255, 0.04) 1px, transparent 1px);
+}
+
+html.light .text-arkade-gray {
+  color: #2D3748 !important;
+}
+
+html.light .placeholder-gray-600::placeholder {
+  color: #718096 !important;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+@keyframes slide-in-from-back {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in-from-back 0.4s ease-out backwards;
+}
+
+.retro-border {
+  border: 2px solid var(--color-arkade-purple);
+}
+
+.retro-glow {
+  box-shadow: 0 0 10px rgba(67, 24, 255, 0.5);
+}
+
+html.light .retro-glow {
+  box-shadow: 0 0 15px rgba(67, 24, 255, 0.2);
+}
+
+.retro-button {
+  @apply px-4 bg-arkade-purple text-white font-bold uppercase tracking-wider border-2 border-arkade-purple hover:bg-transparent hover:text-arkade-purple transition-all duration-200 cursor-pointer;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.retro-button:hover {
+  opacity: 0.8;
+}
