@@ -121,7 +121,8 @@ export function AddressPage() {
     const isRecoverable = !v.spentBy && isExpired;
     const isSpendable = !v.spentBy && !isExpired;
     const isPreconfirmed = (v as any).preconfirmed;
-    const isSettled = (v as any).settledBy;
+    // VTXOs are "settled" when they are NOT preconfirmed (i.e., confirmed on-chain)
+    const isSettled = !isPreconfirmed;
     
     // Apply spend filter
     if (spendFilter === 'unspent' && v.spentBy) return false;
