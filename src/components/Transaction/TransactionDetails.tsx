@@ -89,16 +89,26 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
   // Format timestamps defensively - createdAt can be Date or number
   const formatCreatedAt = () => {
     if (!createdAt) return null;
-    const timestamp = createdAt instanceof Date ? createdAt.getTime() : 
-                      typeof createdAt === 'number' ? createdAt : 
-                      new Date(createdAt).getTime();
+    
+    let timestamp: number;
+    if (createdAt instanceof Date) {
+      timestamp = createdAt.getTime();
+    } else if (typeof createdAt === 'number') {
+      // If the number is less than a reasonable year 2000 timestamp in ms, it's likely in seconds
+      timestamp = createdAt < 10000000000 ? createdAt * 1000 : createdAt;
+    } else {
+      timestamp = new Date(createdAt).getTime();
+    }
+    
     return formatTimestamp(timestamp);
   };
   
   // Format expiry - batchExpiry is typically a Unix timestamp in seconds
   const formatExpiresAt = () => {
     if (typeof expiresAt !== 'number') return null;
-    return formatTimestamp(expiresAt * 1000);
+    // If the number is less than a reasonable year 2000 timestamp in ms, it's likely in seconds
+    const timestamp = expiresAt < 10000000000 ? expiresAt * 1000 : expiresAt;
+    return formatTimestamp(timestamp);
   };
   return (
     <div className="space-y-6">
@@ -132,9 +142,12 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                 setTimeout(() => setCopiedTxid(false), 2000);
               }}
               className={`${linkColor} font-mono text-xs sm:text-sm hover:font-bold transition-all cursor-pointer break-all w-full text-left`}
-              title="Click to copy"
+              title="Click to copy full txid"
             >
-              {txid}
+              <span className="sm:hidden">{truncateHash(txid, 8, 8)}</span>
+              <span className="hidden sm:inline md:hidden">{truncateHash(txid, 12, 12)}</span>
+              <span className="hidden md:inline lg:hidden">{truncateHash(txid, 16, 16)}</span>
+              <span className="hidden lg:inline">{truncateHash(txid, 20, 20)}</span>
             </button>
           </div>
 
@@ -186,22 +199,22 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
             </>
           )}
 
+          {type === 'arkade' && formatCreatedAt() && (
+            <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
+              <span className="text-arkade-gray uppercase text-sm font-bold">Created At</span>
+              <span className="text-arkade-gray font-mono">{formatCreatedAt()}</span>
+            </div>
+          )}
+          
+          {type === 'arkade' && formatExpiresAt() && (
+            <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
+              <span className="text-arkade-gray uppercase text-sm font-bold">Expires At</span>
+              <span className="text-arkade-gray font-mono">{formatExpiresAt()}</span>
+            </div>
+          )}
+
           {type === 'arkade' && parsedTx && (
             <>
-              {formatCreatedAt() && (
-                <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
-                  <span className="text-arkade-gray uppercase text-sm font-bold">Created At</span>
-                  <span className="text-arkade-gray font-mono">{formatCreatedAt()}</span>
-                </div>
-              )}
-              
-              {formatExpiresAt() && (
-                <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
-                  <span className="text-arkade-gray uppercase text-sm font-bold">Expires At</span>
-                  <span className="text-arkade-gray font-mono">{formatExpiresAt()}</span>
-                </div>
-              )}
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                 {/* Inputs Column */}
                 <div>
@@ -238,11 +251,17 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                     return (
                       <div key={i} className="bg-arkade-black border border-arkade-purple p-3 animate-slide-in" style={{ animationDelay: `${i * 0.05}s` }}>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-arkade-gray uppercase">Input #{i}</span>
+                          {inputTxid ? (
+                            <Link 
+                              to={`/tx/${inputTxid}`}
+                              className="text-xs text-arkade-purple hover:text-arkade-orange uppercase font-bold"
+                            >
+                              Input #{i}
+                            </Link>
+                          ) : (
+                            <span className="text-xs text-arkade-gray uppercase">Input #{i}</span>
+                          )}
                           <div className="flex items-center gap-2">
-                            {input?.index !== undefined && (
-                              <span className="text-xs text-arkade-gray">vout: {input.index}</span>
-                            )}
                             {inputAmount !== null && (
                               <span className="text-xs text-arkade-orange font-bold">
                                 {formatSats(inputAmount.toString())} sats
@@ -253,18 +272,9 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                         {inputArkAddress && (
                           <Link 
                             to={`/address/${inputArkAddress}`}
-                            className={`text-xs font-mono ${linkColor} hover:text-arkade-orange flex items-center space-x-1 mb-1`}
+                            className={`text-xs font-mono ${linkColor} hover:text-arkade-orange flex items-center space-x-1`}
                           >
                             <span>{truncateHash(inputArkAddress, 12, 12)}</span>
-                            <ArrowRight size={12} />
-                          </Link>
-                        )}
-                        {inputTxid && (
-                          <Link 
-                            to={`/tx/${inputTxid}`}
-                            className="text-xs font-mono text-arkade-purple hover:text-arkade-orange flex items-center space-x-1"
-                          >
-                            <span>{truncateHash(inputTxid, 12, 12)}</span>
                             <ArrowRight size={12} />
                           </Link>
                         )}

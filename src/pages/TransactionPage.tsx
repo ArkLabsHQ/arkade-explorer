@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import * as btc from '@scure/btc-signer';
 import { indexerClient } from '../lib/api/indexer';
 import { TransactionDetails } from '../components/Transaction/TransactionDetails';
 import { TransactionHex } from '../components/Transaction/TransactionHex';
@@ -37,31 +36,21 @@ export function TransactionPage() {
     retry: false,
   });
 
-  // Build outpoints for VTXO query (we need to get VTXO data for each output to get timestamps)
-  const outputOutpoints = useMemo(() => {
-    if (!txid || !virtualTxData?.txs?.[0]) return [];
-    try {
-      const psbtBase64 = virtualTxData.txs[0];
-      const psbtBytes = Uint8Array.from(atob(psbtBase64), c => c.charCodeAt(0));
-      const parsedTx = btc.Transaction.fromPSBT(psbtBytes);
-      return Array.from({ length: parsedTx.outputsLength }).map((_, vout) => ({
-        txid,
-        vout,
-      }));
-    } catch (e) {
-      console.error('Failed to parse PSBT for outpoints:', e);
-      return [];
-    }
-  }, [txid, virtualTxData]);
+  // Build outpoint for the current transaction's first output (vout 0)
+  const currentTxOutpoints = useMemo(() => {
+    if (!txid) return [];
+    // Only query the first output (vout 0)
+    return [{ txid, vout: 0 }];
+  }, [txid]);
 
-  // Fetch VTXO data for the transaction outputs to get timestamps
+  // Fetch VTXO data for the current transaction outputs
   const { data: vtxoData } = useQuery({
-    queryKey: ['tx-vtxos', txid, outputOutpoints],
+    queryKey: ['tx-vtxos', txid, currentTxOutpoints],
     queryFn: async () => {
-      if (outputOutpoints.length === 0) return { vtxos: [] };
-      return await indexerClient.getVtxos({ outpoints: outputOutpoints });
+      if (currentTxOutpoints.length === 0) return { vtxos: [] };
+      return await indexerClient.getVtxos({ outpoints: currentTxOutpoints });
     },
-    enabled: outputOutpoints.length > 0 && txType === 'arkade',
+    enabled: currentTxOutpoints.length > 0 && txType === 'arkade',
   });
 
   useEffect(() => {
