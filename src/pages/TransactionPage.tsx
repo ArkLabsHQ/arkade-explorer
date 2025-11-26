@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import * as btc from '@scure/btc-signer';
 import { indexerClient } from '../lib/api/indexer';
 import { TransactionDetails } from '../components/Transaction/TransactionDetails';
 import { TransactionHex } from '../components/Transaction/TransactionHex';
@@ -36,14 +37,35 @@ export function TransactionPage() {
     retry: false,
   });
 
-  // Build outpoint for the current transaction's first output (vout 0)
+  // Build outpoints for all non-anchor outputs of the current transaction
   const currentTxOutpoints = useMemo(() => {
-    if (!txid) return [];
-    // Only query the first output (vout 0)
-    return [{ txid, vout: 0 }];
-  }, [txid]);
+    if (!txid || !virtualTxData?.txs?.[0]) return [];
+    try {
+      const psbtBase64 = virtualTxData.txs[0];
+      const psbtBytes = Uint8Array.from(atob(psbtBase64), c => c.charCodeAt(0));
+      const parsedTx = btc.Transaction.fromPSBT(psbtBytes);
+      
+      // Get all outputs and filter out anchors
+      const outpoints = [];
+      for (let vout = 0; vout < parsedTx.outputsLength; vout++) {
+        const output = parsedTx.getOutput(vout);
+        const scriptHex = output?.script 
+          ? Array.from(output.script).map(b => b.toString(16).padStart(2, '0')).join('')
+          : '';
+        const isAnchor = scriptHex.startsWith('51024e73');
+        
+        if (!isAnchor) {
+          outpoints.push({ txid, vout });
+        }
+      }
+      return outpoints;
+    } catch (e) {
+      console.error('Failed to parse PSBT for outpoints:', e);
+      return [];
+    }
+  }, [txid, virtualTxData]);
 
-  // Fetch VTXO data for the current transaction outputs
+  // Fetch VTXO data for all non-anchor outputs
   const { data: vtxoData } = useQuery({
     queryKey: ['tx-vtxos', txid, currentTxOutpoints],
     queryFn: async () => {

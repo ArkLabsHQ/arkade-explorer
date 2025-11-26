@@ -299,6 +299,11 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                     const isAnchorOutput = scriptHex.startsWith('51024e73');
                     const isForfeitOutput = isForfeitTx && scriptHex === forfeitScriptHex;
                     
+                    // Find the corresponding VTXO for this output
+                    const vtxo = vtxoData?.find(v => v.vout === i);
+                    const isSpent = (vtxo as any)?.isSpent === true || (vtxo?.spentBy && vtxo.spentBy !== '');
+                    const spendingTxid = vtxo?.spentBy && vtxo.spentBy !== '' ? vtxo.spentBy : null;
+                    
                     // Try to construct Ark address for non-anchor, non-forfeit outputs
                     let arkAddress = '';
                     if (!isAnchorOutput && !isForfeitOutput && output?.script && serverInfo?.signerPubkey && serverInfo?.network) {
@@ -313,40 +318,60 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                     }
                     
                     return (
-                      <div key={i} className="bg-arkade-black border border-arkade-purple p-3 animate-slide-in" style={{ animationDelay: `${i * 0.05}s` }}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-arkade-gray uppercase">Output #{i}</span>
-                          <span className="text-xs text-arkade-orange font-bold">
-                            {formatSats(amount.toString())} sats
-                          </span>
-                        </div>
-                        {isForfeitOutput && (
-                          <div className="text-xs text-arkade-orange font-bold uppercase mb-1">Arkade Operator</div>
-                        )}
-                        {arkAddress && (
-                          <Link 
-                            to={`/address/${arkAddress}`}
-                            className={`text-xs font-mono ${linkColor} hover:text-arkade-orange flex items-center space-x-1`}
-                          >
-                            <span>{truncateHash(arkAddress, 12, 12)}</span>
-                            <ArrowRight size={12} />
-                          </Link>
-                        )}
-                        {!arkAddress && scriptHex && (
-                          isAnchorOutput ? (
-                            <div className="text-xs font-mono text-arkade-gray break-all">
-                              <div className="mb-1">Anchor output</div>
-                              <div>{scriptHex.substring(0, 40)}...</div>
+                      <div key={i} className="flex items-center gap-2 animate-slide-in" style={{ animationDelay: `${i * 0.05}s` }}>
+                        <div className="bg-arkade-black border border-arkade-purple p-3 flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-arkade-gray uppercase">Output #{i}</span>
+                            <div className="flex items-center gap-2">
+                              {vtxo && !isAnchorOutput && isSpent && (
+                                <span className="text-xs font-bold uppercase text-red-400">
+                                  Spent
+                                </span>
+                              )}
+                              <span className="text-xs text-arkade-orange font-bold">
+                                {formatSats(amount.toString())} sats
+                              </span>
                             </div>
-                          ) : (
+                          </div>
+                          {isForfeitOutput && (
+                            <div className="text-xs text-arkade-orange font-bold uppercase mb-1">Arkade Operator</div>
+                          )}
+                          {arkAddress && (
                             <Link 
-                              to={`/address/${scriptHex}`}
-                              className="text-xs font-mono text-arkade-gray hover:text-arkade-purple break-all block"
+                              to={`/address/${arkAddress}`}
+                              className={`text-xs font-mono ${linkColor} hover:text-arkade-orange flex items-center space-x-1 mb-1`}
                             >
-                              {scriptHex.substring(0, 40)}...
+                              <span>{truncateHash(arkAddress, 12, 12)}</span>
+                              <ArrowRight size={12} />
                             </Link>
-                          )
-                        )}
+                          )}
+                          {!arkAddress && scriptHex && (
+                            isAnchorOutput ? (
+                              <div className="text-xs font-mono text-arkade-gray break-all">
+                                <div className="mb-1">Anchor output</div>
+                                <div>{scriptHex.substring(0, 40)}...</div>
+                              </div>
+                            ) : (
+                              <Link 
+                                to={`/address/${scriptHex}`}
+                                className="text-xs font-mono text-arkade-gray hover:text-arkade-purple break-all block"
+                              >
+                                {scriptHex.substring(0, 40)}...
+                              </Link>
+                            )
+                          )}
+                        </div>
+                        <div className="w-5 flex-shrink-0">
+                          {isSpent && spendingTxid && (
+                            <Link 
+                              to={`/tx/${spendingTxid}`}
+                              className="text-red-400 hover:text-arkade-orange transition-colors block"
+                              title={`Spent in: ${spendingTxid}`}
+                            >
+                              <ArrowRight size={20} />
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -388,11 +413,23 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                   outputs: Array.from({ length: parsedTx.outputsLength }).map((_, i) => {
                     const output = parsedTx!.getOutput(i);
                     const scriptHex = output?.script ? Array.from(output.script).map(b => b.toString(16).padStart(2, '0')).join('') : '';
+                    const isAnchor = scriptHex.startsWith('51024e73');
+                    const vtxo = vtxoData?.find(v => v.vout === i);
+                    const isSpent = (vtxo as any)?.isSpent === true || (vtxo?.spentBy && vtxo.spentBy !== '');
+                    
                     return {
                       amount: output?.amount?.toString(),
                       scriptHex,
-                      isAnchor: scriptHex.startsWith('51024e73'),
+                      isAnchor,
                       isForfeit: isForfeitTx && scriptHex === forfeitScriptHex,
+                      vtxoStatus: !isAnchor && vtxo ? {
+                        spent: isSpent,
+                        spentBy: (vtxo.spentBy && vtxo.spentBy !== '') ? vtxo.spentBy : null,
+                        createdAt: vtxo.createdAt,
+                        expiresAt: (vtxo as any).virtualStatus?.batchExpiry || null,
+                        isPreconfirmed: (vtxo as any).isPreconfirmed,
+                        isSwept: (vtxo as any).isSwept,
+                      } : null,
                     };
                   }),
                 } : data, null, 2)}</code>
