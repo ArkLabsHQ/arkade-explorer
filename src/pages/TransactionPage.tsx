@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import * as btc from '@scure/btc-signer';
 import { indexerClient } from '../lib/api/indexer';
 import { TransactionDetails } from '../components/Transaction/TransactionDetails';
 import { TransactionHex } from '../components/Transaction/TransactionHex';
@@ -34,6 +35,33 @@ export function TransactionPage() {
     },
     enabled: !!txid && txType === 'arkade',
     retry: false,
+  });
+
+  // Build outpoints for VTXO query (we need to get VTXO data for each output to get timestamps)
+  const outputOutpoints = useMemo(() => {
+    if (!txid || !virtualTxData?.txs?.[0]) return [];
+    try {
+      const psbtBase64 = virtualTxData.txs[0];
+      const psbtBytes = Uint8Array.from(atob(psbtBase64), c => c.charCodeAt(0));
+      const parsedTx = btc.Transaction.fromPSBT(psbtBytes);
+      return Array.from({ length: parsedTx.outputsLength }).map((_, vout) => ({
+        txid,
+        vout,
+      }));
+    } catch (e) {
+      console.error('Failed to parse PSBT for outpoints:', e);
+      return [];
+    }
+  }, [txid, virtualTxData]);
+
+  // Fetch VTXO data for the transaction outputs to get timestamps
+  const { data: vtxoData } = useQuery({
+    queryKey: ['tx-vtxos', txid, outputOutpoints],
+    queryFn: async () => {
+      if (outputOutpoints.length === 0) return { vtxos: [] };
+      return await indexerClient.getVtxos({ outpoints: outputOutpoints });
+    },
+    enabled: outputOutpoints.length > 0 && txType === 'arkade',
   });
 
   useEffect(() => {
@@ -75,7 +103,7 @@ export function TransactionPage() {
 
     return (
       <div className="space-y-6">
-        <TransactionDetails txid={txid} type="arkade" data={virtualTxData} />
+        <TransactionDetails txid={txid} type="arkade" data={virtualTxData} vtxoData={vtxoData?.vtxos} />
         {txHex && <TransactionHex txHex={txHex} label="Virtual Transaction Hex" />}
       </div>
     );

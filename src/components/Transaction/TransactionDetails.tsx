@@ -4,14 +4,17 @@ import { truncateHash, formatTimestamp, formatSats } from '../../lib/utils';
 import * as btc from '@scure/btc-signer';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import type { VirtualCoin } from '../../lib/api/indexer';
 
 interface TransactionDetailsProps {
   txid: string;
   type: 'commitment' | 'arkade';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any;
+  vtxoData?: VirtualCoin[];
 }
 
-export function TransactionDetails({ txid, type, data }: TransactionDetailsProps) {
+export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDetailsProps) {
   // Parse PSBT for Arkade transactions
   let parsedTx: btc.Transaction | null = null;
   if (type === 'arkade' && data?.txs?.[0]) {
@@ -23,6 +26,26 @@ export function TransactionDetails({ txid, type, data }: TransactionDetailsProps
       console.error('Failed to parse PSBT:', e);
     }
   }
+
+  // Get timestamps from VTXO data
+  const firstVtxo = vtxoData?.[0];
+  const createdAt = firstVtxo?.createdAt;
+  const expiresAt = firstVtxo?.virtualStatus?.batchExpiry;
+  
+  // Format timestamps defensively - createdAt can be Date or number
+  const formatCreatedAt = () => {
+    if (!createdAt) return null;
+    const timestamp = createdAt instanceof Date ? createdAt.getTime() : 
+                      typeof createdAt === 'number' ? createdAt : 
+                      new Date(createdAt).getTime();
+    return formatTimestamp(timestamp);
+  };
+  
+  // Format expiry - batchExpiry is typically a Unix timestamp in seconds
+  const formatExpiresAt = () => {
+    if (typeof expiresAt !== 'number') return null;
+    return formatTimestamp(expiresAt * 1000);
+  };
   return (
     <div className="space-y-6">
       <Card glowing>
@@ -76,10 +99,25 @@ export function TransactionDetails({ txid, type, data }: TransactionDetailsProps
           )}
 
           {type === 'arkade' && parsedTx && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-              {/* Inputs Column */}
-              <div>
-                <h3 className="text-lg font-bold text-arkade-purple uppercase mb-3">
+            <>
+              {formatCreatedAt() && (
+                <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
+                  <span className="text-arkade-gray uppercase text-sm font-bold">Created At</span>
+                  <span className="text-arkade-gray font-mono">{formatCreatedAt()}</span>
+                </div>
+              )}
+              
+              {formatExpiresAt() && (
+                <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
+                  <span className="text-arkade-gray uppercase text-sm font-bold">Expires At</span>
+                  <span className="text-arkade-gray font-mono">{formatExpiresAt()}</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                {/* Inputs Column */}
+                <div>
+                  <h3 className="text-lg font-bold text-arkade-purple uppercase mb-3">
                   Inputs ({parsedTx.inputsLength})
                 </h3>
                 <div className="space-y-2">
@@ -153,6 +191,7 @@ export function TransactionDetails({ txid, type, data }: TransactionDetailsProps
                 </div>
               </div>
             </div>
+            </>
           )}
         </div>
       </Card>
