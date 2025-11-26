@@ -87,11 +87,7 @@ html {
 }
 
 body {
-  background: 
-    linear-gradient(rgba(57, 25, 152, 0.15) 2px, transparent 2px),
-    linear-gradient(90deg, rgba(57, 25, 152, 0.15) 2px, transparent 2px),
-    var(--color-background-dark);
-  background-size: 40px 40px;
+
   color: var(--color-gray-300);
   font-family: var(--font-family-body-custom);
   font-weight: var(--font-weight-body-custom);
@@ -100,7 +96,14 @@ body {
   transition: all 0.3s ease;
   position: relative;
   overflow-x: hidden;
-  width: 100%;
+   width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(rgba(57, 25, 152, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57, 25, 152, 0.1) 1px, transparent 1px),
+    var(--color-background-dark);
+  background-size: 20px 20px;
+
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -159,31 +162,6 @@ html.light a:hover {
   font-family: var(--font-mono);
 }
 
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    radial-gradient(circle at 15% 25%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
-    radial-gradient(circle at 85% 75%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
-    radial-gradient(circle at 45% 85%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
-    radial-gradient(circle at 75% 15%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
-    radial-gradient(circle at 25% 55%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
-    radial-gradient(circle at 95% 45%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
-    radial-gradient(circle at 55% 65%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
-    radial-gradient(circle at 35% 35%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
-    radial-gradient(circle at 65% 95%, rgba(67, 24, 255, 0.6) 3px, transparent 3px),
-    radial-gradient(circle at 5% 85%, rgba(67, 24, 255, 0.6) 3px, transparent 3px);
-  background-size: 300px 300px;
-  background-position: 0 0, 150px 75px, 75px 225px, 225px 150px, 50px 100px, 250px 50px, 100px 200px, 200px 100px, 125px 250px, 25px 175px;
-  animation: grid-pulse 4s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 0;
-}
-
 body > * {
   position: relative;
   z-index: 1;
@@ -196,12 +174,12 @@ body > * {
 
 /* Light mode overrides - only apply when .light class is present */
 html.light body {
-  background: 
-    linear-gradient(rgba(57, 25, 152, 0.1) 2px, transparent 2px),
-    linear-gradient(90deg, rgba(57, 25, 152, 0.1) 2px, transparent 2px),
-    var(--color-background-light);
-  background-size: 40px 40px;
   color: var(--color-gray-700);
+  background: 
+    linear-gradient(rgba(57, 25, 152, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57, 25, 152, 0.11) 1px, transparent 1px),
+    var(--color-background-light);
+     background-size: 20px 20px;
 }
 
 html.light h1,
@@ -213,68 +191,55 @@ html.light h6 {
   color: rgb(17, 24, 39);
 }
 
-html.light body::before {
-  background-image: 
-    radial-gradient(circle at 15% 25%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
-    radial-gradient(circle at 85% 75%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
-    radial-gradient(circle at 45% 85%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
-    radial-gradient(circle at 75% 15%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
-    radial-gradient(circle at 25% 55%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
-    radial-gradient(circle at 95% 45%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
-    radial-gradient(circle at 55% 65%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
-    radial-gradient(circle at 35% 35%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
-    radial-gradient(circle at 65% 95%, rgba(67, 24, 255, 0.4) 3px, transparent 3px),
-    radial-gradient(circle at 5% 85%, rgba(67, 24, 255, 0.4) 3px, transparent 3px);
-}
+
 
 html.light .hover\:bg-arkade-purple:hover {
   background-color: rgba(57, 25, 152, 0.05) !important;
 }
 
 .bg-arkade-black {
-  background: #0a0a0a !important;
+  background: rgba(var( --color-background-light), 0.4);
+  
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
   position: relative;
 }
 
 .mobile-search-modal {
   position: fixed !important;
   animation: modal-slide-in 0.2s ease-out;
+  background-color: var(--color-background-dark);
+
+    background: 
+    linear-gradient(rgba(57, 25, 152, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57, 25, 152, 0.1) 1px, transparent 1px),
+    var(--color-background-dark);
+  background-size: 20px 20px;
+}
+
+html.light .mobile-search-modal {
+  
+  background-color: var( --color-background-light);
+
+  background: 
+    linear-gradient(rgba(57, 25, 152, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57, 25, 152, 0.11) 1px, transparent 1px),
+    var(--color-background-light);
+     background-size: 20px 20px;
 }
 
 .modal-backdrop {
   animation: modal-fade-in 0.2s ease-out;
 }
 
-.bg-arkade-black::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    linear-gradient(rgba(67, 24, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(67, 24, 255, 0.03) 1px, transparent 1px);
-  background-size: 20px 20px;
-  pointer-events: none;
-  z-index: 0;
-}
+
 
 .bg-arkade-black > * {
   position: relative;
   z-index: 1;
 }
 
-html.light .bg-arkade-black {
-  background: #ffffff !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
-}
 
-html.light .bg-arkade-black::before {
-  background-image: 
-    linear-gradient(rgba(67, 24, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(67, 24, 255, 0.04) 1px, transparent 1px);
-}
 
 html.light .text-arkade-gray {
   color: #2D3748 !important;
@@ -324,6 +289,10 @@ html.light .placeholder-gray-600::placeholder {
 
 html.light .retro-glow {
   box-shadow: 0 0 15px rgba(67, 24, 255, 0.2);
+}
+ button{
+  cursor: pointer;
+
 }
 
 .retro-button {

@@ -12,7 +12,7 @@ export function Badge({ children, variant = 'default', className }: BadgeProps) 
     default: 'bg-arkade-purple text-white',
     success: 'bg-green-600 text-white',
     warning: 'bg-yellow-600 text-arkade-black',
-    danger: 'bg-arkade-orange text-arkade-black',
+    danger: 'bg-arkade-orange text-white',
   };
 
   return (
