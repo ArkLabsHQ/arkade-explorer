@@ -18,10 +18,26 @@ interface BatchListProps {
 
 export function BatchList({ batches, commitmentTxid }: BatchListProps) {
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
-  const batchEntries = Object.entries(batches);
+  const [debugBatches, setDebugBatches] = useState<Set<string>>(new Set());
+  // Filter out batches with 0 amount
+  const batchEntries = Object.entries(batches).filter(([_, batch]) => 
+    batch.totalOutputAmount && parseInt(batch.totalOutputAmount) > 0
+  );
 
   const toggleBatch = (batchId: string) => {
     setExpandedBatches(prev => {
+      const next = new Set(prev);
+      if (next.has(batchId)) {
+        next.delete(batchId);
+      } else {
+        next.add(batchId);
+      }
+      return next;
+    });
+  };
+
+  const toggleDebug = (batchId: string) => {
+    setDebugBatches(prev => {
       const next = new Set(prev);
       if (next.has(batchId)) {
         next.delete(batchId);
@@ -42,6 +58,7 @@ export function BatchList({ batches, commitmentTxid }: BatchListProps) {
       <div className="space-y-4">
         {batchEntries.map(([outpoint, batch], index) => {
           const isExpanded = expandedBatches.has(outpoint);
+          const showDebug = debugBatches.has(outpoint);
           const vout = parseInt(outpoint, 10);
           
           return (
@@ -81,6 +98,21 @@ export function BatchList({ batches, commitmentTxid }: BatchListProps) {
               {isExpanded && (
                 <BatchTreeContent commitmentTxid={commitmentTxid} vout={vout} />
               )}
+              
+              {/* Debug toggle */}
+              <div className="pt-2 border-t border-arkade-gray/20">
+                <button
+                  onClick={() => toggleDebug(outpoint)}
+                  className="text-arkade-gray hover:text-arkade-purple text-xs uppercase font-bold transition-colors"
+                >
+                  {showDebug ? '▼ Hide' : '▶ Show'} Raw JSON
+                </button>
+                {showDebug && (
+                  <pre className="mt-2 p-2 bg-arkade-black/50 rounded text-xs overflow-x-auto">
+                    <code className="text-arkade-gray">{JSON.stringify(batch, null, 2)}</code>
+                  </pre>
+                )}
+              </div>
             </div>
           );
         })}

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Card } from '../UI/Card';
 import { Badge } from '../UI/Badge';
 import { formatTimestamp, formatSats, truncateHash } from '../../lib/utils';
@@ -17,6 +18,7 @@ interface VtxoListProps {
 export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
   const { serverInfo } = useServerInfo();
   const { resolvedTheme } = useTheme();
+  const [showDebug, setShowDebug] = useState(false);
 
   if (vtxos.length === 0) {
     return (
@@ -34,10 +36,13 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
       {vtxos.map((vtxo, idx) => {
         const outpointTxid = vtxo.txid || '';
         const outpointVout = vtxo.vout !== undefined ? vtxo.vout : idx;
-        // A VTXO is recoverable if it's expired but not spent (unspent but unspendable)
+        // A VTXO is recoverable if it's swept (expired and unspent)
         const expireAt = (vtxo as any).expireAt || (vtxo as any).expiresAt;
         const isExpired = expireAt ? new Date(expireAt) < new Date() : false;
-        const isRecoverable = !vtxo.spentBy && isExpired;
+        const isSpent = vtxo.spentBy || (vtxo as any).isSpent;
+        const isRecoverable = !isSpent && (vtxo as any).virtualStatus?.state === 'swept';
+        const isPreconfirmed = (vtxo as any).virtualStatus?.state === 'preconfirmed' || (vtxo as any).preconfirmed;
+        const isSettled = (vtxo as any).virtualStatus?.state === 'settled' || (!isPreconfirmed && (vtxo as any).virtualStatus);
 
         // Extract script from PSBT if available
         let scriptAddress = '';
@@ -70,7 +75,7 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
         return (
           <Card
             key={idx}
-            glowing={!vtxo.spentBy && !isRecoverable}
+            glowing={!isSpent && !isRecoverable}
             className="animate-slide-in"
             style={{ animationDelay: `${idx * 0.05}s` }}>
             <div className="space-y-3">
@@ -91,10 +96,10 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
                 </div>
 
                 <div className="flex items-end gap-1 flex-wrap">
-                  {(vtxo as any).preconfirmed && <Badge variant="default">Preconfirmed</Badge>}
-                  {vtxo.spentBy && <Badge variant="danger">Spent</Badge>}
-                  {!vtxo.spentBy && isRecoverable && <Badge variant="warning">Recoverable</Badge>}
-                  {!vtxo.spentBy && !isRecoverable && <Badge variant="success">Active</Badge>}
+                  {isSettled && <Badge variant="default">Settled</Badge>}
+                  {isSpent && <Badge variant="danger">Spent</Badge>}
+                  {!isSpent && isRecoverable && <Badge variant="warning">Recoverable</Badge>}
+                  {!isSpent && !isRecoverable && <Badge variant="success">Unspent</Badge>}
                 </div>
               </div>
 
@@ -112,6 +117,15 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
                     {formatTimestamp(vtxo.createdAt.getTime())}
                   </span>
                 </div>
+
+                {expireAt && (
+                  <div className="flex gap-2">
+                    <span className="text-arkade-gray uppercase text-xs sm:text-sm">Expires:</span>
+                    <span className={`font-mono text-xs sm:text-sm sm:ml-2 ${isExpired ? 'text-arkade-orange' : 'text-arkade-gray'}`}>
+                      {formatTimestamp(new Date(expireAt).getTime())}
+                    </span>
+                  </div>
+                )}
 
                 {(vtxo as any).address && (
                   <div className="col-span-2">
@@ -147,18 +161,11 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
                   </div>
                 )}
 
-                {expireAt && (
-                  <div>
-                    <span className="text-arkade-gray uppercase">Expires:</span>
-                    <span className={`ml-2 font-mono ${isExpired ? 'text-arkade-orange' : 'text-arkade-gray'}`}>
-                      {formatTimestamp(new Date(expireAt).getTime())}
-                    </span>
-                  </div>
-                )}
-
                 {vtxo.spentBy && (
                   <div className="col-span-2">
-                    <span className="text-arkade-gray uppercase">Spent By:</span>
+                    <span className="text-arkade-gray uppercase">
+                      {(vtxo as any).settledBy ? 'Forfeit Tx:' : 'Spent By:'}
+                    </span>
                     <Link to={`/tx/${vtxo.spentBy}`} className={`${mypurple} ml-2 font-mono hover:underline`}>
                       {truncateHash(vtxo.spentBy, 8, 8)}
                     </Link>
@@ -175,6 +182,21 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
                     </Link>
                   </div>
                 )}
+
+                {/* Debug toggle */}
+                <div className="pt-2 border-t border-arkade-gray/20">
+                  <button
+                    onClick={() => setShowDebug(!showDebug)}
+                    className="text-arkade-gray hover:text-arkade-purple text-xs uppercase font-bold transition-colors"
+                  >
+                    {showDebug ? '▼ Hide' : '▶ Show'} Raw JSON
+                  </button>
+                  {showDebug && (
+                    <pre className="mt-2 p-2 bg-arkade-black/50 rounded text-xs overflow-x-auto">
+                      <code className="text-arkade-gray">{JSON.stringify(vtxo, null, 2)}</code>
+                    </pre>
+                  )}
+                </div>
               </div>
             </div>
           </Card>

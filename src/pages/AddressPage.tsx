@@ -116,17 +116,16 @@ export function AddressPage() {
   // Calculate derived values
   const allVtxos = data?.vtxos || [];
   let vtxos = allVtxos.filter(v => {
-    const expireAt = (v as any).expireAt || (v as any).expiresAt;
-    const isExpired = expireAt ? new Date(expireAt) < new Date() : false;
-    const isRecoverable = !v.spentBy && isExpired;
-    const isSpendable = !v.spentBy && !isExpired;
-    const isPreconfirmed = (v as any).preconfirmed;
-    // VTXOs are "settled" when they are NOT preconfirmed (i.e., confirmed on-chain)
-    const isSettled = !isPreconfirmed;
+    const isSpent = v.spentBy || (v as any).isSpent;
+    const isRecoverable = !isSpent && (v as any).virtualStatus?.state === 'swept';
+    const isSpendable = !isSpent && !isRecoverable;
+    const isPreconfirmed = (v as any).virtualStatus?.state === 'preconfirmed' || (v as any).preconfirmed;
+    // VTXOs are "settled" when they are confirmed on-chain (virtualStatus.state === 'settled')
+    const isSettled = (v as any).virtualStatus?.state === 'settled' || (!isPreconfirmed && (v as any).virtualStatus);
     
     // Apply spend filter
-    if (spendFilter === 'unspent' && v.spentBy) return false;
-    if (spendFilter === 'spent' && !v.spentBy) return false;
+    if (spendFilter === 'unspent' && isSpent) return false;
+    if (spendFilter === 'spent' && !isSpent) return false;
     
     // Apply spendable filter
     if (spendableFilter === 'spendable' && !isSpendable) return false;

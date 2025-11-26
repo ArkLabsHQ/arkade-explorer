@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { Card } from '../UI/Card';
-import { CopyButton } from '../UI/CopyButton';
-import { truncateHash, formatTimestamp, formatSats } from '../../lib/utils';
+import { truncateHash, formatTimestamp, formatSats, copyToClipboard } from '../../lib/utils';
 import * as btc from '@scure/btc-signer';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Copy, Check, ExternalLink } from 'lucide-react';
+import { useServerInfo } from '../../contexts/ServerInfoContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import { constructArkAddress } from '../../lib/arkAddress';
 
 interface TransactionDetailsProps {
   txid: string;
@@ -11,14 +14,65 @@ interface TransactionDetailsProps {
   data: any;
 }
 
+
 export function TransactionDetails({ txid, type, data }: TransactionDetailsProps) {
+  const { serverInfo } = useServerInfo();
+  const { resolvedTheme } = useTheme();
+  const [copiedTxid, setCopiedTxid] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
+  
+  // Link color: white in dark mode, purple in light mode
+  const linkColor = resolvedTheme === 'dark' ? 'text-white' : 'text-arkade-purple';
+  
   // Parse PSBT for Arkade transactions
   let parsedTx: btc.Transaction | null = null;
+  let forfeitScriptHex = '';
+  let isForfeitTx = false;
+  
   if (type === 'arkade' && data?.txs?.[0]) {
     try {
       const psbtBase64 = data.txs[0];
       const psbtBytes = Uint8Array.from(atob(psbtBase64), c => c.charCodeAt(0));
       parsedTx = btc.Transaction.fromPSBT(psbtBytes);
+      
+      // Get forfeit pubkey from server info
+      if (serverInfo?.forfeitPubkey && parsedTx) {
+        try {
+          const forfeitPubkeyHex = serverInfo.forfeitPubkey;
+          
+          // Convert hex pubkey to bytes for P2WPKH script creation
+          const pubkeyBytes = Uint8Array.from(
+            forfeitPubkeyHex.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []
+          );
+          
+          // Create P2WPKH script from pubkey
+          const p2wpkhOutput = btc.p2wpkh(pubkeyBytes);
+          forfeitScriptHex = Array.from(p2wpkhOutput.script).map(b => b.toString(16).padStart(2, '0')).join('');
+          
+          // Check if this is a forfeit tx (only 1 non-anchor output to forfeit address)
+          let nonAnchorOutputs = 0;
+          let forfeitOutputs = 0;
+          
+          for (let i = 0; i < parsedTx.outputsLength; i++) {
+            const output = parsedTx.getOutput(i);
+            const scriptHex = output?.script 
+              ? Array.from(output.script).map(b => b.toString(16).padStart(2, '0')).join('')
+              : '';
+            const isAnchor = scriptHex.startsWith('51024e73');
+            
+            if (!isAnchor) {
+              nonAnchorOutputs++;
+              if (scriptHex === forfeitScriptHex) {
+                forfeitOutputs++;
+              }
+            }
+          }
+          
+          isForfeitTx = nonAnchorOutputs === 1 && forfeitOutputs === 1;
+        } catch (e) {
+          console.error('Failed to generate forfeit script:', e);
+        }
+      }
     } catch (e) {
       console.error('Failed to parse PSBT:', e);
     }
@@ -28,7 +82,7 @@ export function TransactionDetails({ txid, type, data }: TransactionDetailsProps
       <Card glowing>
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-arkade-purple uppercase">
-            {type === 'commitment' ? 'Commitment Transaction' : 'Arkade Transaction'}
+            {type === 'commitment' ? 'Commitment Transaction' : isForfeitTx ? 'Forfeit Transaction' : 'Arkade Transaction'}
           </h1>
         </div>
         
@@ -36,10 +90,44 @@ export function TransactionDetails({ txid, type, data }: TransactionDetailsProps
           <div className="border-b border-arkade-purple pb-2">
             <div className="flex items-center justify-between mb-1">
               <span className="text-arkade-gray uppercase text-sm font-bold">Transaction ID</span>
-              <CopyButton text={txid} />
+              <button
+                onClick={() => {
+                  copyToClipboard(txid);
+                  setCopiedTxid(true);
+                  setTimeout(() => setCopiedTxid(false), 2000);
+                }}
+                className="p-1 hover:text-arkade-purple transition-colors flex-shrink-0"
+                title="Copy to clipboard"
+              >
+                {copiedTxid ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+              </button>
             </div>
-            <span className="text-arkade-gray font-mono text-xs sm:text-sm break-all block">{txid}</span>
+            <button
+              onClick={() => {
+                copyToClipboard(txid);
+                setCopiedTxid(true);
+                setTimeout(() => setCopiedTxid(false), 2000);
+              }}
+              className={`${linkColor} font-mono text-xs sm:text-sm hover:font-bold transition-all cursor-pointer break-all w-full text-left`}
+              title="Click to copy"
+            >
+              {txid}
+            </button>
           </div>
+
+          {type === 'commitment' && (
+            <div className="border-b border-arkade-purple pb-2">
+              <a
+                href={`https://mempool.space/${serverInfo?.network === 'bitcoin' ? '' : 'testnet/'}tx/${txid}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${linkColor} hover:text-arkade-orange text-sm font-bold uppercase flex items-center gap-2 transition-colors`}
+              >
+                <ExternalLink size={16} />
+                View on Mempool.space
+              </a>
+            </div>
+          )}
 
           {type === 'commitment' && data && (
             <>
@@ -76,26 +164,75 @@ export function TransactionDetails({ txid, type, data }: TransactionDetailsProps
           )}
 
           {type === 'arkade' && parsedTx && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-              {/* Inputs Column */}
-              <div>
-                <h3 className="text-lg font-bold text-arkade-purple uppercase mb-3">
-                  Inputs ({parsedTx.inputsLength})
-                </h3>
+            <>
+              {/* Transaction metadata */}
+              <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
+                <span className="text-arkade-gray uppercase text-sm font-bold">Version</span>
+                <span className="text-arkade-gray font-mono">{parsedTx.version}</span>
+              </div>
+              
+              <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
+                <span className="text-arkade-gray uppercase text-sm font-bold">Lock Time</span>
+                <span className="text-arkade-gray font-mono">{parsedTx.lockTime}</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                {/* Inputs Column */}
+                <div>
+                  <h3 className="text-lg font-bold text-arkade-purple uppercase mb-3">
+                    Inputs ({parsedTx.inputsLength})
+                  </h3>
                 <div className="space-y-2">
                   {Array.from({ length: parsedTx.inputsLength }).map((_, i) => {
                     const input = parsedTx!.getInput(i);
                     const inputTxid = input?.txid 
                       ? Array.from(input.txid).reverse().map(b => b.toString(16).padStart(2, '0')).join('')
                       : '';
+                    
+                    // Extract amount and script from witness UTXO
+                    let inputAmount: bigint | null = null;
+                    let inputArkAddress = '';
+                    
+                    if (input?.witnessUtxo) {
+                      inputAmount = input.witnessUtxo.amount;
+                      
+                      // Try to construct Ark address from witness UTXO script
+                      if (input.witnessUtxo.script && serverInfo?.signerPubkey && serverInfo?.network) {
+                        try {
+                          const addr = constructArkAddress(input.witnessUtxo.script, serverInfo.signerPubkey, serverInfo.network);
+                          if (addr) {
+                            inputArkAddress = addr;
+                          }
+                        } catch (e) {
+                          console.error('Failed to construct Ark address for input:', e);
+                        }
+                      }
+                    }
+                    
                     return (
                       <div key={i} className="bg-arkade-black border border-arkade-purple p-3 animate-slide-in" style={{ animationDelay: `${i * 0.05}s` }}>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs text-arkade-gray uppercase">Input #{i}</span>
-                          {input?.index !== undefined && (
-                            <span className="text-xs text-arkade-gray">vout: {input.index}</span>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {input?.index !== undefined && (
+                              <span className="text-xs text-arkade-gray">vout: {input.index}</span>
+                            )}
+                            {inputAmount !== null && (
+                              <span className="text-xs text-arkade-orange font-bold">
+                                {formatSats(inputAmount.toString())} sats
+                              </span>
+                            )}
+                          </div>
                         </div>
+                        {inputArkAddress && (
+                          <Link 
+                            to={`/address/${inputArkAddress}`}
+                            className={`text-xs font-mono ${linkColor} hover:text-arkade-orange flex items-center space-x-1 mb-1`}
+                          >
+                            <span>{truncateHash(inputArkAddress, 12, 12)}</span>
+                            <ArrowRight size={12} />
+                          </Link>
+                        )}
                         {inputTxid && (
                           <Link 
                             to={`/tx/${inputTxid}`}
@@ -124,6 +261,21 @@ export function TransactionDetails({ txid, type, data }: TransactionDetailsProps
                       ? Array.from(output.script).map(b => b.toString(16).padStart(2, '0')).join('')
                       : '';
                     const isAnchorOutput = scriptHex.startsWith('51024e73');
+                    const isForfeitOutput = isForfeitTx && scriptHex === forfeitScriptHex;
+                    
+                    // Try to construct Ark address for non-anchor, non-forfeit outputs
+                    let arkAddress = '';
+                    if (!isAnchorOutput && !isForfeitOutput && output?.script && serverInfo?.signerPubkey && serverInfo?.network) {
+                      try {
+                        const addr = constructArkAddress(output.script, serverInfo.signerPubkey, serverInfo.network);
+                        if (addr) {
+                          arkAddress = addr;
+                        }
+                      } catch (e) {
+                        console.error('Failed to construct Ark address:', e);
+                      }
+                    }
+                    
                     return (
                       <div key={i} className="bg-arkade-black border border-arkade-purple p-3 animate-slide-in" style={{ animationDelay: `${i * 0.05}s` }}>
                         <div className="flex items-center justify-between mb-1">
@@ -132,7 +284,19 @@ export function TransactionDetails({ txid, type, data }: TransactionDetailsProps
                             {formatSats(amount.toString())} sats
                           </span>
                         </div>
-                        {scriptHex && (
+                        {isForfeitOutput && (
+                          <div className="text-xs text-arkade-orange font-bold uppercase mb-1">Arkade Operator</div>
+                        )}
+                        {arkAddress && (
+                          <Link 
+                            to={`/address/${arkAddress}`}
+                            className={`text-xs font-mono ${linkColor} hover:text-arkade-orange flex items-center space-x-1`}
+                          >
+                            <span>{truncateHash(arkAddress, 12, 12)}</span>
+                            <ArrowRight size={12} />
+                          </Link>
+                        )}
+                        {!arkAddress && scriptHex && (
                           isAnchorOutput ? (
                             <div className="text-xs font-mono text-arkade-gray break-all">
                               <div className="mb-1">Anchor output</div>
@@ -141,7 +305,7 @@ export function TransactionDetails({ txid, type, data }: TransactionDetailsProps
                           ) : (
                             <Link 
                               to={`/address/${scriptHex}`}
-                              className="text-xs font-mono text-arkade-purple hover:text-arkade-orange break-all block"
+                              className="text-xs font-mono text-arkade-gray hover:text-arkade-purple break-all block"
                             >
                               {scriptHex.substring(0, 40)}...
                             </Link>
@@ -153,7 +317,52 @@ export function TransactionDetails({ txid, type, data }: TransactionDetailsProps
                 </div>
               </div>
             </div>
+            </>
           )}
+          
+          {/* Debug toggle */}
+          <div className="pt-4 border-t border-arkade-gray/20">
+            <button
+              onClick={() => setShowDebug(!showDebug)}
+              className="text-arkade-gray hover:text-arkade-purple text-xs uppercase font-bold transition-colors"
+            >
+              {showDebug ? '▼ Hide' : '▶ Show'} Raw JSON
+            </button>
+            {showDebug && (
+              <pre className="mt-2 p-2 bg-arkade-black/50 rounded text-xs overflow-x-auto">
+                <code className="text-arkade-gray">{JSON.stringify(parsedTx ? {
+                  type: type === 'commitment' ? 'Commitment Transaction' : isForfeitTx ? 'Forfeit Transaction' : 'Arkade Transaction',
+                  txid,
+                  version: parsedTx.version,
+                  lockTime: parsedTx.lockTime,
+                  inputsCount: parsedTx.inputsLength,
+                  inputs: Array.from({ length: parsedTx.inputsLength }).map((_, i) => {
+                    const input = parsedTx!.getInput(i);
+                    return {
+                      index: input?.index,
+                      txid: input?.txid ? Array.from(input.txid).reverse().map(b => b.toString(16).padStart(2, '0')).join('') : null,
+                      sequence: input?.sequence,
+                      witnessUtxo: input?.witnessUtxo ? {
+                        amount: input.witnessUtxo.amount.toString(),
+                        scriptHex: Array.from(input.witnessUtxo.script).map(b => b.toString(16).padStart(2, '0')).join(''),
+                      } : null,
+                    };
+                  }),
+                  outputsCount: parsedTx.outputsLength,
+                  outputs: Array.from({ length: parsedTx.outputsLength }).map((_, i) => {
+                    const output = parsedTx!.getOutput(i);
+                    const scriptHex = output?.script ? Array.from(output.script).map(b => b.toString(16).padStart(2, '0')).join('') : '';
+                    return {
+                      amount: output?.amount?.toString(),
+                      scriptHex,
+                      isAnchor: scriptHex.startsWith('51024e73'),
+                      isForfeit: isForfeitTx && scriptHex === forfeitScriptHex,
+                    };
+                  }),
+                } : data, null, 2)}</code>
+              </pre>
+            )}
+          </div>
         </div>
       </Card>
     </div>

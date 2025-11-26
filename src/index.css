@@ -138,13 +138,21 @@ p {
 }
 
 a {
-  color: var(--color-primary);
+  color: white;
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: font-weight 0.2s ease;
 }
 
 a:hover {
-  color: var(--color-primary-light);
+  font-weight: bold;
+}
+
+html.light a {
+  color: var(--color-primary);
+}
+
+html.light a:hover {
+  font-weight: bold;
 }
 
 .font-mono {
@@ -319,7 +327,7 @@ html.light .retro-glow {
 }
 
 .retro-button {
-  @apply px-4 bg-arkade-purple text-white font-bold uppercase tracking-wider border-2 border-arkade-purple hover:bg-transparent hover:text-arkade-purple transition-all duration-200 cursor-pointer;
+  @apply px-4 bg-arkade-purple text-white font-bold uppercase tracking-wider border-2 border-arkade-purple transition-all duration-200 cursor-pointer;
   height: 40px;
   display: inline-flex;
   align-items: center;
@@ -329,5 +337,15 @@ html.light .retro-glow {
 }
 
 .retro-button:hover {
-  opacity: 0.8;
+  background-color: var(--color-arkade-orange);
+  border-color: var(--color-arkade-orange);
+  color: white;
+}
+
+html.light .retro-button {
+  color: white !important;
+}
+
+html.light .retro-button:hover {
+  color: white !important;
 }
