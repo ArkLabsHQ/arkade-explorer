@@ -18,8 +18,7 @@ export function AddressPage() {
   const { address } = useParams<{ address: string }>();
   const { addRecentSearch, pinSearch, unpinSearch, isPinned } = useRecentSearches();
   const { serverInfo } = useServerInfo();
-  const [spendFilter, setSpendFilter] = useState<'all' | 'unspent' | 'spent'>('all');
-  const [spendableFilter, setSpendableFilter] = useState<'all' | 'spendable' | 'recoverable'>('all');
+  const [vtxoFilter, setVtxoFilter] = useState<'all' | 'spendable' | 'recoverable' | 'spent'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'preconfirmed' | 'settled'>('all');
   const [displayCount, setDisplayCount] = useState(20);
   const [copiedAddress, setCopiedAddress] = useState(false);
@@ -123,13 +122,10 @@ export function AddressPage() {
     // VTXOs are "settled" when they are confirmed on-chain (virtualStatus.state === 'settled')
     const isSettled = (v as any).virtualStatus?.state === 'settled';
     
-    // Apply spend filter
-    if (spendFilter === 'unspent' && isSpent) return false;
-    if (spendFilter === 'spent' && !isSpent) return false;
-    
-    // Apply spendable filter
-    if (spendableFilter === 'spendable' && !isSpendable) return false;
-    if (spendableFilter === 'recoverable' && !isRecoverable) return false;
+    // Apply combined VTXO filter
+    if (vtxoFilter === 'spendable' && !isSpendable) return false;
+    if (vtxoFilter === 'recoverable' && !isRecoverable) return false;
+    if (vtxoFilter === 'spent' && !isSpent) return false;
     
     // Apply status filter
     if (statusFilter === 'preconfirmed' && !isPreconfirmed) return false;
@@ -278,14 +274,14 @@ export function AddressPage() {
           <h2 className="text-xl font-bold text-arkade-purple uppercase mb-4">VTXOs ({vtxos.length})</h2>
           
           <div className="flex flex-wrap items-center gap-3 md:gap-4">
-            {/* Spend Status Filter */}
+            {/* VTXO Filter */}
             <div className="flex items-center space-x-2 md:space-x-1.5 w-full md:w-auto">
-              <span className="text-arkade-gray text-xs uppercase font-bold flex-shrink-0 w-24 md:w-auto">Spend:</span>
+              <span className="text-arkade-gray text-xs uppercase font-bold flex-shrink-0 w-24 md:w-auto">VTXOs:</span>
               <div className="flex space-x-1 flex-1 md:flex-initial">
                 <button
-                  onClick={() => { setSpendFilter('all'); resetDisplayCount(); }}
+                  onClick={() => { setVtxoFilter('all'); resetDisplayCount(); }}
                   className={`px-2 py-1 text-xs uppercase font-bold transition-colors ${
-                    spendFilter === 'all'
+                    vtxoFilter === 'all'
                       ? 'bg-arkade-purple text-white border-2 border-arkade-purple'
                       : 'text-arkade-gray border-2 border-arkade-purple hover:text-arkade-purple'
                   }`}
@@ -293,48 +289,9 @@ export function AddressPage() {
                   All
                 </button>
                 <button
-                  onClick={() => { setSpendFilter('unspent'); resetDisplayCount(); }}
+                  onClick={() => { setVtxoFilter('spendable'); resetDisplayCount(); }}
                   className={`px-2 py-1 text-xs uppercase font-bold transition-colors ${
-                    spendFilter === 'unspent'
-                      ? 'bg-arkade-purple text-white border-2 border-arkade-purple'
-                      : 'text-arkade-gray border-2 border-arkade-purple hover:text-arkade-purple'
-                  }`}
-                >
-                  Unspent
-                </button>
-                <button
-                  onClick={() => { setSpendFilter('spent'); resetDisplayCount(); }}
-                  className={`px-2 py-1 text-xs uppercase font-bold transition-colors ${
-                    spendFilter === 'spent'
-                      ? 'bg-arkade-purple text-white border-2 border-arkade-purple'
-                      : 'text-arkade-gray border-2 border-arkade-purple hover:text-arkade-purple'
-                  }`}
-                >
-                  Spent
-                </button>
-              </div>
-            </div>
-
-            <div className="hidden md:block h-6 w-px bg-arkade-purple"></div>
-
-            {/* Spendable Filter */}
-            <div className="flex items-center space-x-2 md:space-x-1.5 w-full md:w-auto">
-              <span className="text-arkade-gray text-xs uppercase font-bold flex-shrink-0 w-24 md:w-auto">Spendable:</span>
-              <div className="flex space-x-1 flex-1 md:flex-initial">
-                <button
-                  onClick={() => { setSpendableFilter('all'); resetDisplayCount(); }}
-                  className={`px-2 py-1 text-xs uppercase font-bold transition-colors ${
-                    spendableFilter === 'all'
-                      ? 'bg-arkade-purple text-white border-2 border-arkade-purple'
-                      : 'text-arkade-gray border-2 border-arkade-purple hover:text-arkade-purple'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => { setSpendableFilter('spendable'); resetDisplayCount(); }}
-                  className={`px-2 py-1 text-xs uppercase font-bold transition-colors ${
-                    spendableFilter === 'spendable'
+                    vtxoFilter === 'spendable'
                       ? 'bg-arkade-purple text-white border-2 border-arkade-purple'
                       : 'text-arkade-gray border-2 border-arkade-purple hover:text-arkade-purple'
                   }`}
@@ -342,14 +299,24 @@ export function AddressPage() {
                   Spendable
                 </button>
                 <button
-                  onClick={() => { setSpendableFilter('recoverable'); resetDisplayCount(); }}
+                  onClick={() => { setVtxoFilter('recoverable'); resetDisplayCount(); }}
                   className={`px-2 py-1 text-xs uppercase font-bold transition-colors ${
-                    spendableFilter === 'recoverable'
+                    vtxoFilter === 'recoverable'
                       ? 'bg-arkade-purple text-white border-2 border-arkade-purple'
                       : 'text-arkade-gray border-2 border-arkade-purple hover:text-arkade-purple'
                   }`}
                 >
                   Recoverable
+                </button>
+                <button
+                  onClick={() => { setVtxoFilter('spent'); resetDisplayCount(); }}
+                  className={`px-2 py-1 text-xs uppercase font-bold transition-colors ${
+                    vtxoFilter === 'spent'
+                      ? 'bg-arkade-purple text-white border-2 border-arkade-purple'
+                      : 'text-arkade-gray border-2 border-arkade-purple hover:text-arkade-purple'
+                  }`}
+                >
+                  Spent
                 </button>
               </div>
             </div>
