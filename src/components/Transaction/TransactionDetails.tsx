@@ -3,12 +3,13 @@ import { Card } from '../UI/Card';
 import { truncateHash, formatTimestamp, formatSats, copyToClipboard } from '../../lib/utils';
 import * as btc from '@scure/btc-signer';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Copy, Check, ExternalLink } from 'lucide-react';
+import { ArrowRight, Copy, Check, ExternalLink, Pin, PinOff } from 'lucide-react';
 import { useServerInfo } from '../../contexts/ServerInfoContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { constructArkAddress } from '../../lib/arkAddress';
 import type { VirtualCoin } from '../../lib/api/indexer';
 import { indexerClient } from '../../lib/api/indexer';
+import { useRecentSearches } from '../../hooks/useRecentSearches';
 import { hex } from '@scure/base';
 
 interface TransactionDetailsProps {
@@ -23,6 +24,7 @@ interface TransactionDetailsProps {
 export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDetailsProps) {
   const { serverInfo } = useServerInfo();
   const { resolvedTheme } = useTheme();
+  const { pinSearch, unpinSearch, isPinned } = useRecentSearches();
   const [copiedTxid, setCopiedTxid] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [checkpointVtxo, setCheckpointVtxo] = useState<VirtualCoin | null>(null);
@@ -208,6 +210,23 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
           <h1 className="text-2xl font-bold text-arkade-purple uppercase">
             {type === 'commitment' ? 'Commitment Transaction' : isCheckpointTx ? 'Checkpoint Transaction' : isForfeitTx ? 'Forfeit Transaction' : 'Arkade Transaction'}
           </h1>
+          <button
+            onClick={() => {
+              if (isPinned(txid)) {
+                unpinSearch(txid);
+              } else {
+                pinSearch(txid, type === 'commitment' ? 'commitment-tx' : 'transaction');
+              }
+            }}
+            className={`p-2 transition-colors ${
+              isPinned(txid)
+                ? 'text-arkade-orange hover:text-arkade-purple'
+                : 'text-arkade-gray hover:text-arkade-orange'
+            }`}
+            title={isPinned(txid) ? 'Unpin from search' : 'Pin to search'}
+          >
+            {isPinned(txid) ? <PinOff size={20} /> : <Pin size={20} />}
+          </button>
         </div>
         
         <div className="space-y-4">

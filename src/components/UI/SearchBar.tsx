@@ -1,14 +1,24 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, Clock, X } from 'lucide-react';
+import { Search, Clock, X, Pin, PinOff } from 'lucide-react';
 import { useRecentSearches } from '../../hooks/useRecentSearches';
 
 export function SearchBar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showPinned, setShowPinned] = useState(false);
   const navigate = useNavigate();
-  const { recentSearches, addRecentSearch, clearRecentSearches } = useRecentSearches();
+  const { 
+    recentSearches, 
+    pinnedSearches, 
+    addRecentSearch, 
+    clearRecentSearches, 
+    pinSearch, 
+    unpinSearch, 
+    clearPinnedSearches,
+    isPinned 
+  } = useRecentSearches();
 
   const closeModal = () => {
     setShowSearchModal(false);
@@ -124,38 +134,101 @@ export function SearchBar() {
             </div>
           </form>
           
-          {/* Recent searches in mobile modal */}
-          {recentSearches.length > 0 && (
+          {/* Search history section */}
+          {(recentSearches.length > 0 || pinnedSearches.length > 0) && (
             <div className="mt-4 border-t-2 border-arkade-purple pt-4">
+              {/* Toggle between Recent and Pinned - only show if both have items */}
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  <Clock size={16} className="text-arkade-purple" />
-                  <span className="text-arkade-gray uppercase text-xs font-bold">Recent Searches</span>
-                </div>
+                {recentSearches.length > 0 && pinnedSearches.length > 0 ? (
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowPinned(false)}
+                      className={`flex items-center space-x-1 px-3 py-1 transition-colors ${
+                        !showPinned 
+                          ? 'text-arkade-purple border-b-2 border-arkade-purple' 
+                          : 'text-arkade-gray hover:text-arkade-purple'
+                      }`}
+                    >
+                      <Clock size={16} />
+                      <span className="uppercase text-xs font-bold">Recent ({recentSearches.length})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowPinned(true)}
+                      className={`flex items-center space-x-1 px-3 py-1 transition-colors ${
+                        showPinned 
+                          ? 'text-arkade-purple border-b-2 border-arkade-purple' 
+                          : 'text-arkade-gray hover:text-arkade-purple'
+                      }`}
+                    >
+                      <Pin size={16} />
+                      <span className="uppercase text-xs font-bold">Pinned ({pinnedSearches.length})</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    {pinnedSearches.length > 0 ? (
+                      <>
+                        <Pin size={16} className="text-arkade-purple" />
+                        <span className="text-arkade-gray uppercase text-xs font-bold">Pinned Searches</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock size={16} className="text-arkade-purple" />
+                        <span className="text-arkade-gray uppercase text-xs font-bold">Recent Searches</span>
+                      </>
+                    )}
+                  </div>
+                )}
                 <button
                   type="button"
-                  onClick={clearRecentSearches}
-                  className="text-arkade-gray hover:text-arkade-orange transition-colors"
-                  title="Clear all"
+                  onClick={showPinned || pinnedSearches.length > 0 && recentSearches.length === 0 ? clearPinnedSearches : clearRecentSearches}
+                  className="text-arkade-gray hover:text-arkade-orange transition-colors text-xs uppercase font-bold flex items-center space-x-1"
+                  title={`Clear all ${showPinned || (pinnedSearches.length > 0 && recentSearches.length === 0) ? 'pinned' : 'recent'} searches`}
                 >
-                  <X size={16} />
+                  <span>Clear {recentSearches.length > 0 && pinnedSearches.length > 0 ? (showPinned ? 'Pinned' : 'Recent') : 'All'}</span>
+                  <X size={14} />
                 </button>
               </div>
+              
+              {/* Search items */}
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {recentSearches.slice(0, 10).map((item, idx) => (
-                  <Link
+                {((showPinned && pinnedSearches.length > 0) || recentSearches.length === 0 ? pinnedSearches : recentSearches).slice(0, 10).map((item, idx) => (
+                  <div
                     key={idx}
-                    to={getRecentSearchPath(item.value, item.type)}
-                    onClick={closeModal}
-                    className="flex w-full p-3 bg-arkade-black border border-arkade-purple hover:bg-arkade-purple hover:bg-opacity-30 transition-all duration-200 items-center justify-between space-x-3 no-underline"
+                    className="flex p-3 bg-arkade-black border border-arkade-purple hover:bg-arkade-purple hover:bg-opacity-30 transition-all duration-200 items-center justify-between space-x-3"
                   >
-                    <span className="text-arkade-gray font-mono text-xs truncate flex-1">
+                    <Link
+                      to={getRecentSearchPath(item.value, item.type)}
+                      onClick={closeModal}
+                      className="text-arkade-gray font-mono text-xs truncate flex-1 no-underline hover:text-arkade-orange transition-colors"
+                    >
                       {item.value.length > 30 ? `${item.value.slice(0, 15)}...${item.value.slice(-15)}` : item.value}
-                    </span>
+                    </Link>
                     <span className={`${getTypeBadgeColor(item.type)} text-white text-xs px-2 py-1 uppercase font-bold flex-shrink-0`}>
                       {getTypeLabel(item.type)}
                     </span>
-                  </Link>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isPinned(item.value)) {
+                          unpinSearch(item.value);
+                        } else {
+                          pinSearch(item.value, item.type);
+                        }
+                      }}
+                      className={`p-1 transition-colors flex-shrink-0 ${
+                        isPinned(item.value)
+                          ? 'text-arkade-orange hover:text-arkade-purple'
+                          : 'text-arkade-gray hover:text-arkade-orange'
+                      }`}
+                      title={isPinned(item.value) ? 'Unpin' : 'Pin'}
+                    >
+                      {isPinned(item.value) ? <PinOff size={14} /> : <Pin size={14} />}
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>

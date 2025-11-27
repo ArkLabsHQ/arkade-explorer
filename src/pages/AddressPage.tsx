@@ -10,13 +10,13 @@ import { ErrorMessage } from '../components/UI/ErrorMessage';
 import { ParticleRain } from '../components/UI/ParticleRain';
 import { copyToClipboard } from '../lib/utils';
 import { addressToScriptHex, scriptHexToAddress, isHex } from '../lib/decode';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, Pin, PinOff } from 'lucide-react';
 import { useRecentSearches } from '../hooks/useRecentSearches';
 import { useServerInfo } from '../contexts/ServerInfoContext';
 
 export function AddressPage() {
   const { address } = useParams<{ address: string }>();
-  const { addRecentSearch } = useRecentSearches();
+  const { addRecentSearch, pinSearch, unpinSearch, isPinned } = useRecentSearches();
   const { serverInfo } = useServerInfo();
   const [spendFilter, setSpendFilter] = useState<'all' | 'unspent' | 'spent'>('all');
   const [spendableFilter, setSpendableFilter] = useState<'all' | 'spendable' | 'recoverable'>('all');
@@ -204,7 +204,28 @@ export function AddressPage() {
       <ParticleRain trigger={particleTrigger} />
       <Card glowing>
         <div className="space-y-4">
-          <h1 className="text-2xl font-bold text-arkade-purple uppercase">Address Details</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-arkade-purple uppercase">Address Details</h1>
+            <button
+              onClick={() => {
+                if (displayAddress) {
+                  if (isPinned(displayAddress)) {
+                    unpinSearch(displayAddress);
+                  } else {
+                    pinSearch(displayAddress, 'address');
+                  }
+                }
+              }}
+              className={`p-2 transition-colors ${
+                displayAddress && isPinned(displayAddress)
+                  ? 'text-arkade-orange hover:text-arkade-purple'
+                  : 'text-arkade-gray hover:text-arkade-orange'
+              }`}
+              title={displayAddress && isPinned(displayAddress) ? 'Unpin from search' : 'Pin to search'}
+            >
+              {displayAddress && isPinned(displayAddress) ? <PinOff size={20} /> : <Pin size={20} />}
+            </button>
+          </div>
           
           <div className="space-y-3">
             <div className="border-b border-arkade-purple pb-2">
