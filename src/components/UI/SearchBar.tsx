@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, Clock, X, Pin, PinOff } from 'lucide-react';
+import { Search, Clock, X, Pin, PinOff, Edit2, Check } from 'lucide-react';
 import { useRecentSearches } from '../../hooks/useRecentSearches';
 
 export function SearchBar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showPinned, setShowPinned] = useState(false);
+  const [editingLabel, setEditingLabel] = useState<string | null>(null);
+  const [labelInput, setLabelInput] = useState('');
   const navigate = useNavigate();
   const { 
     recentSearches, 
@@ -16,6 +18,7 @@ export function SearchBar() {
     clearRecentSearches, 
     pinSearch, 
     unpinSearch, 
+    updatePinLabel,
     clearPinnedSearches,
     isPinned 
   } = useRecentSearches();
@@ -194,42 +197,116 @@ export function SearchBar() {
               
               {/* Search items */}
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {((showPinned && pinnedSearches.length > 0) || recentSearches.length === 0 ? pinnedSearches : recentSearches).slice(0, 10).map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="flex p-3 bg-arkade-black border border-arkade-purple hover:bg-arkade-purple hover:bg-opacity-30 transition-all duration-200 items-center justify-between space-x-3"
-                  >
-                    <Link
-                      to={getRecentSearchPath(item.value, item.type)}
-                      onClick={closeModal}
-                      className="text-arkade-gray font-mono text-xs truncate flex-1 no-underline hover:text-arkade-orange transition-colors"
+                {((showPinned && pinnedSearches.length > 0) || recentSearches.length === 0 ? pinnedSearches : recentSearches).slice(0, 10).map((item, idx) => {
+                  const isEditing = editingLabel === item.value;
+                  const isPinnedItem = isPinned(item.value);
+                  
+                  return (
+                    <div
+                      key={idx}
+                      className="flex flex-col p-3 bg-arkade-black border border-arkade-purple hover:bg-arkade-purple hover:bg-opacity-30 transition-all duration-200 space-y-2"
                     >
-                      {item.value.length > 30 ? `${item.value.slice(0, 15)}...${item.value.slice(-15)}` : item.value}
-                    </Link>
-                    <span className={`${getTypeBadgeColor(item.type)} text-white text-xs px-2 py-1 uppercase font-bold flex-shrink-0`}>
-                      {getTypeLabel(item.type)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isPinned(item.value)) {
-                          unpinSearch(item.value);
-                        } else {
-                          pinSearch(item.value, item.type);
-                        }
-                      }}
-                      className={`p-1 transition-colors flex-shrink-0 ${
-                        isPinned(item.value)
-                          ? 'text-arkade-orange hover:text-arkade-purple'
-                          : 'text-arkade-gray hover:text-arkade-orange'
-                      }`}
-                      title={isPinned(item.value) ? 'Unpin' : 'Pin'}
-                    >
-                      {isPinned(item.value) ? <PinOff size={14} /> : <Pin size={14} />}
-                    </button>
-                  </div>
-                ))}
+                      {/* Label (if exists and not editing) */}
+                      {item.label && !isEditing && (
+                        <div className="text-arkade-orange text-xs font-bold uppercase">
+                          {item.label}
+                        </div>
+                      )}
+                      
+                      {/* Label editing input (if editing) */}
+                      {isEditing && (
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            value={labelInput}
+                            onChange={(e) => setLabelInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                updatePinLabel(item.value, labelInput);
+                                setEditingLabel(null);
+                              } else if (e.key === 'Escape') {
+                                setEditingLabel(null);
+                              }
+                            }}
+                            placeholder="Add label..."
+                            className="flex-1 bg-arkade-black border border-arkade-purple text-arkade-gray text-xs px-2 py-1 focus:outline-none focus:border-arkade-orange"
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updatePinLabel(item.value, labelInput);
+                              setEditingLabel(null);
+                            }}
+                            className="text-arkade-orange hover:text-arkade-purple transition-colors p-1"
+                            title="Save label"
+                          >
+                            <Check size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingLabel(null)}
+                            className="text-arkade-gray hover:text-arkade-orange transition-colors p-1"
+                            title="Cancel"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
+                      
+                      {/* Main content row */}
+                      <div className="flex items-center justify-between space-x-3">
+                        <Link
+                          to={getRecentSearchPath(item.value, item.type)}
+                          onClick={closeModal}
+                          className="text-arkade-gray font-mono text-xs truncate flex-1 no-underline hover:text-arkade-orange transition-colors"
+                        >
+                          {item.value.length > 30 ? `${item.value.slice(0, 15)}...${item.value.slice(-15)}` : item.value}
+                        </Link>
+                        <span className={`${getTypeBadgeColor(item.type)} text-white text-xs px-2 py-1 uppercase font-bold flex-shrink-0`}>
+                          {getTypeLabel(item.type)}
+                        </span>
+                        
+                        {/* Action buttons */}
+                        <div className="flex items-center space-x-1 flex-shrink-0">
+                          {isPinnedItem && !isEditing && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingLabel(item.value);
+                                setLabelInput(item.label || '');
+                              }}
+                              className="p-1 text-arkade-gray hover:text-arkade-orange transition-colors"
+                              title="Edit label"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isPinnedItem) {
+                                unpinSearch(item.value);
+                              } else {
+                                pinSearch(item.value, item.type);
+                              }
+                            }}
+                            className={`p-1 transition-colors ${
+                              isPinnedItem
+                                ? 'text-arkade-orange hover:text-arkade-purple'
+                                : 'text-arkade-gray hover:text-arkade-orange'
+                            }`}
+                            title={isPinnedItem ? 'Unpin' : 'Pin'}
+                          >
+                            {isPinnedItem ? <PinOff size={14} /> : <Pin size={14} />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

@@ -4,6 +4,7 @@ export interface RecentSearch {
   value: string;
   type: 'address' | 'transaction' | 'commitment-tx';
   timestamp: number;
+  label?: string;
 }
 
 const STORAGE_KEY = 'arkade-explorer-recent-searches';
@@ -16,21 +17,46 @@ export function useRecentSearches() {
 
   // Load from localStorage on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setRecentSearches(parsed);
+    const loadSearches = () => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setRecentSearches(parsed);
+        }
+        
+        const pinnedStored = localStorage.getItem(PINNED_STORAGE_KEY);
+        if (pinnedStored) {
+          const pinnedParsed = JSON.parse(pinnedStored);
+          setPinnedSearches(pinnedParsed);
+        }
+      } catch (error) {
+        console.error('Failed to load searches:', error);
       }
-      
-      const pinnedStored = localStorage.getItem(PINNED_STORAGE_KEY);
-      if (pinnedStored) {
-        const pinnedParsed = JSON.parse(pinnedStored);
-        setPinnedSearches(pinnedParsed);
+    };
+
+    // Load initially
+    loadSearches();
+
+    // Listen for storage changes from other components/tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY || e.key === PINNED_STORAGE_KEY) {
+        loadSearches();
       }
-    } catch (error) {
-      console.error('Failed to load searches:', error);
-    }
+    };
+
+    // Listen for custom event for same-window updates
+    const handleCustomStorageChange = () => {
+      loadSearches();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('localStorageUpdate', handleCustomStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('localStorageUpdate', handleCustomStorageChange);
+    };
   }, []);
 
   const addRecentSearch = useCallback((value: string, type: RecentSearch['type']) => {
@@ -47,6 +73,7 @@ export function useRecentSearches() {
       // Save to localStorage
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        window.dispatchEvent(new Event('localStorageUpdate'));
       } catch (error) {
         console.error('Failed to save recent searches:', error);
       }
@@ -59,12 +86,13 @@ export function useRecentSearches() {
     setRecentSearches([]);
     try {
       localStorage.removeItem(STORAGE_KEY);
+      window.dispatchEvent(new Event('localStorageUpdate'));
     } catch (error) {
       console.error('Failed to clear recent searches:', error);
     }
   }, []);
 
-  const pinSearch = useCallback((value: string, type: RecentSearch['type']) => {
+  const pinSearch = useCallback((value: string, type: RecentSearch['type'], label?: string) => {
     setPinnedSearches((prev) => {
       // Check if already pinned
       if (prev.some((item) => item.value === value)) {
@@ -73,15 +101,34 @@ export function useRecentSearches() {
       
       // Add to pinned
       const updated = [
-        { value, type, timestamp: Date.now() },
+        { value, type, timestamp: Date.now(), label },
         ...prev,
       ];
 
       // Save to localStorage
       try {
         localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(updated));
+        window.dispatchEvent(new Event('localStorageUpdate'));
       } catch (error) {
         console.error('Failed to save pinned searches:', error);
+      }
+
+      return updated;
+    });
+  }, []);
+
+  const updatePinLabel = useCallback((value: string, label: string) => {
+    setPinnedSearches((prev) => {
+      const updated = prev.map((item) =>
+        item.value === value ? { ...item, label } : item
+      );
+
+      // Save to localStorage
+      try {
+        localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(updated));
+        window.dispatchEvent(new Event('localStorageUpdate'));
+      } catch (error) {
+        console.error('Failed to update pin label:', error);
       }
 
       return updated;
@@ -95,6 +142,7 @@ export function useRecentSearches() {
       // Save to localStorage
       try {
         localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(updated));
+        window.dispatchEvent(new Event('localStorageUpdate'));
       } catch (error) {
         console.error('Failed to save pinned searches:', error);
       }
@@ -107,6 +155,7 @@ export function useRecentSearches() {
     setPinnedSearches([]);
     try {
       localStorage.removeItem(PINNED_STORAGE_KEY);
+      window.dispatchEvent(new Event('localStorageUpdate'));
     } catch (error) {
       console.error('Failed to clear pinned searches:', error);
     }
@@ -123,6 +172,7 @@ export function useRecentSearches() {
     clearRecentSearches,
     pinSearch,
     unpinSearch,
+    updatePinLabel,
     clearPinnedSearches,
     isPinned,
   };
