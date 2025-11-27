@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '../UI/Card';
 import { truncateHash, formatTimestamp, formatSats, copyToClipboard } from '../../lib/utils';
 import * as btc from '@scure/btc-signer';
@@ -8,6 +8,8 @@ import { useServerInfo } from '../../contexts/ServerInfoContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { constructArkAddress } from '../../lib/arkAddress';
 import type { VirtualCoin } from '../../lib/api/indexer';
+import { indexerClient } from '../../lib/api/indexer';
+import { hex } from '@scure/base';
 
 interface TransactionDetailsProps {
   txid: string;
@@ -23,6 +25,8 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
   const { resolvedTheme } = useTheme();
   const [copiedTxid, setCopiedTxid] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
+  const [checkpointVtxo, setCheckpointVtxo] = useState<VirtualCoin | null>(null);
+  const [forfeitVtxo, setForfeitVtxo] = useState<VirtualCoin | null>(null);
   
   // Link color: white in dark mode, purple in light mode
   const linkColor = resolvedTheme === 'dark' ? 'text-white' : 'text-arkade-purple';
@@ -31,6 +35,7 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
   let parsedTx: btc.Transaction | null = null;
   let forfeitScriptHex = '';
   let isForfeitTx = false;
+  let isCheckpointTx = false;
   
   if (type === 'arkade' && data?.txs?.[0]) {
     try {
@@ -76,10 +81,94 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
           console.error('Failed to generate forfeit script:', e);
         }
       }
+      
+      // Check if this is a checkpoint tx (only if not already identified as forfeit)
+      // Checkpoint tx: 1 input, 1 output (+ anchor), with tapLeafScript containing checkpoint tapscript
+      if (!isForfeitTx && parsedTx && serverInfo?.checkpointTapscript) {
+        try {
+          const inputsCount = parsedTx.inputsLength;
+          let nonAnchorOutputCount = 0;
+          let nonAnchorOutput;
+          for (let i = 0; i < parsedTx.outputsLength; i++) {
+            const output = parsedTx.getOutput(i);
+            const scriptHex = output?.script 
+              ? Array.from(output.script).map(b => b.toString(16).padStart(2, '0')).join('')
+              : '';
+            const isAnchor = scriptHex.startsWith('51024e73');
+            
+            if (!isAnchor) {
+              nonAnchorOutputCount++;
+              nonAnchorOutput = output;
+            }
+          }
+          
+          // Check if it's 1 input, 1 non-anchor output structure
+          if (inputsCount === 1 && nonAnchorOutputCount === 1) {
+            // Check if the input has tapLeafScript with checkpoint tapscript
+          
+            if (nonAnchorOutput?.tapTree && nonAnchorOutput.tapTree.length > 0) {
+              // Check if the tapTree contains the checkpoint tapscript
+              const checkpointTapscript = hex.decode(serverInfo.checkpointTapscript);
+              for (const tree of nonAnchorOutput.tapTree) {
+// compare checkpointTapscript with tree.script
+                isCheckpointTx = ArrayBuffer.isView(checkpointTapscript) && 
+                                ArrayBuffer.isView(tree.script) &&
+                                checkpointTapscript.byteLength === tree.script.byteLength &&
+                                new Uint8Array(checkpointTapscript).every((val, i) => val === new Uint8Array(tree.script)[i]);
+
+                if (isCheckpointTx) break;
+              }
+             
+            }
+          }
+        } catch (e) {
+          console.error('Failed to detect checkpoint tx:', e);
+        }
+      }
     } catch (e) {
       console.error('Failed to parse PSBT:', e);
     }
   }
+
+  // Fetch checkpoint VTXO if this is a checkpoint transaction
+  useEffect(() => {
+    if (isCheckpointTx && parsedTx && parsedTx.inputsLength > 0) {
+      const input = parsedTx.getInput(0);
+      if (input?.txid && input?.index !== undefined) {
+        const inputTxid = Array.from(input.txid).map(b => b.toString(16).padStart(2, '0')).join('');
+        
+        indexerClient.getVtxos({ outpoints: [{ txid: inputTxid, vout: input.index }] })
+          .then(result => {
+            if (result?.vtxos && result.vtxos.length > 0) {
+              setCheckpointVtxo(result.vtxos[0]);
+            }
+          })
+          .catch((err: Error) => {
+            console.error('Failed to fetch checkpoint VTXO:', err);
+          });
+      }
+    }
+  }, [isCheckpointTx, parsedTx]);
+
+  // Fetch forfeit VTXO if this is a forfeit transaction
+  useEffect(() => {
+    if (isForfeitTx && parsedTx && parsedTx.inputsLength > 0) {
+      const input = parsedTx.getInput(0);
+      if (input?.txid && input?.index !== undefined) {
+        const inputTxid = Array.from(input.txid).map(b => b.toString(16).padStart(2, '0')).join('');
+        
+        indexerClient.getVtxos({ outpoints: [{ txid: inputTxid, vout: input.index }] })
+          .then(result => {
+            if (result?.vtxos && result.vtxos.length > 0) {
+              setForfeitVtxo(result.vtxos[0]);
+            }
+          })
+          .catch((err: Error) => {
+            console.error('Failed to fetch forfeit VTXO:', err);
+          });
+      }
+    }
+  }, [isForfeitTx, parsedTx]);
 
   // Get timestamps from VTXO data
   const firstVtxo = vtxoData?.[0];
@@ -115,7 +204,7 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
       <Card glowing>
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-arkade-purple uppercase">
-            {type === 'commitment' ? 'Commitment Transaction' : isForfeitTx ? 'Forfeit Transaction' : 'Arkade Transaction'}
+            {type === 'commitment' ? 'Commitment Transaction' : isCheckpointTx ? 'Checkpoint Transaction' : isForfeitTx ? 'Forfeit Transaction' : 'Arkade Transaction'}
           </h1>
         </div>
         
@@ -199,20 +288,6 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
             </>
           )}
 
-          {type === 'arkade' && formatCreatedAt() && (
-            <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
-              <span className="text-arkade-gray uppercase text-sm font-bold">Created At</span>
-              <span className="text-arkade-gray font-mono">{formatCreatedAt()}</span>
-            </div>
-          )}
-          
-          {type === 'arkade' && formatExpiresAt() && (
-            <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
-              <span className="text-arkade-gray uppercase text-sm font-bold">Expires At</span>
-              <span className="text-arkade-gray font-mono">{formatExpiresAt()}</span>
-            </div>
-          )}
-
           {type === 'arkade' && parsedTx && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
@@ -224,8 +299,9 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                 <div className="space-y-2">
                   {Array.from({ length: parsedTx.inputsLength }).map((_, i) => {
                     const input = parsedTx!.getInput(i);
+                    // Note: input.txid from PSBT is already in the correct display format (big-endian)
                     const inputTxid = input?.txid 
-                      ? Array.from(input.txid).reverse().map(b => b.toString(16).padStart(2, '0')).join('')
+                      ? Array.from(input.txid).map(b => b.toString(16).padStart(2, '0')).join('')
                       : '';
                     
                     // Extract amount and script from witness UTXO
@@ -249,35 +325,39 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                     }
                     
                     return (
-                      <div key={i} className="bg-arkade-black border border-arkade-purple p-3 animate-slide-in" style={{ animationDelay: `${i * 0.05}s` }}>
-                        <div className="flex items-center justify-between mb-1">
-                          {inputTxid ? (
+                      <div key={i} className="flex items-center gap-2 animate-slide-in" style={{ animationDelay: `${i * 0.05}s` }}>
+                        <div className="w-8 flex items-center justify-center flex-shrink-0">
+                          {inputTxid && (
                             <Link 
                               to={`/tx/${inputTxid}`}
-                              className="text-xs text-arkade-purple hover:text-arkade-orange uppercase font-bold"
+                              className="arrow-nav-button bg-arkade-purple text-white border-2 border-arkade-purple hover:bg-arkade-orange hover:border-arkade-orange transition-all duration-200 rounded-full w-8 h-8 flex items-center justify-center"
+                              title={`From: ${inputTxid}`}
                             >
-                              Input #{i}
+                              <ArrowRight size={16} />
                             </Link>
-                          ) : (
-                            <span className="text-xs text-arkade-gray uppercase">Input #{i}</span>
                           )}
-                          <div className="flex items-center gap-2">
-                            {inputAmount !== null && (
-                              <span className="text-xs text-arkade-orange font-bold">
-                                {formatSats(inputAmount.toString())} sats
-                              </span>
-                            )}
-                          </div>
                         </div>
-                        {inputArkAddress && (
-                          <Link 
-                            to={`/address/${inputArkAddress}`}
-                            className={`text-xs font-mono ${linkColor} hover:text-arkade-orange flex items-center space-x-1`}
-                          >
-                            <span>{truncateHash(inputArkAddress, 12, 12)}</span>
-                            <ArrowRight size={12} />
-                          </Link>
-                        )}
+                        <div className="bg-arkade-black border border-arkade-purple p-3 flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-arkade-gray uppercase">Input #{i}</span>
+                            <div className="flex items-center gap-2">
+                              {inputAmount !== null && (
+                                <span className="text-xs text-arkade-orange font-bold">
+                                  {formatSats(inputAmount.toString())} sats
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {inputArkAddress && (
+                            <Link 
+                              to={`/address/${inputArkAddress}`}
+                              className={`text-xs font-mono ${linkColor} hover:text-arkade-orange flex items-center space-x-1`}
+                            >
+                              <span>{truncateHash(inputArkAddress, 12, 12)}</span>
+                              <ArrowRight size={12} />
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -300,13 +380,24 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                     const isForfeitOutput = isForfeitTx && scriptHex === forfeitScriptHex;
                     
                     // Find the corresponding VTXO for this output
-                    const vtxo = vtxoData?.find(v => v.vout === i);
-                    const isSpent = (vtxo as any)?.isSpent === true || (vtxo?.spentBy && vtxo.spentBy !== '');
-                    const spendingTxid = vtxo?.spentBy && vtxo.spentBy !== '' ? vtxo.spentBy : null;
+                    // For checkpoint/forfeit transactions, use the fetched VTXO (but ignore anchor outputs)
+                    const vtxo = (isCheckpointTx && !isAnchorOutput) 
+                      ? checkpointVtxo 
+                      : (isForfeitTx && !isAnchorOutput) 
+                        ? forfeitVtxo 
+                        : vtxoData?.find(v => v.vout === i);
+                    const isSpent = (isCheckpointTx && !isAnchorOutput) || (isForfeitTx && !isAnchorOutput) 
+                      ? true 
+                      : ((vtxo as any)?.isSpent === true || (vtxo?.spentBy && vtxo.spentBy !== ''));
+                    const spendingTxid = (isCheckpointTx && !isAnchorOutput && checkpointVtxo?.arkTxId)
+                      ? checkpointVtxo.arkTxId 
+                      : (isForfeitTx && !isAnchorOutput && forfeitVtxo?.settledBy)
+                        ? forfeitVtxo.settledBy
+                        : (vtxo?.spentBy && vtxo.spentBy !== '' ? vtxo.spentBy : null);
                     
-                    // Try to construct Ark address for non-anchor, non-forfeit outputs
+                    // Try to construct Ark address for non-anchor, non-forfeit, non-checkpoint outputs
                     let arkAddress = '';
-                    if (!isAnchorOutput && !isForfeitOutput && output?.script && serverInfo?.signerPubkey && serverInfo?.network) {
+                    if (!isAnchorOutput && !isForfeitOutput && !isCheckpointTx && output?.script && serverInfo?.signerPubkey && serverInfo?.network) {
                       try {
                         const addr = constructArkAddress(output.script, serverInfo.signerPubkey, serverInfo.network);
                         if (addr) {
@@ -361,14 +452,14 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                             )
                           )}
                         </div>
-                        <div className="w-5 flex-shrink-0">
+                        <div className="w-8 flex items-center justify-center flex-shrink-0">
                           {isSpent && spendingTxid && (
                             <Link 
                               to={`/tx/${spendingTxid}`}
-                              className="text-red-400 hover:text-arkade-orange transition-colors block"
+                              className="arrow-nav-button bg-arkade-purple text-white border-2 border-arkade-purple hover:bg-arkade-orange hover:border-arkade-orange transition-all duration-200 rounded-full w-8 h-8 flex items-center justify-center"
                               title={`Spent in: ${spendingTxid}`}
                             >
-                              <ArrowRight size={20} />
+                              <ArrowRight size={16} />
                             </Link>
                           )}
                         </div>
@@ -378,6 +469,20 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                 </div>
               </div>
             </div>
+            
+            {formatCreatedAt() && (
+              <div className="flex items-center justify-between border-b border-arkade-purple pb-2 mt-6">
+                <span className="text-arkade-gray uppercase text-sm font-bold">Created At</span>
+                <span className="text-arkade-gray font-mono">{formatCreatedAt()}</span>
+              </div>
+            )}
+            
+            {formatExpiresAt() && (
+              <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
+                <span className="text-arkade-gray uppercase text-sm font-bold">Expires At</span>
+                <span className="text-arkade-gray font-mono">{formatExpiresAt()}</span>
+              </div>
+            )}
             </>
           )}
           
@@ -392,7 +497,7 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
             {showDebug && (
               <pre className="mt-2 p-2 bg-arkade-black/50 rounded text-xs overflow-x-auto">
                 <code className="text-arkade-gray">{JSON.stringify(parsedTx ? {
-                  type: type === 'commitment' ? 'Commitment Transaction' : isForfeitTx ? 'Forfeit Transaction' : 'Arkade Transaction',
+                  type: type === 'commitment' ? 'Commitment Transaction' : isCheckpointTx ? 'Checkpoint Transaction' : isForfeitTx ? 'Forfeit Transaction' : 'Arkade Transaction',
                   txid,
                   version: parsedTx.version,
                   lockTime: parsedTx.lockTime,
@@ -401,7 +506,7 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                     const input = parsedTx!.getInput(i);
                     return {
                       index: input?.index,
-                      txid: input?.txid ? Array.from(input.txid).reverse().map(b => b.toString(16).padStart(2, '0')).join('') : null,
+                      txid: input?.txid ? Array.from(input.txid).map(b => b.toString(16).padStart(2, '0')).join('') : null,
                       sequence: input?.sequence,
                       witnessUtxo: input?.witnessUtxo ? {
                         amount: input.witnessUtxo.amount.toString(),

@@ -8,7 +8,7 @@ export function SearchBar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchModal, setShowSearchModal] = useState(false);
   const navigate = useNavigate();
-  const { recentSearches, clearRecentSearches } = useRecentSearches();
+  const { recentSearches, addRecentSearch, clearRecentSearches } = useRecentSearches();
 
   const closeModal = () => {
     setShowSearchModal(false);
@@ -25,8 +25,10 @@ export function SearchBar() {
     const query = searchQuery.trim();
     
     if (/^[0-9a-fA-F]{64}$/.test(query)) {
+      addRecentSearch(query, 'transaction');
       navigate(`/tx/${query}`);
     } else {
+      addRecentSearch(query, 'address');
       navigate(`/address/${query}`);
     }
     

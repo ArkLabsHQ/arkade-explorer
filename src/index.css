@@ -318,3 +318,15 @@ html.light .retro-button {
 html.light .retro-button:hover {
   color: white !important;
 }
+
+.arrow-nav-button {
+  color: white;
+}
+
+html.light .arrow-nav-button {
+  color: white !important;
+}
+
+html.light .arrow-nav-button:hover {
+  color: white !important;
+}

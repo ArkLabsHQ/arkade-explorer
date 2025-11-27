@@ -8,10 +8,10 @@ export default {
   theme: {
     extend: {
       colors: {
-        'arkade-black': '#0a0a0a',
-        'arkade-purple': '#4318FF',
-        'arkade-orange': '#FF6B35',
-        'arkade-gray': '#A0AEC0',
+        'arkade-black': 'rgb(var(--color-arkade-black) / <alpha-value>)',
+        'arkade-purple': 'rgb(var(--color-arkade-purple) / <alpha-value>)',
+        'arkade-orange': 'var(--color-arkade-orange)',
+        'arkade-gray': 'rgb(var(--color-arkade-gray) / <alpha-value>)',
       },
       fontFamily: {
         'mono': ['Courier New', 'monospace'],
