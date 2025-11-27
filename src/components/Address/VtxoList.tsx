@@ -42,7 +42,7 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
         const isSpent = vtxo.spentBy || (vtxo as any).isSpent;
         const isRecoverable = !isSpent && (vtxo as any).virtualStatus?.state === 'swept';
         const isPreconfirmed = (vtxo as any).virtualStatus?.state === 'preconfirmed' || (vtxo as any).preconfirmed;
-        const isSettled = (vtxo as any).virtualStatus?.state === 'settled' || (!isPreconfirmed && (vtxo as any).virtualStatus);
+        const isSettled = (vtxo as any).virtualStatus?.state === 'settled';
 
         // Extract script from PSBT if available
         let scriptAddress = '';

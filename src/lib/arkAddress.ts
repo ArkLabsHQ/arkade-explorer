@@ -16,10 +16,23 @@ export function constructArkAddress(scriptPubkey: Uint8Array, aspPubkeyHex: stri
       aspPubkey = aspPubkey.slice(1);
     }
     
-    // For P2TR (SegWit v1), the script is: OP_1 (0x51) + 0x20 (32 bytes) + pubkey (32 bytes)
-    // Total: 34 bytes. We need to extract just the 32-byte pubkey part.
     let witnessProgram = scriptPubkey;
-    if (scriptPubkey.length === 34 && scriptPubkey[0] === 0x51 && scriptPubkey[1] === 0x20) {
+    
+    // Handle sub-dust OP_RETURN scripts: OP_RETURN (0x6a) + length + pubkey (32 bytes)
+    // For sub-dust amounts, the script is: RETURN + vtxoTaprootKey
+    if (scriptPubkey.length >= 2 && scriptPubkey[0] === 0x6a) {
+      // OP_RETURN script - extract the pubkey after the OP_RETURN opcode
+      // Format: 0x6a (OP_RETURN) + 0x20 (32 bytes length) + 32-byte pubkey
+      if (scriptPubkey.length === 34 && scriptPubkey[1] === 0x20) {
+        witnessProgram = new Uint8Array(scriptPubkey.buffer, scriptPubkey.byteOffset + 2, 32);
+      } else if (scriptPubkey.length === 33) {
+        // Some implementations might not include the length byte
+        witnessProgram = new Uint8Array(scriptPubkey.buffer, scriptPubkey.byteOffset + 1, 32);
+      }
+    }
+    // Handle regular P2TR (SegWit v1) scripts: OP_1 (0x51) + 0x20 (32 bytes) + pubkey (32 bytes)
+    // For non-dust amounts, the script is: OP_1 + vtxoTaprootKey
+    else if (scriptPubkey.length === 34 && scriptPubkey[0] === 0x51 && scriptPubkey[1] === 0x20) {
       // Extract the 32-byte witness program (skip OP_1 and length byte)
       witnessProgram = new Uint8Array(scriptPubkey.buffer, scriptPubkey.byteOffset + 2, 32);
     }

@@ -121,7 +121,7 @@ export function AddressPage() {
     const isSpendable = !isSpent && !isRecoverable;
     const isPreconfirmed = (v as any).virtualStatus?.state === 'preconfirmed' || (v as any).preconfirmed;
     // VTXOs are "settled" when they are confirmed on-chain (virtualStatus.state === 'settled')
-    const isSettled = (v as any).virtualStatus?.state === 'settled' || (!isPreconfirmed && (v as any).virtualStatus);
+    const isSettled = (v as any).virtualStatus?.state === 'settled';
     
     // Apply spend filter
     if (spendFilter === 'unspent' && isSpent) return false;
