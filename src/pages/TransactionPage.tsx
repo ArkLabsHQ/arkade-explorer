@@ -15,6 +15,11 @@ export function TransactionPage() {
   const { addRecentSearch } = useRecentSearches();
   const [txType, setTxType] = useState<'commitment' | 'arkade' | null>(null);
 
+  // Reset txType when txid changes
+  useEffect(() => {
+    setTxType(null);
+  }, [txid]);
+
   // Try to fetch as commitment tx first
   const { data: commitmentData, isLoading: isLoadingCommitment, error: commitmentError } = useQuery({
     queryKey: ['commitment-tx', txid],

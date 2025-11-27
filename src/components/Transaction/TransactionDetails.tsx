@@ -34,6 +34,7 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
   // Parse PSBT for Arkade transactions
   let parsedTx: btc.Transaction | null = null;
   let forfeitScriptHex = '';
+  let forfeitAddress = '';
   let isForfeitTx = false;
   let isCheckpointTx = false;
   
@@ -54,8 +55,9 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
           );
           
           // Create P2WPKH script from pubkey
-          const p2wpkhOutput = btc.p2wpkh(pubkeyBytes);
+          const p2wpkhOutput = btc.p2wpkh(pubkeyBytes, serverInfo.network === 'bitcoin' ? btc.NETWORK : btc.TEST_NETWORK);
           forfeitScriptHex = Array.from(p2wpkhOutput.script).map(b => b.toString(16).padStart(2, '0')).join('');
+          forfeitAddress = p2wpkhOutput.address || '';
           
           // Check if this is a forfeit tx (only 1 non-anchor output to forfeit address)
           let nonAnchorOutputs = 0;
@@ -425,9 +427,16 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                             </div>
                           </div>
                           {isForfeitOutput && (
-                            <div className="text-xs text-arkade-orange font-bold uppercase mb-1">Arkade Operator</div>
+                            <>
+                              <div className="text-xs text-arkade-orange font-bold uppercase mb-1">Arkade Operator</div>
+                              {forfeitAddress && (
+                                <div className="text-xs font-mono text-arkade-gray break-all">
+                                  {forfeitAddress}
+                                </div>
+                              )}
+                            </>
                           )}
-                          {arkAddress && (
+                          {!isForfeitOutput && arkAddress && (
                             <Link 
                               to={`/address/${arkAddress}`}
                               className={`text-xs font-mono ${linkColor} hover:text-arkade-orange flex items-center space-x-1 mb-1`}
@@ -436,7 +445,7 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                               <ArrowRight size={12} />
                             </Link>
                           )}
-                          {!arkAddress && scriptHex && (
+                          {!isForfeitOutput && !arkAddress && scriptHex && (
                             isAnchorOutput ? (
                               <div className="text-xs font-mono text-arkade-gray break-all">
                                 <div className="mb-1">Anchor output</div>
