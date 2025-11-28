@@ -158,7 +158,22 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
             } else if (cosignerFields.length === 1) {
               // Single cosigner field = connector tree
               // Verify that the pubkey matches the output P2TR key
-              isConnectorTreeTx = true;
+
+              //cosignerFields[0].key
+              //convert to x only pubkey and compare to output P2TR key
+              const cosignerPubkey = cosignerFields[0].key.slice(1);
+
+              //first non-anchor output
+              const nonAnchorOutput = parsedTx.getOutput(0);
+              const decodedOutput = btc.OutScript.decode(nonAnchorOutput.script!);
+              
+              // Compare the cosigner pubkey with the output pubkey
+              if ('pubkey' in decodedOutput && decodedOutput.pubkey &&
+                  ArrayBuffer.isView(cosignerPubkey) && ArrayBuffer.isView(decodedOutput.pubkey) &&
+                  cosignerPubkey.byteLength === decodedOutput.pubkey.byteLength &&
+                  new Uint8Array(cosignerPubkey).every((val, i) => val === new Uint8Array(decodedOutput.pubkey!)[i])) {
+                isConnectorTreeTx = true;
+              }
             }
           
         } catch (e) {
@@ -660,13 +675,19 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                     // Extract amount and script from witness UTXO
                     let inputAmount: bigint | null = null;
                     let inputArkAddress = '';
+                    let inputScriptHex = '';
                     
                     if (input?.witnessUtxo) {
                       inputAmount = input.witnessUtxo.amount;
                       
+                      // Get script hex for display
+                      if (input.witnessUtxo.script) {
+                        inputScriptHex = hex.encode(input.witnessUtxo.script);
+                      }
+                      
                       // Try to construct Ark address from witness UTXO script
-                      // Show Ark addresses for batch tree transactions, but NOT for connector tree transactions
-                      if (!isConnectorTreeTx && input.witnessUtxo.script && serverInfo?.signerPubkey && serverInfo?.network) {
+                      // Show Ark addresses for batch tree transactions, but NOT for connector tree or regular arkade transactions
+                      if (isBatchTreeTx && input.witnessUtxo.script && serverInfo?.signerPubkey && serverInfo?.network) {
                         try {
                           const addr = constructArkAddress(input.witnessUtxo.script, serverInfo.signerPubkey, serverInfo.network);
                           if (addr) {
@@ -708,6 +729,11 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                               <span>{truncateHash(inputArkAddress, 12, 12)}</span>
                               <ArrowRight size={12} />
                             </Link>
+                          )}
+                          {!inputArkAddress && inputScriptHex && (
+                            <div className="text-xs font-mono text-arkade-gray break-all">
+                              {inputScriptHex.substring(0, 40)}...
+                            </div>
                           )}
                         </div>
                       </div>

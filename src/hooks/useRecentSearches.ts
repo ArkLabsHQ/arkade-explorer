@@ -106,6 +106,8 @@ export function useRecentSearches() {
       // Save to localStorage
       try {
         localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(updated));
+        // Dispatch custom event to notify other components
+        window.dispatchEvent(new Event('localStorageUpdate'));
       } catch (error) {
         console.error('Failed to save pinned searches:', error);
       }
@@ -123,6 +125,8 @@ export function useRecentSearches() {
       // Save to localStorage
       try {
         localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(updated));
+        // Dispatch custom event to notify other components
+        window.dispatchEvent(new Event('localStorageUpdate'));
       } catch (error) {
         console.error('Failed to update pin label:', error);
       }
@@ -138,6 +142,8 @@ export function useRecentSearches() {
       // Save to localStorage
       try {
         localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(updated));
+        // Dispatch custom event to notify other components
+        window.dispatchEvent(new Event('localStorageUpdate'));
       } catch (error) {
         console.error('Failed to save pinned searches:', error);
       }
