@@ -11,6 +11,7 @@ import { Batch } from '../../lib/api/indexer';
 import { indexerClient } from '../../lib/api/indexer';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import * as React from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface BatchListProps {
   batches: { [key: string]: Batch };
@@ -18,8 +19,10 @@ interface BatchListProps {
 }
 
 export function BatchList({ batches, commitmentTxid }: BatchListProps) {
+  const { resolvedTheme } = useTheme();
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
   const [debugBatches, setDebugBatches] = useState<Set<string>>(new Set());
+  const moneyColor = resolvedTheme === 'dark' ? 'text-arkade-orange' : 'text-arkade-purple';
   // Filter out batches with 0 amount
   const batchEntries = Object.entries(batches).filter(([_, batch]) => 
     batch.totalOutputAmount && parseInt(batch.totalOutputAmount) > 0
@@ -82,7 +85,7 @@ export function BatchList({ batches, commitmentTxid }: BatchListProps) {
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-arkade-gray uppercase text-xs sm:text-sm font-bold">Amount</span>
-                  <MoneyDisplay sats={parseInt(batch.totalOutputAmount.toString())} valueClassName="text-arkade-orange font-bold font-mono text-xs sm:text-sm" unitClassName="text-arkade-orange font-bold font-mono text-xs sm:text-sm" />
+                  <MoneyDisplay sats={parseInt(batch.totalOutputAmount.toString())} valueClassName={`${moneyColor} font-bold font-mono text-xs sm:text-sm`} unitClassName={`${moneyColor} font-bold font-mono text-xs sm:text-sm`} />
                 </div>
                 
                 <div className="flex items-center justify-between">

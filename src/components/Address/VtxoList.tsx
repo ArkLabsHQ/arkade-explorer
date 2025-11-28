@@ -31,6 +31,7 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
 
   // purple doesn't work in dark mode well for text, so we switch to orange
   const mypurple = resolvedTheme === 'dark' ? 'text-arkade-gray' : 'text-arkade-purple';
+  const moneyColor = resolvedTheme === 'dark' ? 'text-arkade-orange' : 'text-arkade-purple';
 
   return (
     <div className="space-y-4">
@@ -108,8 +109,8 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
                   <span className="text-arkade-gray uppercase text-xs sm:text-sm">Amount:</span>
                   <MoneyDisplay 
                     sats={parseInt(vtxo.value.toString())} 
-                    valueClassName="text-arkade-orange font-bold font-mono text-xs sm:text-sm sm:ml-2"
-                    unitClassName="text-arkade-orange font-bold font-mono text-xs sm:text-sm"
+                    valueClassName={`${moneyColor} font-bold font-mono text-xs sm:text-sm sm:ml-2`}
+                    unitClassName={`${moneyColor} font-bold font-mono text-xs sm:text-sm`}
                   />
                 </div>
 

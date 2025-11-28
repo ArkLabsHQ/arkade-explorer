@@ -27,7 +27,7 @@ export function AddressStats({ vtxos }: AddressStatsProps) {
           <MoneyDisplay 
             sats={totalBalance} 
             layout="block"
-            valueClassName="text-arkade-orange text-xl font-bold font-mono" 
+            valueClassName={`${mypurple} text-xl font-bold font-mono`} 
             unitClassName="text-arkade-gray text-xs" 
           />
         </div>

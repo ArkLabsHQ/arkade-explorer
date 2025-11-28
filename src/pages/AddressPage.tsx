@@ -11,6 +11,7 @@ import { MoneyDisplay } from '../components/UI/MoneyDisplay';
 import { copyToClipboard } from '../lib/utils';
 import { addressToScriptHex, scriptHexToAddress, isHex } from '../lib/decode';
 import { Copy, Check, Pin, PinOff } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 import { useRecentSearches } from '../hooks/useRecentSearches';
 import { useServerInfo } from '../contexts/ServerInfoContext';
 
@@ -18,6 +19,7 @@ export function AddressPage() {
   const { address } = useParams<{ address: string }>();
   const { addRecentSearch, pinSearch, unpinSearch, isPinned } = useRecentSearches();
   const { serverInfo } = useServerInfo();
+  const { resolvedTheme } = useTheme();
   const [vtxoFilter, setVtxoFilter] = useState<'all' | 'spendable' | 'recoverable' | 'spent'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'preconfirmed' | 'settled'>('all');
   const [displayCount, setDisplayCount] = useState(20);
@@ -277,7 +279,7 @@ export function AddressPage() {
       <div>
         <div className="mb-4">
           <h2 className="text-xl font-bold text-arkade-purple uppercase mb-4">
-            VTXOs ({vtxos.length}) • <MoneyDisplay sats={filteredBalance} valueClassName="text-arkade-orange font-mono" unitClassName="text-arkade-gray text-sm" />
+            VTXOs ({vtxos.length}) • <MoneyDisplay sats={filteredBalance} valueClassName={`${resolvedTheme === 'dark' ? 'text-arkade-orange' : 'text-arkade-purple'} font-mono`} unitClassName="text-arkade-gray text-sm" />
           </h2>
           
           <div className="flex flex-wrap items-center gap-3 md:gap-4">

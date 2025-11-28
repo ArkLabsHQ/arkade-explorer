@@ -137,7 +137,7 @@ export function TransactionPage() {
     return (
       <div className="space-y-6">
         <TransactionDetails txid={txid} type="arkade" data={virtualTxData} vtxoData={vtxoData?.vtxos} />
-        {txHex && <TransactionHex txHex={txHex} label="Virtual Transaction Hex" />}
+        {txHex && <TransactionHex txHex={txHex} label="Raw Virtual Transaction" />}
       </div>
     );
   }

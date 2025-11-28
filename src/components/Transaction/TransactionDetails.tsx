@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '../UI/Card';
+import { Badge } from '../UI/Badge';
 import { MoneyDisplay } from '../UI/MoneyDisplay';
 import { truncateHash, formatTimestamp, copyToClipboard } from '../../lib/utils';
 import * as btc from '@scure/btc-signer';
@@ -13,6 +14,7 @@ import { indexerClient } from '../../lib/api/indexer';
 import { useRecentSearches } from '../../hooks/useRecentSearches';
 import { useQueries } from '@tanstack/react-query';
 import { hex } from '@scure/base';
+import { CosignerPublicKey, getArkPsbtFields } from '@arkade-os/sdk';
 
 interface TransactionDetailsProps {
   txid: string;
@@ -34,6 +36,8 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
   
   // Link color: white in dark mode, purple in light mode
   const linkColor = resolvedTheme === 'dark' ? 'text-white' : 'text-arkade-purple';
+  // Money color: orange in dark mode, purple in light mode (for better legibility)
+  const moneyColor = resolvedTheme === 'dark' ? 'text-arkade-orange' : 'text-arkade-purple';
   
   // Parse transaction for both Arkade and Commitment transactions
   let parsedTx: btc.Transaction | null = null;
@@ -41,6 +45,8 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
   let forfeitAddress = '';
   let isForfeitTx = false;
   let isCheckpointTx = false;
+  let isBatchTreeTx = false;
+  let isConnectorTreeTx = false;
   
   // Parse Arkade transactions from PSBT (base64)
   if (type === 'arkade' && data?.txs?.[0]) {
@@ -130,6 +136,33 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
           }
         } catch (e) {
           console.error('Failed to detect checkpoint tx:', e);
+        }
+      }
+
+      // Detect batch tree vs connector tree transactions
+      // Tree transactions have cosigner fields in PSBT inputs
+      // Batch tree: multiple cosigner fields (musig)
+      // Connector tree: exactly 1 cosigner field (and pubkey = output P2TR key)
+      if (!isForfeitTx && !isCheckpointTx && parsedTx) {
+        try {
+
+          
+          const cosignerFields = getArkPsbtFields(
+                parsedTx,
+                0,
+                CosignerPublicKey
+            );
+            if (cosignerFields.length > 1) {
+              // Multiple cosigner fields = batch tree (musig)
+              isBatchTreeTx = true;
+            } else if (cosignerFields.length === 1) {
+              // Single cosigner field = connector tree
+              // Verify that the pubkey matches the output P2TR key
+              isConnectorTreeTx = true;
+            }
+          
+        } catch (e) {
+          console.error('Failed to detect tree transaction type:', e);
         }
       }
     } catch (e) {
@@ -338,7 +371,17 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
       <Card glowing>
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-arkade-purple uppercase">
-            {type === 'commitment' ? 'Commitment Transaction' : isCheckpointTx ? 'Checkpoint Transaction' : isForfeitTx ? 'Forfeit Transaction' : 'Arkade Transaction'}
+            {type === 'commitment' 
+              ? 'Commitment Transaction' 
+              : isCheckpointTx 
+                ? 'Checkpoint Transaction' 
+                : isForfeitTx 
+                  ? 'Forfeit Transaction'
+                  : isBatchTreeTx
+                    ? 'Batch Tree Transaction'
+                    : isConnectorTreeTx
+                      ? 'Connector Tree Transaction'
+                      : 'Arkade Transaction'}
           </h1>
           <button
             onClick={() => {
@@ -419,12 +462,12 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
 
               <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
                 <span className="text-arkade-gray uppercase text-sm font-bold">Total Input Amount</span>
-                <MoneyDisplay sats={data.totalInputAmount} valueClassName="text-arkade-orange font-mono font-bold" unitClassName="text-arkade-orange font-mono font-bold" />
+                <MoneyDisplay sats={data.totalInputAmount} valueClassName={`${moneyColor} font-mono font-bold`} unitClassName={`${moneyColor} font-mono font-bold`} />
               </div>
 
               <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
                 <span className="text-arkade-gray uppercase text-sm font-bold">Total Output Amount</span>
-                <MoneyDisplay sats={data.totalOutputAmount} valueClassName="text-arkade-orange font-mono font-bold" unitClassName="text-arkade-orange font-mono font-bold" />
+                <MoneyDisplay sats={data.totalOutputAmount} valueClassName={`${moneyColor} font-mono font-bold`} unitClassName={`${moneyColor} font-mono font-bold`} />
               </div>
 
               <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
@@ -557,7 +600,7 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                                 </span>
                               )}
                             </div>
-                            <MoneyDisplay sats={parseInt(amount.toString())} valueClassName="text-xs text-arkade-orange font-bold" unitClassName="text-xs text-arkade-orange font-bold" />
+                            <MoneyDisplay sats={parseInt(amount.toString())} valueClassName={`text-xs ${moneyColor} font-bold`} unitClassName={`text-xs ${moneyColor} font-bold`} />
                           </div>
                           {isBatch && batch && (
                             <div className="text-xs text-arkade-gray mb-1">
@@ -622,7 +665,8 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                       inputAmount = input.witnessUtxo.amount;
                       
                       // Try to construct Ark address from witness UTXO script
-                      if (input.witnessUtxo.script && serverInfo?.signerPubkey && serverInfo?.network) {
+                      // Show Ark addresses for batch tree transactions, but NOT for connector tree transactions
+                      if (!isConnectorTreeTx && input.witnessUtxo.script && serverInfo?.signerPubkey && serverInfo?.network) {
                         try {
                           const addr = constructArkAddress(input.witnessUtxo.script, serverInfo.signerPubkey, serverInfo.network);
                           if (addr) {
@@ -652,7 +696,7 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                             <span className="text-xs text-arkade-gray uppercase">Input #{i}</span>
                             <div className="flex items-center gap-2">
                               {inputAmount !== null && (
-                                <MoneyDisplay sats={parseInt(inputAmount.toString())} valueClassName="text-xs text-arkade-orange font-bold" unitClassName="text-xs text-arkade-orange font-bold" />
+                                <MoneyDisplay sats={parseInt(inputAmount.toString())} valueClassName={`text-xs ${moneyColor} font-bold`} unitClassName={`text-xs ${moneyColor} font-bold`} />
                               )}
                             </div>
                           </div>
@@ -688,24 +732,29 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                     const isForfeitOutput = isForfeitTx && scriptHex === forfeitScriptHex;
                     
                     // Find the corresponding VTXO for this output
-                    // For checkpoint/forfeit transactions, use the fetched VTXO (but ignore anchor outputs)
+                    // For checkpoint/forfeit/batch tree transactions, use the fetched VTXO (but ignore anchor outputs)
                     const vtxo = (isCheckpointTx && !isAnchorOutput) 
                       ? checkpointVtxo 
                       : (isForfeitTx && !isAnchorOutput) 
                         ? forfeitVtxo 
-                        : vtxoData?.find(v => v.vout === i);
-                    const isSpent = (isCheckpointTx && !isAnchorOutput) || (isForfeitTx && !isAnchorOutput) 
-                      ? true 
+                        : vtxoData?.find(v => ((v as any).outpoint?.vout ?? (v as any).vout) === i);
+                    const isSpent = (isCheckpointTx && !isAnchorOutput) || (isForfeitTx && !isAnchorOutput) || (isBatchTreeTx && !isAnchorOutput)
+                      ? ((vtxo as any)?.isSpent === true || (vtxo?.spentBy && vtxo.spentBy !== ''))
                       : ((vtxo as any)?.isSpent === true || (vtxo?.spentBy && vtxo.spentBy !== ''));
                     const spendingTxid = (isCheckpointTx && !isAnchorOutput && checkpointVtxo?.arkTxId)
                       ? checkpointVtxo.arkTxId 
                       : (isForfeitTx && !isAnchorOutput && forfeitVtxo?.settledBy)
                         ? forfeitVtxo.settledBy
-                        : (vtxo?.spentBy && vtxo.spentBy !== '' ? vtxo.spentBy : null);
+                        : (vtxo?.spentBy && vtxo.spentBy !== '' 
+                            ? vtxo.spentBy 
+                            : ((vtxo as any)?.settledBy && (vtxo as any).settledBy !== '' 
+                                ? (vtxo as any).settledBy 
+                                : null));
                     
                     // Try to construct Ark address for non-anchor, non-forfeit, non-checkpoint outputs
+                    // Show Ark addresses for batch tree transactions, but NOT for connector tree transactions
                     let arkAddress = '';
-                    if (!isAnchorOutput && !isForfeitOutput && !isCheckpointTx && output?.script && serverInfo?.signerPubkey && serverInfo?.network) {
+                    if (!isAnchorOutput && !isForfeitOutput && !isCheckpointTx && !isConnectorTreeTx && output?.script && serverInfo?.signerPubkey && serverInfo?.network) {
                       try {
                         const addr = constructArkAddress(output.script, serverInfo.signerPubkey, serverInfo.network);
                         if (addr) {
@@ -722,12 +771,9 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-xs text-arkade-gray uppercase">Output #{i}</span>
                             <div className="flex items-center gap-2">
-                              {vtxo && !isAnchorOutput && isSpent && (
-                                <span className="text-xs font-bold uppercase text-red-400">
-                                  Spent
-                                </span>
-                              )}
-                              <MoneyDisplay sats={parseInt(amount.toString())} valueClassName="text-xs text-arkade-orange font-bold" unitClassName="text-xs text-arkade-orange font-bold" />
+                              {vtxo && !isAnchorOutput && isSpent && <Badge variant="danger">Spent</Badge>}
+                              {vtxo && !isAnchorOutput && !isSpent && <Badge variant="success">Unspent</Badge>}
+                              <MoneyDisplay sats={parseInt(amount.toString())} valueClassName={`text-xs ${moneyColor} font-bold`} unitClassName={`text-xs ${moneyColor} font-bold`} />
                             </div>
                           </div>
                           {isForfeitOutput && (
@@ -754,6 +800,10 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                               <div className="text-xs font-mono text-arkade-gray break-all">
                                 <div className="mb-1">Anchor output</div>
                                 <div>{scriptHex.substring(0, 40)}...</div>
+                              </div>
+                            ) : isConnectorTreeTx ? (
+                              <div className="text-xs font-mono text-arkade-gray break-all">
+                                {scriptHex.substring(0, 40)}...
                               </div>
                             ) : (
                               <Link 

@@ -11,7 +11,7 @@ export function Badge({ children, variant = 'default', className }: BadgeProps) 
   const variantClasses = {
     default: 'bg-arkade-purple text-white',
     success: 'bg-green-600 text-white',
-    warning: 'bg-yellow-600 text-arkade-black',
+    warning: 'bg-yellow-600 text-white',
     danger: 'bg-arkade-orange text-white',
   };
 
