@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from '../UI/Card';
-import { truncateHash, formatTimestamp, formatSats, copyToClipboard } from '../../lib/utils';
+import { MoneyDisplay } from '../UI/MoneyDisplay';
+import { truncateHash, formatTimestamp, copyToClipboard } from '../../lib/utils';
 import * as btc from '@scure/btc-signer';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Copy, Check, ExternalLink, Pin, PinOff } from 'lucide-react';
@@ -10,6 +11,7 @@ import { constructArkAddress } from '../../lib/arkAddress';
 import type { VirtualCoin } from '../../lib/api/indexer';
 import { indexerClient } from '../../lib/api/indexer';
 import { useRecentSearches } from '../../hooks/useRecentSearches';
+import { useQueries } from '@tanstack/react-query';
 import { hex } from '@scure/base';
 
 interface TransactionDetailsProps {
@@ -33,13 +35,14 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
   // Link color: white in dark mode, purple in light mode
   const linkColor = resolvedTheme === 'dark' ? 'text-white' : 'text-arkade-purple';
   
-  // Parse PSBT for Arkade transactions
+  // Parse transaction for both Arkade and Commitment transactions
   let parsedTx: btc.Transaction | null = null;
   let forfeitScriptHex = '';
   let forfeitAddress = '';
   let isForfeitTx = false;
   let isCheckpointTx = false;
   
+  // Parse Arkade transactions from PSBT (base64)
   if (type === 'arkade' && data?.txs?.[0]) {
     try {
       const psbtBase64 = data.txs[0];
@@ -133,46 +136,109 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
       console.error('Failed to parse PSBT:', e);
     }
   }
+  
+  // Parse Commitment transactions from raw hex
+  if (type === 'commitment' && data?.tx) {
+    try {
+      const txHex = data.tx;
+      const txBytes = hex.decode(txHex);
+      parsedTx = btc.Transaction.fromRaw(txBytes);
+    } catch (e) {
+      console.error('Failed to parse commitment transaction hex:', e);
+    }
+  }
 
   // Fetch checkpoint VTXO if this is a checkpoint transaction
+  const checkpointFetchedRef = useRef<string | null>(null);
+  
   useEffect(() => {
     if (isCheckpointTx && parsedTx && parsedTx.inputsLength > 0) {
       const input = parsedTx.getInput(0);
       if (input?.txid && input?.index !== undefined) {
         const inputTxid = Array.from(input.txid).map(b => b.toString(16).padStart(2, '0')).join('');
+        const outpointKey = `${inputTxid}:${input.index}`;
         
-        indexerClient.getVtxos({ outpoints: [{ txid: inputTxid, vout: input.index }] })
-          .then(result => {
-            if (result?.vtxos && result.vtxos.length > 0) {
-              setCheckpointVtxo(result.vtxos[0]);
-            }
-          })
-          .catch((err: Error) => {
-            console.error('Failed to fetch checkpoint VTXO:', err);
-          });
+        // Only fetch if we haven't already fetched this outpoint
+        if (checkpointFetchedRef.current !== outpointKey) {
+          checkpointFetchedRef.current = outpointKey;
+          console.log('[TransactionDetails] Fetching checkpoint VTXO:', outpointKey);
+          
+          indexerClient.getVtxos({ outpoints: [{ txid: inputTxid, vout: input.index }] })
+            .then(result => {
+              if (result?.vtxos && result.vtxos.length > 0) {
+                setCheckpointVtxo(result.vtxos[0]);
+              }
+            })
+            .catch((err: Error) => {
+              console.error('Failed to fetch checkpoint VTXO:', err);
+            });
+        }
       }
     }
   }, [isCheckpointTx, parsedTx]);
 
   // Fetch forfeit VTXO if this is a forfeit transaction
+  const forfeitFetchedRef = useRef<string | null>(null);
+  
   useEffect(() => {
     if (isForfeitTx && parsedTx && parsedTx.inputsLength > 0) {
       const input = parsedTx.getInput(0);
       if (input?.txid && input?.index !== undefined) {
         const inputTxid = Array.from(input.txid).map(b => b.toString(16).padStart(2, '0')).join('');
+        const outpointKey = `${inputTxid}:${input.index}`;
         
-        indexerClient.getVtxos({ outpoints: [{ txid: inputTxid, vout: input.index }] })
-          .then(result => {
-            if (result?.vtxos && result.vtxos.length > 0) {
-              setForfeitVtxo(result.vtxos[0]);
-            }
-          })
-          .catch((err: Error) => {
-            console.error('Failed to fetch forfeit VTXO:', err);
-          });
+        // Only fetch if we haven't already fetched this outpoint
+        if (forfeitFetchedRef.current !== outpointKey) {
+          forfeitFetchedRef.current = outpointKey;
+          console.log('[TransactionDetails] Fetching forfeit VTXO:', outpointKey);
+          
+          indexerClient.getVtxos({ outpoints: [{ txid: inputTxid, vout: input.index }] })
+            .then(result => {
+              if (result?.vtxos && result.vtxos.length > 0) {
+                setForfeitVtxo(result.vtxos[0]);
+              }
+            })
+            .catch((err: Error) => {
+              console.error('Failed to fetch forfeit VTXO:', err);
+            });
+        }
       }
     }
   }, [isForfeitTx, parsedTx]);
+
+  // Fetch tree data for each batch to find root transactions
+  const batchVouts = type === 'commitment' && data?.batches 
+    ? Object.keys(data.batches).map(key => parseInt(key))
+    : [];
+
+  const batchTreeQueries = useQueries({
+    queries: batchVouts.map(vout => ({
+      queryKey: ['vtxo-tree', txid, vout],
+      queryFn: () => indexerClient.getVtxoTree({ txid, vout }),
+      enabled: type === 'commitment' && !!txid,
+    })),
+  });
+
+  // Map batch vout to root transaction ID
+  const batchRootTxids = new Map<number, string>();
+  batchTreeQueries.forEach((query, index) => {
+    if (query.data?.vtxoTree && query.data.vtxoTree.length > 0) {
+      const tree = query.data.vtxoTree;
+      // Find root: node that is not a child of any other node
+      const allChildTxids = new Set<string>();
+      tree.forEach((node: any) => {
+        if (node.children) {
+          Object.values(node.children).forEach((childTxid: any) => {
+            allChildTxids.add(childTxid);
+          });
+        }
+      });
+      const rootNode = tree.find((node: any) => !allChildTxids.has(node.txid));
+      if (rootNode) {
+        batchRootTxids.set(batchVouts[index], rootNode.txid);
+      }
+    }
+  });
 
   // Get timestamps from VTXO data
   const firstVtxo = vtxoData?.[0];
@@ -289,12 +355,12 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
 
               <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
                 <span className="text-arkade-gray uppercase text-sm font-bold">Total Input Amount</span>
-                <span className="text-arkade-orange font-mono font-bold">{formatSats(data.totalInputAmount)} sats</span>
+                <MoneyDisplay sats={data.totalInputAmount} valueClassName="text-arkade-orange font-mono font-bold" unitClassName="text-arkade-orange font-mono font-bold" />
               </div>
 
               <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
                 <span className="text-arkade-gray uppercase text-sm font-bold">Total Output Amount</span>
-                <span className="text-arkade-orange font-mono font-bold">{formatSats(data.totalOutputAmount)} sats</span>
+                <MoneyDisplay sats={data.totalOutputAmount} valueClassName="text-arkade-orange font-mono font-bold" unitClassName="text-arkade-orange font-mono font-bold" />
               </div>
 
               <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
@@ -307,6 +373,166 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                 <span className="text-arkade-gray font-mono">{data.totalOutputVtxos}</span>
               </div>
             </>
+          )}
+          
+          {type === 'commitment' && parsedTx && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+              {/* Inputs Column */}
+              <div>
+                <h3 className="text-lg font-bold text-arkade-purple uppercase mb-3">
+                  Inputs ({parsedTx.inputsLength + (data?.forfeitTxids?.length || 0)})
+                </h3>
+                <div className="space-y-2">
+                  {/* Regular inputs from the transaction */}
+                  {Array.from({ length: parsedTx.inputsLength }).map((_, i) => {
+                    const input = parsedTx!.getInput(i);
+                    const inputTxid = input?.txid 
+                      ? Array.from(input.txid).map(b => b.toString(16).padStart(2, '0')).join('')
+                      : '';
+                    
+                    return (
+                      <div key={`input-${i}`} className="flex items-center gap-2 animate-slide-in" style={{ animationDelay: `${i * 0.05}s` }}>
+                        <div className="w-8 flex items-center justify-center flex-shrink-0">
+                          {inputTxid && (
+                            <a
+                              href={`https://mempool.space/${serverInfo?.network === 'bitcoin' ? '' : 'testnet/'}tx/${inputTxid}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="arrow-nav-button bg-arkade-purple text-white border-2 border-arkade-purple hover:bg-arkade-orange hover:border-arkade-orange transition-all duration-200 rounded-full w-8 h-8 flex items-center justify-center"
+                              title={`View on Mempool: ${inputTxid}`}
+                            >
+                              <ArrowRight size={16} />
+                            </a>
+                          )}
+                        </div>
+                        <div className="bg-arkade-black border border-arkade-purple p-3 flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-arkade-gray uppercase">Input #{i}</span>
+                          </div>
+                          {inputTxid && (
+                            <div className="text-xs font-mono text-arkade-gray">
+                              {truncateHash(inputTxid, 12, 12)}:{input?.index ?? 0}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Forfeit transactions as inputs */}
+                  {data?.forfeitTxids?.map((forfeitTxid: string, i: number) => {
+                    const inputIndex = parsedTx!.inputsLength + i;
+                    return (
+                      <div key={`forfeit-${i}`} className="flex items-center gap-2 animate-slide-in" style={{ animationDelay: `${inputIndex * 0.05}s` }}>
+                        <div className="w-8 flex items-center justify-center flex-shrink-0">
+                          <Link 
+                            to={`/tx/${forfeitTxid}`}
+                            className="arrow-nav-button bg-arkade-purple text-white border-2 border-arkade-purple hover:bg-arkade-orange hover:border-arkade-orange transition-all duration-200 rounded-full w-8 h-8 flex items-center justify-center"
+                            title={`View forfeit tx: ${forfeitTxid}`}
+                          >
+                            <ArrowRight size={16} />
+                          </Link>
+                        </div>
+                        <div className="bg-arkade-black border border-arkade-orange p-3 flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-arkade-gray uppercase">Input #{inputIndex}</span>
+                              <span className="text-xs font-bold uppercase text-arkade-orange">Forfeit</span>
+                            </div>
+                          </div>
+                          <div className="text-xs font-mono text-arkade-gray">
+                            {truncateHash(forfeitTxid, 12, 12)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Outputs Column */}
+              <div>
+                <h3 className="text-lg font-bold text-arkade-purple uppercase mb-3">
+                  Outputs ({parsedTx.outputsLength})
+                </h3>
+                <div className="space-y-2">
+                  {Array.from({ length: parsedTx.outputsLength }).map((_, i) => {
+                    const output = parsedTx!.getOutput(i);
+                    const amount = output?.amount || 0n;
+                    const scriptHex = output?.script 
+                      ? Array.from(output.script).map(b => b.toString(16).padStart(2, '0')).join('')
+                      : '';
+                    
+                    // Check if this output corresponds to a batch
+                    const batchKey = i.toString();
+                    const batch = data?.batches?.[batchKey];
+                    const isBatch = batch && parseInt(batch.totalOutputAmount || '0') > 0;
+                    
+                    // Check if this output is a connector
+                    // Connectors have children mapping this output index to child txids
+                    const connectorTx = data?.connectors?.find((conn: any) => conn.children && conn.children[i]);
+                    const isConnector = !!connectorTx;
+                    const connectorChildTxid = connectorTx?.children?.[i];
+                    
+                    // Determine border color: orange for batch, blue for connector, purple for regular
+                    const borderColor = isBatch ? 'border-arkade-orange' : isConnector ? 'border-blue-500' : 'border-arkade-purple';
+                    
+                    return (
+                      <div key={i} className="flex items-center gap-2 animate-slide-in" style={{ animationDelay: `${i * 0.05}s` }}>
+                        <div className={`bg-arkade-black border p-3 flex-1 min-w-0 ${borderColor}`}>
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-arkade-gray uppercase">Output #{i}</span>
+                              {isBatch && (
+                                <span className="text-xs font-bold uppercase text-arkade-orange">
+                                  Batch #{parseInt(batchKey) + 1}
+                                </span>
+                              )}
+                              {isConnector && (
+                                <span className="text-xs font-bold uppercase text-blue-400">
+                                  Connector
+                                </span>
+                              )}
+                            </div>
+                            <MoneyDisplay sats={parseInt(amount.toString())} valueClassName="text-xs text-arkade-orange font-bold" unitClassName="text-xs text-arkade-orange font-bold" />
+                          </div>
+                          {isBatch && batch && (
+                            <div className="text-xs text-arkade-gray mb-1">
+                              {batch.totalOutputVtxos} VTXO{batch.totalOutputVtxos !== 1 ? 's' : ''}
+                            </div>
+                          )}
+                          {scriptHex && (
+                            <div className="text-xs font-mono text-arkade-gray break-all">
+                              {scriptHex.substring(0, 40)}...
+                            </div>
+                          )}
+                        </div>
+                        <div className="w-8 flex items-center justify-center flex-shrink-0">
+                          {isBatch && batch && batchRootTxids.get(i) && (
+                            <Link 
+                              to={`/tx/${batchRootTxids.get(i)}`}
+                              className="arrow-nav-button bg-arkade-purple text-white border-2 border-arkade-purple hover:bg-arkade-orange hover:border-arkade-orange transition-all duration-200 rounded-full w-8 h-8 flex items-center justify-center"
+                              title={`View batch root tx: ${batchRootTxids.get(i)}`}
+                            >
+                              <ArrowRight size={16} />
+                            </Link>
+                          )}
+                          {isConnector && connectorChildTxid && (
+                            <Link 
+                              to={`/tx/${connectorChildTxid}`}
+                              className="arrow-nav-button bg-arkade-purple text-white border-2 border-arkade-purple hover:bg-arkade-orange hover:border-arkade-orange transition-all duration-200 rounded-full w-8 h-8 flex items-center justify-center"
+                              title={`Connector child tx: ${connectorChildTxid}`}
+                            >
+                              <ArrowRight size={16} />
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           )}
 
           {type === 'arkade' && parsedTx && (
@@ -363,9 +589,7 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                             <span className="text-xs text-arkade-gray uppercase">Input #{i}</span>
                             <div className="flex items-center gap-2">
                               {inputAmount !== null && (
-                                <span className="text-xs text-arkade-orange font-bold">
-                                  {formatSats(inputAmount.toString())} sats
-                                </span>
+                                <MoneyDisplay sats={parseInt(inputAmount.toString())} valueClassName="text-xs text-arkade-orange font-bold" unitClassName="text-xs text-arkade-orange font-bold" />
                               )}
                             </div>
                           </div>
@@ -440,9 +664,7 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                                   Spent
                                 </span>
                               )}
-                              <span className="text-xs text-arkade-orange font-bold">
-                                {formatSats(amount.toString())} sats
-                              </span>
+                              <MoneyDisplay sats={parseInt(amount.toString())} valueClassName="text-xs text-arkade-orange font-bold" unitClassName="text-xs text-arkade-orange font-bold" />
                             </div>
                           </div>
                           {isForfeitOutput && (
@@ -524,7 +746,11 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
             </button>
             {showDebug && (
               <pre className="mt-2 p-2 bg-arkade-black/50 rounded text-xs overflow-x-auto">
-                <code className="text-arkade-gray">{JSON.stringify(parsedTx ? {
+                <code className="text-arkade-gray">{JSON.stringify(type === 'commitment' && !parsedTx ? {
+                  // Show raw commitment data if transaction parsing failed
+                  rawData: data,
+                  note: 'Transaction parsing failed - check if data.tx field exists'
+                } : parsedTx ? {
                   type: type === 'commitment' ? 'Commitment Transaction' : isCheckpointTx ? 'Checkpoint Transaction' : isForfeitTx ? 'Forfeit Transaction' : 'Arkade Transaction',
                   txid,
                   version: parsedTx.version,

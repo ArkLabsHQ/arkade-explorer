@@ -140,9 +140,16 @@ function VtxoTreeSection({ batchId, batchIndex, batch, commitmentTxid, isExpande
     vout: leaf.vout,
   })) || [];
 
+  // Serialize outpoints for stable query key
+  const outpointsKey = JSON.stringify(leafOutpoints);
+
   const { data: vtxosData, isLoading: vtxosLoading } = useQuery({
-    queryKey: ['vtxos-by-outpoints', leafOutpoints],
-    queryFn: () => indexerClient.getVtxos({ outpoints: leafOutpoints }),
+    queryKey: ['vtxos-by-outpoints', outpointsKey],
+    queryFn: () => {
+      console.log('[TreeViewer] Fetching VTXOs by outpoints:', leafOutpoints);
+      console.trace('[TreeViewer] Stack trace for VTXO fetch');
+      return indexerClient.getVtxos({ outpoints: leafOutpoints });
+    },
     enabled: isExpanded && leafOutpoints.length > 0,
   });
 

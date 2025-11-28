@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { indexerClient } from '../lib/api/indexer';
@@ -7,7 +7,7 @@ import { VtxoList } from '../components/Address/VtxoList';
 import { AddressStats } from '../components/Address/AddressStats';
 import { LoadingSpinner } from '../components/UI/LoadingSpinner';
 import { ErrorMessage } from '../components/UI/ErrorMessage';
-import { ParticleRain } from '../components/UI/ParticleRain';
+import { MoneyDisplay } from '../components/UI/MoneyDisplay';
 import { copyToClipboard } from '../lib/utils';
 import { addressToScriptHex, scriptHexToAddress, isHex } from '../lib/decode';
 import { Copy, Check, Pin, PinOff } from 'lucide-react';
@@ -23,8 +23,8 @@ export function AddressPage() {
   const [displayCount, setDisplayCount] = useState(20);
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [copiedScript, setCopiedScript] = useState(false);
-  const [particleTrigger, setParticleTrigger] = useState(0);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const addedToRecentRef = useRef<string | null>(null);
   
   const itemsPerPage = 20;
 
@@ -85,8 +85,6 @@ export function AddressPage() {
         for await (const event of eventStream) {
           if (abortController.signal.aborted) break;
           console.log('Address event received:', event);
-          // Trigger particle rain animation
-          setParticleTrigger(prev => prev + 1);
           // Refetch VTXOs when an event is received
           refetch();
         }
@@ -105,12 +103,17 @@ export function AddressPage() {
     };
   }, [address, scriptHex, refetch]);
 
-  // Add to recent searches when page loads
-  useEffect(() => {
-    if (displayAddress) {
-      addRecentSearch(displayAddress, 'address');
+  // Add to recent searches when page loads (only once per address)
+  useLayoutEffect(() => {
+    if (displayAddress && addedToRecentRef.current !== displayAddress) {
+      addedToRecentRef.current = displayAddress;
+      // Use setTimeout to defer the state update to avoid render conflicts
+      setTimeout(() => {
+        addRecentSearch(displayAddress, 'address');
+      }, 0);
     }
-  }, [displayAddress, addRecentSearch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayAddress]);
 
   // Calculate derived values
   const allVtxos = data?.vtxos || [];
@@ -137,6 +140,9 @@ export function AddressPage() {
   // Infinite scroll - show only first N items
   const displayedVtxos = vtxos.slice(0, displayCount);
   const hasMore = displayCount < vtxos.length;
+
+  // Calculate total balance of filtered VTXOs
+  const filteredBalance = vtxos.reduce((sum, v) => sum + parseInt(v.value.toString()), 0);
 
   // Reset display count when filters change
   const resetDisplayCount = () => {
@@ -197,7 +203,6 @@ export function AddressPage() {
 
   return (
     <div className="space-y-6">
-      <ParticleRain trigger={particleTrigger} />
       <Card glowing>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -271,7 +276,9 @@ export function AddressPage() {
 
       <div>
         <div className="mb-4">
-          <h2 className="text-xl font-bold text-arkade-purple uppercase mb-4">VTXOs ({vtxos.length})</h2>
+          <h2 className="text-xl font-bold text-arkade-purple uppercase mb-4">
+            VTXOs ({vtxos.length}) • <MoneyDisplay sats={filteredBalance} valueClassName="text-arkade-orange font-mono" unitClassName="text-arkade-gray text-sm" />
+          </h2>
           
           <div className="flex flex-wrap items-center gap-3 md:gap-4">
             {/* VTXO Filter */}

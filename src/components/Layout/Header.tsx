@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { SearchBar } from '../UI/SearchBar';
 import { ThemeToggle } from '../UI/ThemeToggle';
+import { MoneyUnitToggle } from '../UI/MoneyUnitToggle';
 import { useTheme } from '../../contexts/ThemeContext';
 import logoBlack from '../../assets/logo-black.svg';
 import logoOrange from '../../assets/logo-orange.svg';
@@ -34,6 +35,7 @@ export function Header() {
               className="retro-button shrink-0 hidden sm:block text-xs md:text-sm px-2 md:px-3">
               Try Arkade
             </a>
+            <MoneyUnitToggle />
             <ThemeToggle />
           </div>
         </div>

@@ -5,7 +5,8 @@ import { Card } from '../UI/Card';
 import { Badge } from '../UI/Badge';
 import { LoadingSpinner } from '../UI/LoadingSpinner';
 import { VtxoList } from '../Address/VtxoList';
-import { truncateHash, formatTimestamp, formatSats } from '../../lib/utils';
+import { MoneyDisplay } from '../UI/MoneyDisplay';
+import { truncateHash, formatTimestamp } from '../../lib/utils';
 import { Batch } from '../../lib/api/indexer';
 import { indexerClient } from '../../lib/api/indexer';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -81,7 +82,7 @@ export function BatchList({ batches, commitmentTxid }: BatchListProps) {
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-arkade-gray uppercase text-xs sm:text-sm font-bold">Amount</span>
-                  <span className="text-arkade-orange font-bold font-mono text-xs sm:text-sm">{formatSats(batch.totalOutputAmount)} sats</span>
+                  <MoneyDisplay sats={parseInt(batch.totalOutputAmount.toString())} valueClassName="text-arkade-orange font-bold font-mono text-xs sm:text-sm" unitClassName="text-arkade-orange font-bold font-mono text-xs sm:text-sm" />
                 </div>
                 
                 <div className="flex items-center justify-between">
@@ -157,9 +158,16 @@ function BatchTreeContent({ commitmentTxid, vout }: { commitmentTxid: string; vo
     vout: leaf.vout,
   })) || [];
 
+  // Serialize outpoints for stable query key
+  const outpointsKey = JSON.stringify(leafOutpoints);
+
   const { data: vtxosData, isLoading: vtxosLoading } = useQuery({
-    queryKey: ['vtxos-by-outpoints', leafOutpoints],
-    queryFn: () => indexerClient.getVtxos({ outpoints: leafOutpoints }),
+    queryKey: ['vtxos-by-outpoints', outpointsKey],
+    queryFn: () => {
+      console.log('[BatchList] Fetching VTXOs by outpoints:', leafOutpoints);
+      console.trace('[BatchList] Stack trace for VTXO fetch');
+      return indexerClient.getVtxos({ outpoints: leafOutpoints });
+    },
     enabled: leafOutpoints.length > 0,
   });
 

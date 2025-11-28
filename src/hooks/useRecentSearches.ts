@@ -70,10 +70,9 @@ export function useRecentSearches() {
         ...filtered,
       ].slice(0, MAX_RECENT);
 
-      // Save to localStorage
+      // Save to localStorage (no event dispatch needed - state update handles UI)
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-        window.dispatchEvent(new Event('localStorageUpdate'));
       } catch (error) {
         console.error('Failed to save recent searches:', error);
       }
@@ -86,7 +85,6 @@ export function useRecentSearches() {
     setRecentSearches([]);
     try {
       localStorage.removeItem(STORAGE_KEY);
-      window.dispatchEvent(new Event('localStorageUpdate'));
     } catch (error) {
       console.error('Failed to clear recent searches:', error);
     }
@@ -108,7 +106,6 @@ export function useRecentSearches() {
       // Save to localStorage
       try {
         localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(updated));
-        window.dispatchEvent(new Event('localStorageUpdate'));
       } catch (error) {
         console.error('Failed to save pinned searches:', error);
       }
@@ -126,7 +123,6 @@ export function useRecentSearches() {
       // Save to localStorage
       try {
         localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(updated));
-        window.dispatchEvent(new Event('localStorageUpdate'));
       } catch (error) {
         console.error('Failed to update pin label:', error);
       }
@@ -142,7 +138,6 @@ export function useRecentSearches() {
       // Save to localStorage
       try {
         localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(updated));
-        window.dispatchEvent(new Event('localStorageUpdate'));
       } catch (error) {
         console.error('Failed to save pinned searches:', error);
       }
@@ -155,7 +150,6 @@ export function useRecentSearches() {
     setPinnedSearches([]);
     try {
       localStorage.removeItem(PINNED_STORAGE_KEY);
-      window.dispatchEvent(new Event('localStorageUpdate'));
     } catch (error) {
       console.error('Failed to clear pinned searches:', error);
     }

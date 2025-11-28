@@ -1,6 +1,6 @@
 import { Card } from '../UI/Card';
+import { MoneyDisplay } from '../UI/MoneyDisplay';
 import { Vtxo } from '../../lib/api/indexer';
-import { formatSats } from '../../lib/utils';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface AddressStatsProps {
@@ -24,16 +24,24 @@ export function AddressStats({ vtxos }: AddressStatsProps) {
       <Card>
         <div className="text-center space-y-2">
           <div className="text-arkade-gray uppercase text-xs font-bold">Total Balance</div>
-          <div className="text-arkade-orange text-xl font-bold font-mono">{formatSats(totalBalance)}</div>
-          <div className="text-arkade-gray text-xs">sats</div>
+          <MoneyDisplay 
+            sats={totalBalance} 
+            layout="block"
+            valueClassName="text-arkade-orange text-xl font-bold font-mono" 
+            unitClassName="text-arkade-gray text-xs" 
+          />
         </div>
       </Card>
 
       <Card>
         <div className="text-center space-y-2">
           <div className="text-arkade-gray uppercase text-xs font-bold">Total Received</div>
-          <div className={`${mypurple} text-xl font-bold font-mono`}>{formatSats(totalReceived)}</div>
-          <div className="text-arkade-gray text-xs">sats</div>
+          <MoneyDisplay 
+            sats={totalReceived} 
+            layout="block"
+            valueClassName={`${mypurple} text-xl font-bold font-mono`} 
+            unitClassName="text-arkade-gray text-xs" 
+          />
         </div>
       </Card>
 

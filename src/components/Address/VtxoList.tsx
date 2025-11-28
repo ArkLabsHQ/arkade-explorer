@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Card } from '../UI/Card';
 import { Badge } from '../UI/Badge';
-import { formatTimestamp, formatSats, truncateHash } from '../../lib/utils';
+import { MoneyDisplay } from '../UI/MoneyDisplay';
+import { formatTimestamp, truncateHash } from '../../lib/utils';
 import { Link } from 'react-router-dom';
 import { Vtxo } from '../../lib/api/indexer';
 import { ExternalLink } from 'lucide-react';
@@ -105,9 +106,11 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
               <div className="space-y-2 text-sm">
                 <div className="flex gap-2">
                   <span className="text-arkade-gray uppercase text-xs sm:text-sm">Amount:</span>
-                  <span className="text-arkade-orange font-bold font-mono text-xs sm:text-sm sm:ml-2">
-                    {formatSats(vtxo.value.toString())} sats
-                  </span>
+                  <MoneyDisplay 
+                    sats={parseInt(vtxo.value.toString())} 
+                    valueClassName="text-arkade-orange font-bold font-mono text-xs sm:text-sm sm:ml-2"
+                    unitClassName="text-arkade-orange font-bold font-mono text-xs sm:text-sm"
+                  />
                 </div>
 
                 <div className="flex gap-2">
