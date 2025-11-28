@@ -120,7 +120,7 @@ export function AddressPage() {
   // Calculate derived values
   const allVtxos = data?.vtxos || [];
   let vtxos = allVtxos.filter(v => {
-    const isSpent = v.spentBy || (v as any).isSpent;
+    const isSpent = (v.spentBy && v.spentBy !== '') || (v as any).isSpent === true;
     const isRecoverable = !isSpent && (v as any).virtualStatus?.state === 'swept';
     const isSpendable = !isSpent && !isRecoverable;
     const isPreconfirmed = (v as any).virtualStatus?.state === 'preconfirmed' || (v as any).preconfirmed;

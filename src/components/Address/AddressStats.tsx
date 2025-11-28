@@ -10,8 +10,8 @@ interface AddressStatsProps {
 export function AddressStats({ vtxos }: AddressStatsProps) {
   const { resolvedTheme } = useTheme();
 
-  const activeVtxos = vtxos.filter((v) => !v.spentBy);
-  const spentVtxos = vtxos.filter((v) => v.spentBy);
+  const activeVtxos = vtxos.filter((v) => !(v.spentBy && v.spentBy !== '') && !(v as any).isSpent);
+  const spentVtxos = vtxos.filter((v) => (v.spentBy && v.spentBy !== '') || (v as any).isSpent);
 
   const totalBalance = activeVtxos.reduce((sum, v) => sum + parseInt(v.value.toString()), 0);
   const totalReceived = vtxos.reduce((sum, v) => sum + parseInt(v.value.toString()), 0);
