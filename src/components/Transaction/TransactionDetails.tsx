@@ -240,6 +240,70 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
     }
   });
 
+  // Find root connector transaction and fetch it
+  const rootConnectorTxid = type === 'commitment' && data?.connectors?.length > 0
+    ? (() => {
+        const connectors = data.connectors;
+        const allChildTxids = new Set<string>();
+        connectors.forEach((conn: any) => {
+          if (conn.children) {
+            Object.values(conn.children).forEach((childTxid: any) => {
+              allChildTxids.add(childTxid);
+            });
+          }
+        });
+        const rootConnector = connectors.find((conn: any) => !allChildTxids.has(conn.txid));
+        return rootConnector?.txid;
+      })()
+    : null;
+
+  const rootConnectorQueries = useQueries({
+    queries: [{
+      queryKey: ['virtual-tx', rootConnectorTxid || 'none'],
+      queryFn: async () => {
+        if (!rootConnectorTxid) return null;
+        const result = await indexerClient.getVirtualTxs([rootConnectorTxid]);
+        return result.txs[0];
+      },
+      enabled: !!rootConnectorTxid,
+    }],
+  });
+
+  // Parse root connector transaction and find which outputs it spends
+  const connectorOutputIndices = new Set<number>();
+  const rootConnectorData = rootConnectorQueries[0]?.data;
+  if (rootConnectorData && typeof rootConnectorData === 'string') {
+    try {
+      // Check if it's hex (raw tx) or base64 (PSBT)
+      const isHex = /^[0-9a-fA-F]+$/.test(rootConnectorData);
+      let rootConnectorParsedTx: btc.Transaction | null = null;
+      
+      if (isHex) {
+        const txBytes = hex.decode(rootConnectorData);
+        rootConnectorParsedTx = btc.Transaction.fromRaw(txBytes);
+      } else {
+        const psbtBytes = Uint8Array.from(atob(rootConnectorData), c => c.charCodeAt(0));
+        rootConnectorParsedTx = btc.Transaction.fromPSBT(psbtBytes);
+      }
+
+      if (rootConnectorParsedTx) {
+        // Check each input to see if it spends an output from the current commitment tx
+        for (let i = 0; i < rootConnectorParsedTx.inputsLength; i++) {
+          const input = rootConnectorParsedTx.getInput(i);
+          if (input?.txid) {
+            const inputTxid = Array.from(input.txid).map(b => b.toString(16).padStart(2, '0')).join('');
+            if (inputTxid === txid) {
+              // This input spends an output from the current commitment tx
+              connectorOutputIndices.add(input.index ?? 0);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse root connector transaction:', e);
+    }
+  }
+
   // Get timestamps from VTXO data
   const firstVtxo = vtxoData?.[0];
   const createdAt = firstVtxo?.createdAt;
@@ -469,10 +533,9 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                     const isBatch = batch && parseInt(batch.totalOutputAmount || '0') > 0;
                     
                     // Check if this output is a connector
-                    // Connectors have children mapping this output index to child txids
-                    const connectorTx = data?.connectors?.find((conn: any) => conn.children && conn.children[i]);
-                    const isConnector = !!connectorTx;
-                    const connectorChildTxid = connectorTx?.children?.[i];
+                    // An output is a connector if the root connector transaction spends it
+                    const isConnector = connectorOutputIndices.has(i);
+                    const connectorChildTxid = isConnector ? rootConnectorTxid : null;
                     
                     // Determine border color: orange for batch, blue for connector, purple for regular
                     const borderColor = isBatch ? 'border-arkade-orange' : isConnector ? 'border-blue-500' : 'border-arkade-purple';
