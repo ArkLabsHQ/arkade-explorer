@@ -476,23 +476,20 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
               </div>
 
               <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
-                <span className="text-arkade-gray uppercase text-sm font-bold">Total Input Amount</span>
-                <MoneyDisplay sats={data.totalInputAmount} valueClassName={`${moneyColor} font-mono font-bold`} unitClassName={`${moneyColor} font-mono font-bold`} />
-              </div>
-
-              <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
-                <span className="text-arkade-gray uppercase text-sm font-bold">Total Output Amount</span>
-                <MoneyDisplay sats={data.totalOutputAmount} valueClassName={`${moneyColor} font-mono font-bold`} unitClassName={`${moneyColor} font-mono font-bold`} />
-              </div>
-
-              <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
-                <span className="text-arkade-gray uppercase text-sm font-bold">Input VTXOs</span>
-                <span className="text-arkade-gray font-mono">{data.totalInputVtxos}</span>
-              </div>
-
-              <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
-                <span className="text-arkade-gray uppercase text-sm font-bold">Output VTXOs</span>
-                <span className="text-arkade-gray font-mono">{data.totalOutputVtxos}</span>
+                <span className="text-arkade-gray uppercase text-sm font-bold">VTXOs</span>
+                <div className="flex items-center gap-1 flex-wrap justify-end">
+                  <MoneyDisplay sats={data.totalInputAmount} valueClassName={`${moneyColor} font-mono font-bold`} unitClassName={`${moneyColor} font-mono font-bold`} />
+                  <span className="text-arkade-gray font-mono">in /</span>
+                  <MoneyDisplay sats={data.totalOutputAmount} valueClassName={`${moneyColor} font-mono font-bold`} unitClassName={`${moneyColor} font-mono font-bold`} />
+                  <span className="text-arkade-gray font-mono">out</span>
+                  {BigInt(data.totalInputAmount) > BigInt(data.totalOutputAmount) && (
+                    <>
+                      <span className="text-arkade-gray font-mono">/</span>
+                      <MoneyDisplay sats={Number(BigInt(data.totalInputAmount) - BigInt(data.totalOutputAmount))} valueClassName={`${moneyColor} font-mono font-bold`} unitClassName={`${moneyColor} font-mono font-bold`} />
+                      <span className="text-arkade-gray font-mono">collab exit</span>
+                    </>
+                  )}
+                </div>
               </div>
             </>
           )}
