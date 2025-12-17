@@ -16,9 +16,9 @@ export function MoneyDisplayProvider({ children }: { children: ReactNode }) {
   const [unit, setUnitState] = useState<MoneyUnit>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      return (stored === 'btc' || stored === 'sats') ? stored : 'sats';
+      return (stored === 'btc' || stored === 'sats') ? stored : 'btc';
     } catch {
-      return 'sats';
+      return 'btc';
     }
   });
 
