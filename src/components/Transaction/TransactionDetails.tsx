@@ -477,18 +477,16 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
 
               <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
                 <span className="text-arkade-gray uppercase text-sm font-bold">VTXOs</span>
+                <span className="text-arkade-gray font-mono">{data.totalInputVtxos} in / {data.totalOutputVtxos} out</span>
+              </div>
+
+              <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
+                <span className="text-arkade-gray uppercase text-sm font-bold">Amount</span>
                 <div className="flex items-center gap-1 flex-wrap justify-end">
                   <MoneyDisplay sats={data.totalInputAmount} valueClassName={`${moneyColor} font-mono font-bold`} unitClassName={`${moneyColor} font-mono font-bold`} />
                   <span className="text-arkade-gray font-mono">in /</span>
                   <MoneyDisplay sats={data.totalOutputAmount} valueClassName={`${moneyColor} font-mono font-bold`} unitClassName={`${moneyColor} font-mono font-bold`} />
                   <span className="text-arkade-gray font-mono">out</span>
-                  {BigInt(data.totalInputAmount) > BigInt(data.totalOutputAmount) && (
-                    <>
-                      <span className="text-arkade-gray font-mono">/</span>
-                      <MoneyDisplay sats={Number(BigInt(data.totalInputAmount) - BigInt(data.totalOutputAmount))} valueClassName={`${moneyColor} font-mono font-bold`} unitClassName={`${moneyColor} font-mono font-bold`} />
-                      <span className="text-arkade-gray font-mono">collab exit</span>
-                    </>
-                  )}
                 </div>
               </div>
             </>
