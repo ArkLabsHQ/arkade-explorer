@@ -7,7 +7,10 @@ export const indexerClient = new RestIndexerProvider(INDEXER_URL);
 export const arkClient = new RestArkProvider(ARK_URL);
 
 // Re-export types from SDK for convenience
-export type { Outpoint, CommitmentTx, Batch, PageResponse, VirtualCoin } from '@arkade-os/sdk';
+export type { Outpoint, CommitmentTx, BatchInfo, PageResponse, VirtualCoin } from '@arkade-os/sdk';
+
+// Alias BatchInfo as Batch for backward compatibility
+export type { BatchInfo as Batch } from '@arkade-os/sdk';
 
 // Alias VirtualCoin as Vtxo for backward compatibility
 export type Vtxo = VirtualCoin;
