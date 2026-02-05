@@ -24,7 +24,7 @@ export function BatchList({ batches, commitmentTxid }: BatchListProps) {
   const [debugBatches, setDebugBatches] = useState<Set<string>>(new Set());
   const moneyColor = resolvedTheme === 'dark' ? 'text-arkade-orange' : 'text-arkade-purple';
   // Filter out batches with 0 amount
-  const batchEntries = Object.entries(batches).filter(([_, batch]) => 
+  const batchEntries = Object.entries(batches).filter(([, batch]) => 
     batch.totalOutputAmount && parseInt(batch.totalOutputAmount) > 0
   );
 
@@ -139,7 +139,7 @@ function BatchTreeContent({ commitmentTxid, vout }: { commitmentTxid: string; vo
   });
 
   // Get unique txids from leaves to fetch virtual transactions
-  const leafTxids = [...new Set(leavesData?.leaves?.map((leaf: any) => leaf.txid) || [])];
+  const leafTxids = [...new Set(leavesData?.leaves?.map((leaf) => leaf.txid) || [])];
 
   const { data: virtualTxsData, isLoading: virtualTxsLoading } = useQuery({
     queryKey: ['virtual-txs', leafTxids],
@@ -156,7 +156,7 @@ function BatchTreeContent({ commitmentTxid, vout }: { commitmentTxid: string; vo
   });
 
   // Fetch full VTXO data
-  const leafOutpoints = leavesData?.leaves?.map((leaf: any) => ({
+  const leafOutpoints = leavesData?.leaves?.map((leaf) => ({
     txid: leaf.txid,
     vout: leaf.vout,
   })) || [];
@@ -182,8 +182,8 @@ function BatchTreeContent({ commitmentTxid, vout }: { commitmentTxid: string; vo
       return vtxosData?.vtxos || [];
     }
     
-    return vtxosData.vtxos.map((vtxo: any) => {
-      const virtualTx = virtualTxsData.txs.find((t: any) => t.txid === vtxo.txid);
+    return vtxosData.vtxos.map((vtxo) => {
+      const virtualTx = virtualTxsData.txs.find(t => t.txid === vtxo.txid);
       if (virtualTx?.tx) {
         return { ...vtxo, _psbt: virtualTx.tx };
       }
@@ -204,17 +204,17 @@ function BatchTreeContent({ commitmentTxid, vout }: { commitmentTxid: string; vo
           <div className="space-y-1">
             {(() => {
               const allChildTxids = new Set<string>();
-              treeData.vtxoTree.forEach((node: any) => {
+              treeData.vtxoTree.forEach((node) => {
                 if (node.children) {
-                  Object.values(node.children).forEach((childTxid: any) => {
+                  Object.values(node.children).forEach((childTxid) => {
                     allChildTxids.add(childTxid);
                   });
                 }
               });
               
               return treeData.vtxoTree
-                .filter((node: any) => !allChildTxids.has(node.txid))
-                .map((node: any, idx: number) => {
+                .filter((node) => !allChildTxids.has(node.txid))
+                .map((node, idx: number) => {
                   const hasChildren = node.children && Object.keys(node.children).length > 0;
                   const childTxids = hasChildren ? Object.values(node.children) : [];
                   
@@ -236,7 +236,7 @@ function BatchTreeContent({ commitmentTxid, vout }: { commitmentTxid: string; vo
                       
                       {hasChildren && (
                         <div className="ml-6 mt-2 space-y-1">
-                          {childTxids.map((childTxid: any, childIdx: number) => (
+                          {childTxids.map((childTxid, childIdx: number) => (
                             <div key={childIdx} className="flex items-center space-x-2 text-xs">
                               <span className="text-arkade-gray">↳</span>
                               <Link 

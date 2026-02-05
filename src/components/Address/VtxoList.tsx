@@ -4,7 +4,7 @@ import { Badge } from '../UI/Badge';
 import { MoneyDisplay } from '../UI/MoneyDisplay';
 import { formatTimestamp, truncateHash } from '../../lib/utils';
 import { Link } from 'react-router-dom';
-import { Vtxo } from '../../lib/api/indexer';
+import { Vtxo, IndexerAsset } from '../../lib/api/indexer';
 import { ExternalLink } from 'lucide-react';
 import * as btc from '@scure/btc-signer';
 import { constructArkAddress } from '../../lib/arkAddress';
@@ -12,7 +12,7 @@ import { useServerInfo } from '../../contexts/ServerInfoContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface VtxoListProps {
-  vtxos: Vtxo[];
+  vtxos: (Vtxo & { assets?: IndexerAsset[] })[];
   showScript?: boolean;
 }
 
@@ -183,6 +183,25 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
                       className={`${mypurple} ml-2 font-mono hover:underline`}>
                       {truncateHash((vtxo as any).settledBy, 8, 8)}
                     </Link>
+                  </div>
+                )}
+
+                {(vtxo as any).assets?.length > 0 && (
+                  <div className="col-span-2">
+                    <span className="text-arkade-gray uppercase block text-xs sm:text-sm mb-1">Assets</span>
+                    <ul className="list-none space-y-1 pl-0">
+                      {((vtxo as any).assets as IndexerAsset[]).map((asset, i) => (
+                        <li key={i} className="flex flex-wrap items-center gap-x-2 gap-y-0 text-xs sm:text-sm">
+                          <span className={`font-mono break-all ${moneyColor}`}>
+                            {asset.assetId.length > 20 ? truncateHash(asset.assetId, 10, 10) : asset.assetId}
+                          </span>
+                          <span className="text-arkade-gray">—</span>
+                          <span className={`font-mono font-bold ${moneyColor}`}>
+                            {asset.amount.toLocaleString()}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
 
