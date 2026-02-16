@@ -10,6 +10,8 @@ import * as btc from '@scure/btc-signer';
 import { constructArkAddress } from '../../lib/arkAddress';
 import { useServerInfo } from '../../contexts/ServerInfoContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { AssetBadge } from '../UI/AssetBadge';
+import { AssetAmountDisplay } from '../UI/AssetAmountDisplay';
 
 interface VtxoListProps {
   vtxos: Vtxo[];
@@ -113,6 +115,25 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
                     unitClassName={`${moneyColor} font-bold font-mono text-xs sm:text-sm`}
                   />
                 </div>
+
+                {vtxo.assets && vtxo.assets.length > 0 && (
+                  <div className="space-y-1">
+                    <span className="text-arkade-gray uppercase text-xs sm:text-sm">Assets:</span>
+                    <div className="flex flex-wrap gap-2 ml-2">
+                      {vtxo.assets.map((asset, assetIdx) => (
+                        <div key={assetIdx} className="flex items-center gap-2">
+                          <AssetBadge assetId={asset.assetId} />
+                          <AssetAmountDisplay
+                            amount={asset.amount}
+                            assetId={asset.assetId}
+                            valueClassName={`${moneyColor} font-bold font-mono text-xs sm:text-sm`}
+                            unitClassName={`${moneyColor} font-mono text-xs sm:text-sm`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex gap-2">
                   <span className="text-arkade-gray uppercase text-xs sm:text-sm">Created:</span>
