@@ -9,8 +9,10 @@ import { ArrowRight, Copy, Check, ExternalLink, Pin, PinOff } from 'lucide-react
 import { useServerInfo } from '../../contexts/ServerInfoContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { constructArkAddress } from '../../lib/arkAddress';
-import type { VirtualCoin } from '../../lib/api/indexer';
+import type { VtxoWithAssets } from '../../lib/api/indexer';
 import { indexerClient } from '../../lib/api/indexer';
+import { AssetBadge } from '../UI/AssetBadge';
+import { AssetAmountDisplay } from '../UI/AssetAmountDisplay';
 import { useRecentSearches } from '../../hooks/useRecentSearches';
 import { useQueries } from '@tanstack/react-query';
 import { hex } from '@scure/base';
@@ -21,7 +23,7 @@ interface TransactionDetailsProps {
   type: 'commitment' | 'arkade';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any;
-  vtxoData?: VirtualCoin[];
+  vtxoData?: VtxoWithAssets[];
 }
 
 
@@ -31,8 +33,8 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
   const { pinSearch, unpinSearch, isPinned } = useRecentSearches();
   const [copiedTxid, setCopiedTxid] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
-  const [checkpointVtxo, setCheckpointVtxo] = useState<VirtualCoin | null>(null);
-  const [forfeitVtxo, setForfeitVtxo] = useState<VirtualCoin | null>(null);
+  const [checkpointVtxo, setCheckpointVtxo] = useState<VtxoWithAssets | null>(null);
+  const [forfeitVtxo, setForfeitVtxo] = useState<VtxoWithAssets | null>(null);
   
   // Link color: white in dark mode, purple in light mode
   const linkColor = resolvedTheme === 'dark' ? 'text-white' : 'text-arkade-purple';
@@ -827,13 +829,29 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                                 {scriptHex.substring(0, 40)}...
                               </div>
                             ) : (
-                              <Link 
+                              <Link
                                 to={`/address/${scriptHex}`}
                                 className="text-xs font-mono text-arkade-gray hover:text-arkade-purple break-all block"
                               >
                                 {scriptHex.substring(0, 40)}...
                               </Link>
                             )
+                          )}
+                          {/* Asset info from VTXO data */}
+                          {vtxo?.assets && vtxo.assets.length > 0 && !isAnchorOutput && (
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                              {vtxo.assets.map((a, ai) => (
+                                <div key={ai} className="flex items-center gap-1">
+                                  <AssetBadge assetId={a.assetId} />
+                                  <AssetAmountDisplay
+                                    amount={a.amount}
+                                    assetId={a.assetId}
+                                    valueClassName={`text-xs ${moneyColor} font-bold`}
+                                    unitClassName={`text-xs ${moneyColor}`}
+                                  />
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
                         <div className="w-8 flex items-center justify-center flex-shrink-0">
