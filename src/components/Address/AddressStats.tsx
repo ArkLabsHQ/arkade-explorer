@@ -12,8 +12,9 @@ interface AddressStatsProps {
 export function AddressStats({ vtxos }: AddressStatsProps) {
   const { resolvedTheme } = useTheme();
 
-  const activeVtxos = vtxos.filter((v) => !(v.spentBy && v.spentBy !== '') && !(v as any).isSpent);
-  const spentVtxos = vtxos.filter((v) => (v.spentBy && v.spentBy !== '') || (v as any).isSpent);
+  const isVtxoActive = (v: Vtxo) => !(v.spentBy && v.spentBy !== '') && !v.isSpent;
+  const activeVtxos = vtxos.filter(isVtxoActive);
+  const spentVtxos = vtxos.filter((v) => !isVtxoActive(v));
 
   const totalBalance = activeVtxos.reduce((sum, v) => sum + parseInt(v.value.toString()), 0);
   const totalReceived = vtxos.reduce((sum, v) => sum + parseInt(v.value.toString()), 0);
@@ -21,7 +22,7 @@ export function AddressStats({ vtxos }: AddressStatsProps) {
   // Aggregate asset balances
   const assetBalances = new Map<string, { active: number; total: number }>();
   vtxos.forEach((v) => {
-    const isActive = !(v.spentBy && v.spentBy !== '') && !(v as any).isSpent;
+    const isActive = isVtxoActive(v);
     v.assets?.forEach((asset) => {
       const existing = assetBalances.get(asset.assetId) || { active: 0, total: 0 };
       existing.total += asset.amount;
@@ -80,7 +81,7 @@ export function AddressStats({ vtxos }: AddressStatsProps) {
 
       {hasAssets && (
         <div className="mt-4 space-y-2">
-          <h3 className="text-sm font-bold text-arkade-purple uppercase">Asset Balances</h3>
+          <h3 className={`text-sm font-bold ${mypurple} uppercase`}>Asset Balances</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {Array.from(assetBalances.entries()).map(([assetId, balances]) => (
               <Card key={assetId}>

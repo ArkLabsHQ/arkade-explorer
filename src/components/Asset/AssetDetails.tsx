@@ -4,18 +4,10 @@ import { Link } from 'react-router-dom';
 import { Copy, Check } from 'lucide-react';
 import { copyToClipboard, truncateHash } from '../../lib/utils';
 import type { AssetDetails as AssetDetailsType } from '../../lib/api/indexer';
+import { isSafeImageUrl, formatAssetAmount } from '../../lib/api/indexer';
 
 interface AssetDetailsProps {
   assetDetails: AssetDetailsType;
-}
-
-function formatSupply(supply: number, decimals: number): string {
-  if (decimals === 0) return supply.toLocaleString('en-US');
-  const divisor = Math.pow(10, decimals);
-  return (supply / divisor).toLocaleString('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: decimals,
-  });
 }
 
 export function AssetDetailsCard({ assetDetails }: AssetDetailsProps) {
@@ -38,7 +30,7 @@ export function AssetDetailsCard({ assetDetails }: AssetDetailsProps) {
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
-          {metadata?.icon && (
+          {metadata?.icon && isSafeImageUrl(metadata.icon) && (
             <img src={metadata.icon} alt="" className="w-10 h-10 rounded-full" />
           )}
           <h1 className="text-2xl font-bold text-arkade-purple uppercase">{name}</h1>
@@ -86,7 +78,7 @@ export function AssetDetailsCard({ assetDetails }: AssetDetailsProps) {
         <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
           <span className="text-arkade-gray uppercase text-sm font-bold">Total Supply</span>
           <span className="text-arkade-gray font-mono">
-            {formatSupply(assetDetails.supply, decimals)}
+            {formatAssetAmount(assetDetails.supply, decimals)}
             {ticker && <span className="text-arkade-gray text-xs ml-1">{ticker}</span>}
           </span>
         </div>

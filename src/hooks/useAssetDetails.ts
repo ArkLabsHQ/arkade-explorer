@@ -23,14 +23,6 @@ function writeToSessionStorage(assetId: string, details: AssetDetails): void {
 }
 
 /**
- * Synchronous read from session storage cache.
- * Returns null if not cached. Useful for formatting without suspending.
- */
-export function getAssetDetailsFromCache(assetId: string): AssetDetails | null {
-  return readFromSessionStorage(assetId);
-}
-
-/**
  * Hook to fetch and cache asset details.
  * Two-tier cache: session storage (persists across page nav) + react-query (in-memory dedup).
  */

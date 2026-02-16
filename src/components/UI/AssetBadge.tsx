@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAssetDetails } from '../../hooks/useAssetDetails';
 import { truncateHash } from '../../lib/utils';
+import { isSafeImageUrl } from '../../lib/api/indexer';
 
 interface AssetBadgeProps {
   assetId: string;
@@ -20,7 +21,7 @@ export function AssetBadge({ assetId, className = '' }: AssetBadgeProps) {
         hover:bg-arkade-purple hover:text-white transition-colors ${className}`}
       title={assetId}
     >
-      {metadata?.icon && (
+      {metadata?.icon && isSafeImageUrl(metadata.icon) && (
         <img src={metadata.icon} alt="" className="w-3.5 h-3.5 rounded-full" />
       )}
       <span>{label}</span>
