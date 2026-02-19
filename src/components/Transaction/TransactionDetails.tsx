@@ -9,7 +9,7 @@ import { ArrowRight, Copy, Check, ExternalLink, Pin, PinOff } from 'lucide-react
 import { useServerInfo } from '../../contexts/ServerInfoContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { constructArkAddress } from '../../lib/arkAddress';
-import type { VtxoWithAssets } from '../../lib/api/indexer';
+import type { VirtualCoin } from '../../lib/api/indexer';
 import { indexerClient } from '../../lib/api/indexer';
 import { AssetBadge } from '../UI/AssetBadge';
 import { AssetAmountDisplay } from '../UI/AssetAmountDisplay';
@@ -23,7 +23,7 @@ interface TransactionDetailsProps {
   type: 'commitment' | 'arkade';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any;
-  vtxoData?: VtxoWithAssets[];
+  vtxoData?: VirtualCoin[];
 }
 
 
@@ -33,8 +33,8 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
   const { pinSearch, unpinSearch, isPinned } = useRecentSearches();
   const [copiedTxid, setCopiedTxid] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
-  const [checkpointVtxo, setCheckpointVtxo] = useState<VtxoWithAssets | null>(null);
-  const [forfeitVtxo, setForfeitVtxo] = useState<VtxoWithAssets | null>(null);
+  const [checkpointVtxo, setCheckpointVtxo] = useState<VirtualCoin | null>(null);
+  const [forfeitVtxo, setForfeitVtxo] = useState<VirtualCoin | null>(null);
   
   // Link color: white in dark mode, purple in light mode
   const linkColor = resolvedTheme === 'dark' ? 'text-white' : 'text-arkade-purple';
