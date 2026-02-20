@@ -817,7 +817,38 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                             <div className="flex items-center gap-2">
                               {vtxo && !isAnchorOutput && isSpent && <Badge variant="danger">Spent</Badge>}
                               {vtxo && !isAnchorOutput && !isSpent && <Badge variant="success">Unspent</Badge>}
-                              <MoneyDisplay sats={parseInt(amount.toString())} valueClassName={`text-xs ${moneyColor} font-bold`} unitClassName={`text-xs ${moneyColor} font-bold`} />
+                              <div className="text-right">
+                                <MoneyDisplay sats={parseInt(amount.toString())} valueClassName={`text-xs ${moneyColor} font-bold`} unitClassName={`text-xs ${moneyColor} font-bold`} />
+                                {!isAnchorOutput && !isAssetPacketOutput && (() => {
+                                  const vtxoAssets = vtxo?.assets && vtxo.assets.length > 0 ? vtxo.assets : null;
+                                  const packetAssets = !vtxoAssets && assetPacket
+                                    ? assetPacket.groups
+                                        .filter((g: any) => g.outputs.some((o: any) => o.vout === i))
+                                        .map((g: any, gi: number) => {
+                                          const out = g.outputs.find((o: any) => o.vout === i);
+                                          const aid = g.assetId?.toString()
+                                            || (g.isIssuance() ? txid + gi.toString(16).padStart(4, '0') : null);
+                                          return aid && out ? { assetId: aid, amount: Number(out.amount) } : null;
+                                        })
+                                        .filter(Boolean)
+                                    : null;
+                                  const assets = vtxoAssets || packetAssets;
+                                  if (!assets || assets.length === 0) return null;
+                                  return (
+                                    <div className="flex flex-wrap items-center justify-end gap-1 mt-0.5">
+                                      {assets.map((a: any, ai: number) => (
+                                        <AssetAmountDisplay
+                                          key={ai}
+                                          amount={a.amount}
+                                          assetId={a.assetId}
+                                          valueClassName={`text-xs ${moneyColor} font-bold`}
+                                          unitClassName={`text-xs ${moneyColor}`}
+                                        />
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
                             </div>
                           </div>
                           {isForfeitOutput && (
@@ -841,7 +872,7 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                           )}
                           {!isForfeitOutput && !arkAddress && scriptHex && (
                             isAssetPacketOutput ? (
-                              <div className="text-xs font-mono text-arkade-purple break-all">
+                              <div className={`text-xs font-mono ${linkColor} break-all`}>
                                 <div className="mb-1 font-bold uppercase">OP_RETURN &middot; Asset Packet</div>
                               </div>
                             ) : isAnchorOutput ? (
@@ -862,39 +893,6 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                               </Link>
                             )
                           )}
-                          {/* Asset info from VTXO data or packet */}
-                          {!isAnchorOutput && !isAssetPacketOutput && (() => {
-                            // Prefer VTXO data, fall back to asset packet
-                            const vtxoAssets = vtxo?.assets && vtxo.assets.length > 0 ? vtxo.assets : null;
-                            const packetAssets = !vtxoAssets && assetPacket
-                              ? assetPacket.groups
-                                  .filter((g: any) => g.outputs.some((o: any) => o.vout === i))
-                                  .map((g: any, gi: number) => {
-                                    const out = g.outputs.find((o: any) => o.vout === i);
-                                    const assetId = g.assetId?.toString()
-                                      || (g.isIssuance() ? txid + gi.toString(16).padStart(4, '0') : null);
-                                    return assetId && out ? { assetId, amount: Number(out.amount) } : null;
-                                  })
-                                  .filter(Boolean)
-                              : null;
-                            const assets = vtxoAssets || packetAssets;
-                            if (!assets || assets.length === 0) return null;
-                            return (
-                              <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                                {assets.map((a: any, ai: number) => (
-                                  <div key={ai} className="flex items-center gap-1">
-                                    <AssetBadge assetId={a.assetId} />
-                                    <AssetAmountDisplay
-                                      amount={a.amount}
-                                      assetId={a.assetId}
-                                      valueClassName={`text-xs ${moneyColor} font-bold`}
-                                      unitClassName={`text-xs ${moneyColor}`}
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                            );
-                          })()}
                         </div>
                         <div className="w-8 flex items-center justify-center flex-shrink-0">
                           {isSpent && spendingTxid && (
