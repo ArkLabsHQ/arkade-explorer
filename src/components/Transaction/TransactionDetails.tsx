@@ -835,7 +835,7 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                                   const assets = vtxoAssets || packetAssets;
                                   if (!assets || assets.length === 0) return null;
                                   return (
-                                    <div className="flex flex-wrap items-center justify-end gap-1 mt-0.5">
+                                    <div className="flex flex-col items-end gap-0.5 mt-0.5">
                                       {assets.map((a: any, ai: number) => (
                                         <AssetAmountDisplay
                                           key={ai}
