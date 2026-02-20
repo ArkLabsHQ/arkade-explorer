@@ -18,7 +18,7 @@ export function Footer() {
             bg-arkade-purple/10 border border-arkade-purple/40 text-arkade-gray
             hover:text-arkade-purple hover:border-arkade-purple transition-colors rounded"
         >
-          Indexer: {INDEXER_URL.replace(/^https?:\/\//, '')}
+          {INDEXER_URL.replace(/^https?:\/\//, '')}
         </a>
         <span className="px-2 py-0.5 text-xs font-mono
           bg-arkade-purple/10 border border-arkade-purple/40 text-arkade-gray rounded">
