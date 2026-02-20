@@ -5,6 +5,7 @@ import { Copy, Check } from 'lucide-react';
 import { copyToClipboard, truncateHash } from '../../lib/utils';
 import type { AssetDetails as AssetDetailsType } from '../../lib/api/indexer';
 import { isSafeImageUrl, formatAssetAmount } from '../../lib/api/indexer';
+import { ImageLightbox } from '../UI/ImageLightbox';
 
 interface AssetDetailsProps {
   assetDetails: AssetDetailsType;
@@ -19,6 +20,11 @@ export function AssetDetailsCard({ assetDetails }: AssetDetailsProps) {
   const ticker = metadata?.ticker;
   const decimals = metadata?.decimals ?? 0;
 
+  // AssetId format: 64 hex chars (txid) + 4 hex chars (group index)
+  const genesisTxid = assetDetails.assetId.length >= 64
+    ? assetDetails.assetId.substring(0, 64)
+    : null;
+
   const handleCopyId = () => {
     copyToClipboard(assetDetails.assetId);
     setCopiedId(true);
@@ -31,7 +37,7 @@ export function AssetDetailsCard({ assetDetails }: AssetDetailsProps) {
         {/* Header */}
         <div className="flex items-center gap-3">
           {metadata?.icon && isSafeImageUrl(metadata.icon) && (
-            <img src={metadata.icon} alt="" className="w-10 h-10 rounded-full" />
+            <ImageLightbox src={metadata.icon} className="w-10 h-10 rounded-full" />
           )}
           <h1 className="text-2xl font-bold text-arkade-purple uppercase">{name}</h1>
           {ticker && (
@@ -59,6 +65,19 @@ export function AssetDetailsCard({ assetDetails }: AssetDetailsProps) {
             {assetDetails.assetId}
           </button>
         </div>
+
+        {/* Genesis Transaction */}
+        {genesisTxid && (
+          <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
+            <span className="text-arkade-gray uppercase text-sm font-bold">Genesis TX</span>
+            <Link
+              to={`/tx/${genesisTxid}`}
+              className="text-arkade-purple hover:text-arkade-orange font-mono text-sm transition-colors"
+            >
+              {truncateHash(genesisTxid, 8, 8)}
+            </Link>
+          </div>
+        )}
 
         {/* Ticker */}
         {ticker && (

@@ -10,7 +10,6 @@ import * as btc from '@scure/btc-signer';
 import { constructArkAddress } from '../../lib/arkAddress';
 import { useServerInfo } from '../../contexts/ServerInfoContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { AssetBadge } from '../UI/AssetBadge';
 import { AssetAmountDisplay } from '../UI/AssetAmountDisplay';
 
 interface VtxoListProps {
@@ -121,8 +120,7 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
                     <span className="text-arkade-gray uppercase text-xs sm:text-sm">Assets:</span>
                     <div className="flex flex-wrap gap-2 ml-2">
                       {vtxo.assets.map((asset, assetIdx) => (
-                        <div key={assetIdx} className="flex items-center gap-2">
-                          <AssetBadge assetId={asset.assetId} />
+                        <div key={assetIdx} className="inline-flex items-center border border-arkade-purple rounded px-2 py-0.5">
                           <AssetAmountDisplay
                             amount={asset.amount}
                             assetId={asset.assetId}

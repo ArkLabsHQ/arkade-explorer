@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAssetDetails } from '../../hooks/useAssetDetails';
 import { truncateHash } from '../../lib/utils';
 import { isSafeImageUrl, formatAssetAmount } from '../../lib/api/indexer';
+import { ImageLightbox } from './ImageLightbox';
 
 interface AssetAmountDisplayProps {
   amount: number;
@@ -33,7 +34,7 @@ export function AssetAmountDisplay({
         title={assetId}
       >
         {' '}{metadata?.icon && isSafeImageUrl(metadata.icon) && (
-          <img src={metadata.icon} alt="" className="inline w-3.5 h-3.5 rounded-full mr-0.5 align-text-bottom" />
+          <ImageLightbox src={metadata.icon} className="inline w-3.5 h-3.5 rounded-full mr-0.5 align-text-bottom" />
         )}
         {ticker}
       </Link>
