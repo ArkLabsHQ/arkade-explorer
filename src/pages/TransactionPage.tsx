@@ -77,6 +77,9 @@ export function TransactionPage() {
     enabled: currentTxOutpoints.length > 0 && txType === 'arkade',
   });
 
+  // Virtual tx not found: either errored or returned empty data
+  const virtualTxNotFound = !!virtualError || (!isLoadingVirtual && !!virtualTxData && !virtualTxData.txs?.[0]);
+
   // Fallback: try fetching as commitment tx if virtual tx not found
   const { data: commitmentData, isLoading: isLoadingCommitment } = useQuery({
     queryKey: ['commitment-tx-check', txid],
@@ -84,7 +87,7 @@ export function TransactionPage() {
       if (!txid) throw new Error('No txid provided');
       return await indexerClient.getCommitmentTx(txid);
     },
-    enabled: !!txid && !!virtualError,
+    enabled: !!txid && virtualTxNotFound,
     retry: false,
   });
 
@@ -106,7 +109,7 @@ export function TransactionPage() {
         // It's an arkade transaction (PSBT in base64)
         setTxType('arkade');
       }
-    } else if (virtualError) {
+    } else if (virtualTxNotFound) {
       // Virtual tx not found — check if it's a commitment tx
       if (commitmentData) {
         navigate(`/commitment-tx/${txid}`, { replace: true });
@@ -115,7 +118,7 @@ export function TransactionPage() {
         setTxType('arkade');
       }
     }
-  }, [virtualTxData, virtualError, commitmentData, isLoadingCommitment, txid, navigate]);
+  }, [virtualTxData, virtualTxNotFound, commitmentData, isLoadingCommitment, txid, navigate]);
 
   // Add to recent searches when page loads
   useLayoutEffect(() => {
