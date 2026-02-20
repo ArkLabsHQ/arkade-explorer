@@ -40,6 +40,9 @@ export function SearchBar() {
     if (/^[0-9a-fA-F]{64}$/.test(query)) {
       addRecentSearch(query, 'transaction');
       navigate(`/tx/${query}`);
+    } else if (/^[0-9a-fA-F]{65,}$/.test(query)) {
+      addRecentSearch(query, 'asset');
+      navigate(`/asset/${query}`);
     } else {
       addRecentSearch(query, 'address');
       navigate(`/address/${query}`);
@@ -54,6 +57,8 @@ export function SearchBar() {
       return `/commitment-tx/${value}`;
     } else if (type === 'transaction') {
       return `/tx/${value}`;
+    } else if (type === 'asset') {
+      return `/asset/${value}`;
     } else {
       return `/address/${value}`;
     }
@@ -63,6 +68,7 @@ export function SearchBar() {
     switch (type) {
       case 'commitment-tx': return 'Commitment TX';
       case 'transaction': return 'Transaction';
+      case 'asset': return 'Asset';
       case 'address': return 'Address';
       default: return type;
     }
@@ -72,6 +78,7 @@ export function SearchBar() {
     switch (type) {
       case 'commitment-tx': return 'bg-arkade-orange';
       case 'transaction': return 'bg-arkade-purple';
+      case 'asset': return 'bg-blue-500';
       case 'address': return 'bg-green-500';
       default: return 'bg-arkade-gray';
     }
@@ -123,7 +130,7 @@ export function SearchBar() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Transaction ID or Address..."
+                placeholder="Transaction ID, Address, or Asset ID..."
                 className="w-full px-4 py-3 bg-arkade-black border-2 border-arkade-purple text-arkade-gray font-mono focus:outline-none focus:border-arkade-orange placeholder-gray-600"
                 autoFocus
               />
