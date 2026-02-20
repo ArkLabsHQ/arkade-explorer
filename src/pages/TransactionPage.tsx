@@ -77,16 +77,27 @@ export function TransactionPage() {
     enabled: currentTxOutpoints.length > 0 && txType === 'arkade',
   });
 
+  // Fallback: try fetching as commitment tx if virtual tx not found
+  const { data: commitmentData, isLoading: isLoadingCommitment } = useQuery({
+    queryKey: ['commitment-tx-check', txid],
+    queryFn: async () => {
+      if (!txid) throw new Error('No txid provided');
+      return await indexerClient.getCommitmentTx(txid);
+    },
+    enabled: !!txid && !!virtualError,
+    retry: false,
+  });
+
   // Determine transaction type based on virtual tx data
   useEffect(() => {
     if (virtualTxData?.txs?.[0]) {
       const txData = virtualTxData.txs[0];
-      
+
       // Check if it's hex (commitment tx) or base64 (arkade PSBT)
       // Hex will only contain characters 0-9, a-f, A-F
       // Base64 contains +, /, = and other characters
       const isHex = /^[0-9a-fA-F]+$/.test(txData);
-      
+
       if (isHex) {
         // It's a commitment transaction - redirect to commitment-tx route
         setTxType('commitment');
@@ -96,11 +107,15 @@ export function TransactionPage() {
         setTxType('arkade');
       }
     } else if (virtualError) {
-      // Virtual tx not found - could still be a commitment tx, but unlikely
-      // For now, show error
-      setTxType('arkade'); // Set to arkade to show the error
+      // Virtual tx not found — check if it's a commitment tx
+      if (commitmentData) {
+        navigate(`/commitment-tx/${txid}`, { replace: true });
+      } else if (!isLoadingCommitment) {
+        // Neither virtual nor commitment tx found
+        setTxType('arkade');
+      }
     }
-  }, [virtualTxData, virtualError, txid, navigate]);
+  }, [virtualTxData, virtualError, commitmentData, isLoadingCommitment, txid, navigate]);
 
   // Add to recent searches when page loads
   useLayoutEffect(() => {
@@ -121,7 +136,7 @@ export function TransactionPage() {
   }
 
   // Show loading while determining transaction type
-  if (isLoadingVirtual || txType === null) {
+  if (isLoadingVirtual || isLoadingCommitment || txType === null) {
     return <LoadingSpinner />;
   }
 
