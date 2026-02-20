@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ImageLightboxProps {
   src: string;
@@ -8,6 +9,17 @@ interface ImageLightboxProps {
 
 export function ImageLightbox({ src, alt = '', className = '' }: ImageLightboxProps) {
   const [open, setOpen] = useState(false);
+
+  const close = useCallback(() => setOpen(false), []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, close]);
 
   return (
     <>
@@ -21,10 +33,10 @@ export function ImageLightbox({ src, alt = '', className = '' }: ImageLightboxPr
           setOpen(true);
         }}
       />
-      {open && (
+      {open && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 cursor-pointer"
-          onClick={() => setOpen(false)}
+          onClick={close}
         >
           <img
             src={src}
@@ -32,7 +44,8 @@ export function ImageLightbox({ src, alt = '', className = '' }: ImageLightboxPr
             className="max-w-[80vw] max-h-[80vh] rounded-lg shadow-lg"
             onClick={(e) => e.stopPropagation()}
           />
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
