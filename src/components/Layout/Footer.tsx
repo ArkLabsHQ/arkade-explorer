@@ -1,4 +1,7 @@
+declare const __COMMIT_HASH__: string;
+
 const INDEXER_URL = import.meta.env.VITE_INDEXER_URL || 'https://arkade.computer';
+const COMMIT_HASH = typeof __COMMIT_HASH__ !== 'undefined' ? __COMMIT_HASH__ : 'dev';
 
 export function Footer() {
   return (
@@ -17,6 +20,10 @@ export function Footer() {
         >
           Indexer: {INDEXER_URL.replace(/^https?:\/\//, '')}
         </a>
+        <span className="px-2 py-0.5 text-xs font-mono
+          bg-arkade-purple/10 border border-arkade-purple/40 text-arkade-gray rounded">
+          {COMMIT_HASH}
+        </span>
       </div>
     </footer>
   );
