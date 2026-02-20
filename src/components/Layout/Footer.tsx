@@ -3,8 +3,8 @@ const INDEXER_URL = import.meta.env.VITE_INDEXER_URL || 'https://arkade.computer
 export function Footer() {
   return (
     <footer className="border-t-2 border-arkade-purple bg-arkade-black py-6 mt-auto">
-      <div className="container mx-auto px-4 flex flex-col items-center gap-2">
-        <p className="text-arkade-gray text-sm text-center">
+      <div className="container mx-auto px-4 flex items-center justify-center gap-3">
+        <p className="text-arkade-gray text-sm">
           YOU CAN JUST DO THINGS © | POWERED BY ARKADE
         </p>
         <a
