@@ -773,6 +773,7 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                       : '';
                     const isAnchorOutput = scriptHex.startsWith('51024e73');
                     const isForfeitOutput = isForfeitTx && scriptHex === forfeitScriptHex;
+                    const isAssetPacketOutput = output?.script ? (() => { try { return Packet.isAssetPacket(output.script); } catch { return false; } })() : false;
                     
                     // Find the corresponding VTXO for this output
                     // For checkpoint/forfeit/batch tree transactions, use the fetched VTXO (but ignore anchor outputs)
@@ -839,7 +840,11 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                             </Link>
                           )}
                           {!isForfeitOutput && !arkAddress && scriptHex && (
-                            isAnchorOutput ? (
+                            isAssetPacketOutput ? (
+                              <div className="text-xs font-mono text-arkade-purple break-all">
+                                <div className="mb-1 font-bold uppercase">OP_RETURN &middot; Asset Packet</div>
+                              </div>
+                            ) : isAnchorOutput ? (
                               <div className="text-xs font-mono text-arkade-gray break-all">
                                 <div className="mb-1">Anchor output</div>
                                 <div>{scriptHex.substring(0, 40)}...</div>
@@ -899,8 +904,10 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                 </h3>
                 <div className="space-y-3">
                   {assetPacket.groups.map((group: any, gi: number) => {
-                    const assetIdStr = group.assetId?.toString() || 'Unknown';
                     const isIssuance = group.isIssuance();
+                    // For issuance, assetId is null — derive it from txid + group index
+                    const assetIdStr = group.assetId?.toString()
+                      || (isIssuance ? txid + gi.toString(16).padStart(4, '0') : 'Unknown');
                     return (
                       <div key={gi} className="bg-arkade-black border border-arkade-purple p-3 space-y-2">
                         <div className="flex items-center justify-between flex-wrap gap-2">
