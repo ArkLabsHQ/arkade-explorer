@@ -872,8 +872,9 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                           )}
                           {!isForfeitOutput && !arkAddress && scriptHex && (
                             isAssetPacketOutput ? (
-                              <div className={`text-xs font-mono ${linkColor} break-all`}>
-                                <div className="mb-1 font-bold uppercase">OP_RETURN &middot; Asset Packet</div>
+                              <div className="text-xs font-mono text-arkade-gray break-all">
+                                <div className="mb-1">OP_RETURN &middot; Asset Packet</div>
+                                <div>{scriptHex.substring(0, 40)}...</div>
                               </div>
                             ) : isAnchorOutput ? (
                               <div className="text-xs font-mono text-arkade-gray break-all">
