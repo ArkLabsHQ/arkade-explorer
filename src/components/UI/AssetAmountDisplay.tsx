@@ -26,16 +26,16 @@ export function AssetAmountDisplay({
   const formatted = formatAssetAmount(amount, decimals);
 
   return (
-    <span className={className}>
+    <span className={`${className} inline-flex items-center gap-1`}>
       <span className={valueClassName}>{formatted}</span>
+      {metadata?.icon && isSafeImageUrl(metadata.icon) && (
+        <ImageLightbox src={metadata.icon} className="inline w-3.5 h-3.5 rounded-full" />
+      )}
       <Link
         to={`/asset/${assetId}`}
         className={`${unitClassName} hover:underline ${isLoading ? 'animate-pulse' : ''}`}
         title={assetId}
       >
-        {' '}{metadata?.icon && isSafeImageUrl(metadata.icon) && (
-          <ImageLightbox src={metadata.icon} className="inline w-3.5 h-3.5 rounded-full mr-0.5 align-text-bottom" />
-        )}
         {ticker}
       </Link>
     </span>
