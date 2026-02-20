@@ -11,10 +11,13 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { constructArkAddress } from '../../lib/arkAddress';
 import type { VirtualCoin } from '../../lib/api/indexer';
 import { indexerClient } from '../../lib/api/indexer';
+import { AssetBadge } from '../UI/AssetBadge';
+import { AssetAmountDisplay } from '../UI/AssetAmountDisplay';
 import { useRecentSearches } from '../../hooks/useRecentSearches';
 import { useQueries } from '@tanstack/react-query';
 import { hex } from '@scure/base';
-import { CosignerPublicKey, getArkPsbtFields } from '@arkade-os/sdk';
+import { CosignerPublicKey, getArkPsbtFields, asset } from '@arkade-os/sdk';
+const { Packet } = asset;
 
 interface TransactionDetailsProps {
   txid: string;
@@ -47,6 +50,8 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
   let isCheckpointTx = false;
   let isBatchTreeTx = false;
   let isConnectorTreeTx = false;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let assetPacket: any = null;
   
   // Parse Arkade transactions from PSBT (base64)
   if (type === 'arkade' && data?.txs?.[0]) {
@@ -180,11 +185,28 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
           console.error('Failed to detect tree transaction type:', e);
         }
       }
+
+      // Detect and parse asset packet from OP_RETURN output
+      if (parsedTx) {
+        for (let i = 0; i < parsedTx.outputsLength; i++) {
+          const output = parsedTx.getOutput(i);
+          if (output?.script) {
+            try {
+              if (Packet.isAssetPacket(output.script)) {
+                assetPacket = Packet.fromTxOut(output.script);
+                break;
+              }
+            } catch (e) {
+              console.error('Failed to parse asset packet:', e);
+            }
+          }
+        }
+      }
     } catch (e) {
       console.error('Failed to parse PSBT:', e);
     }
   }
-  
+
   // Parse Commitment transactions from raw hex
   if (type === 'commitment' && data?.tx) {
     try {
@@ -751,6 +773,7 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                       : '';
                     const isAnchorOutput = scriptHex.startsWith('51024e73');
                     const isForfeitOutput = isForfeitTx && scriptHex === forfeitScriptHex;
+                    const isAssetPacketOutput = output?.script ? (() => { try { return Packet.isAssetPacket(output.script); } catch { return false; } })() : false;
                     
                     // Find the corresponding VTXO for this output
                     // For checkpoint/forfeit/batch tree transactions, use the fetched VTXO (but ignore anchor outputs)
@@ -794,7 +817,38 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                             <div className="flex items-center gap-2">
                               {vtxo && !isAnchorOutput && isSpent && <Badge variant="danger">Spent</Badge>}
                               {vtxo && !isAnchorOutput && !isSpent && <Badge variant="success">Unspent</Badge>}
-                              <MoneyDisplay sats={parseInt(amount.toString())} valueClassName={`text-xs ${moneyColor} font-bold`} unitClassName={`text-xs ${moneyColor} font-bold`} />
+                              <div className="text-right">
+                                <MoneyDisplay sats={parseInt(amount.toString())} valueClassName={`text-xs ${moneyColor} font-bold`} unitClassName={`text-xs ${moneyColor} font-bold`} />
+                                {!isAnchorOutput && !isAssetPacketOutput && (() => {
+                                  const vtxoAssets = vtxo?.assets && vtxo.assets.length > 0 ? vtxo.assets : null;
+                                  const packetAssets = !vtxoAssets && assetPacket
+                                    ? assetPacket.groups
+                                        .filter((g: any) => g.outputs.some((o: any) => o.vout === i))
+                                        .map((g: any, gi: number) => {
+                                          const out = g.outputs.find((o: any) => o.vout === i);
+                                          const aid = g.assetId?.toString()
+                                            || (g.isIssuance() ? txid + gi.toString(16).padStart(4, '0') : null);
+                                          return aid && out ? { assetId: aid, amount: Number(out.amount) } : null;
+                                        })
+                                        .filter(Boolean)
+                                    : null;
+                                  const assets = vtxoAssets || packetAssets;
+                                  if (!assets || assets.length === 0) return null;
+                                  return (
+                                    <div className="flex flex-col items-end gap-0.5 mt-0.5">
+                                      {assets.map((a: any, ai: number) => (
+                                        <AssetAmountDisplay
+                                          key={ai}
+                                          amount={a.amount}
+                                          assetId={a.assetId}
+                                          valueClassName={`text-xs ${moneyColor} font-bold`}
+                                          unitClassName={`text-xs ${moneyColor}`}
+                                        />
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
                             </div>
                           </div>
                           {isForfeitOutput && (
@@ -817,7 +871,12 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                             </Link>
                           )}
                           {!isForfeitOutput && !arkAddress && scriptHex && (
-                            isAnchorOutput ? (
+                            isAssetPacketOutput ? (
+                              <div className="text-xs font-mono text-arkade-gray break-all">
+                                <div className="mb-1">OP_RETURN &middot; Asset Packet</div>
+                                <div>{scriptHex.substring(0, 40)}...</div>
+                              </div>
+                            ) : isAnchorOutput ? (
                               <div className="text-xs font-mono text-arkade-gray break-all">
                                 <div className="mb-1">Anchor output</div>
                                 <div>{scriptHex.substring(0, 40)}...</div>
@@ -827,7 +886,7 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                                 {scriptHex.substring(0, 40)}...
                               </div>
                             ) : (
-                              <Link 
+                              <Link
                                 to={`/address/${scriptHex}`}
                                 className="text-xs font-mono text-arkade-gray hover:text-arkade-purple break-all block"
                               >
@@ -854,6 +913,58 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
               </div>
             </div>
             
+            {assetPacket && assetPacket.groups.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-lg font-bold text-arkade-purple uppercase mb-3">
+                  Asset Packet
+                </h3>
+                <div className="space-y-3">
+                  {assetPacket.groups.map((group: any, gi: number) => {
+                    const isIssuance = group.isIssuance();
+                    // For issuance, assetId is null — derive it from txid + group index
+                    const assetIdStr = group.assetId?.toString()
+                      || (isIssuance ? txid + gi.toString(16).padStart(4, '0') : 'Unknown');
+                    return (
+                      <div key={gi} className="bg-arkade-black border border-arkade-purple p-3 space-y-2">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-2">
+                            <AssetBadge assetId={assetIdStr} />
+                            {isIssuance && <Badge variant="success">Issuance</Badge>}
+                          </div>
+                        </div>
+
+                        {group.inputs.length > 0 && (
+                          <div>
+                            <span className="text-xs text-arkade-gray uppercase font-bold">Inputs</span>
+                            <div className="ml-2 space-y-0.5 mt-0.5">
+                              {group.inputs.map((inp: any, ii: number) => (
+                                <div key={ii} className="text-xs font-mono text-arkade-gray">
+                                  vin:{inp.vin} &rarr; <span className={moneyColor}>{inp.amount.toString()}</span> units
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {group.outputs.length > 0 && (
+                          <div>
+                            <span className="text-xs text-arkade-gray uppercase font-bold">Outputs</span>
+                            <div className="ml-2 space-y-0.5 mt-0.5">
+                              {group.outputs.map((out: any, oi: number) => (
+                                <div key={oi} className="text-xs font-mono text-arkade-gray">
+                                  vout:{out.vout} &rarr; <span className={moneyColor}>{out.amount.toString()}</span> units
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {formatCreatedAt() && (
               <div className="flex items-center justify-between border-b border-arkade-purple pb-2 mt-6">
                 <span className="text-arkade-gray uppercase text-sm font-bold">Created At</span>
