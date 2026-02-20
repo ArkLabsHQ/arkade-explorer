@@ -35,13 +35,13 @@ export function ImageLightbox({ src, alt = '', className = '' }: ImageLightboxPr
       />
       {open && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 cursor-pointer"
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.8)', cursor: 'pointer' }}
           onClick={close}
         >
           <img
             src={src}
             alt={alt}
-            className="max-w-[80vw] max-h-[80vh] rounded-lg shadow-lg"
+            style={{ maxWidth: '80vw', maxHeight: '80vh', borderRadius: '0.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}
             onClick={(e) => e.stopPropagation()}
           />
         </div>,
