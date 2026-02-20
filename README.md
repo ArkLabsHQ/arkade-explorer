@@ -60,6 +60,23 @@ npm run build
 npm run preview
 ```
 
+### Docker
+
+Run the pre-built image from GHCR:
+
+```bash
+docker run -p 8080:80 ghcr.io/arklabshq/arkade-explorer:latest
+```
+
+The app will be available at `http://localhost:8080`.
+
+To build locally:
+
+```bash
+docker build -t arkade-explorer .
+docker run -p 8080:80 arkade-explorer
+```
+
 ## Project Structure
 
 ```
