@@ -17,8 +17,15 @@ export function ImageLightbox({ src, alt = '', className = '' }: ImageLightboxPr
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close();
     };
+    // Block scrolling and pointer events on the page beneath the overlay
+    document.body.style.overflow = 'hidden';
+    document.body.style.pointerEvents = 'none';
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.pointerEvents = '';
+      document.removeEventListener('keydown', onKey);
+    };
   }, [open, close]);
 
   return (
@@ -35,7 +42,7 @@ export function ImageLightbox({ src, alt = '', className = '' }: ImageLightboxPr
       />
       {open && createPortal(
         <div
-          style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.8)', cursor: 'pointer' }}
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.8)', cursor: 'pointer', pointerEvents: 'all' }}
           onClick={close}
         >
           <img
