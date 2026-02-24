@@ -8,6 +8,8 @@ import { TransactionHex } from '../components/Transaction/TransactionHex';
 import { LoadingSpinner } from '../components/UI/LoadingSpinner';
 import { ErrorMessage } from '../components/UI/ErrorMessage';
 import { useRecentSearches } from '../hooks/useRecentSearches';
+import { asset } from '@arkade-os/sdk';
+const { Packet } = asset;
 
 export function TransactionPage() {
   const { txid } = useParams<{ txid: string }>();
@@ -50,9 +52,9 @@ export function TransactionPage() {
           ? Array.from(output.script).map(b => b.toString(16).padStart(2, '0')).join('')
           : '';
         const isAnchor = scriptHex.startsWith('51024e73');
-        const isOpReturn = scriptHex.startsWith('6a');
+        const isAssetPacket = output?.script ? (() => { try { return Packet.isAssetPacket(output.script); } catch { return false; } })() : false;
 
-        if (!isAnchor && !isOpReturn) {
+        if (!isAnchor && !isAssetPacket) {
           outpoints.push({ txid, vout });
         }
       }
