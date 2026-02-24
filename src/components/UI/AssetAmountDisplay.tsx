@@ -10,6 +10,7 @@ interface AssetAmountDisplayProps {
   className?: string;
   valueClassName?: string;
   unitClassName?: string;
+  hideUnit?: boolean;
 }
 
 export function AssetAmountDisplay({
@@ -18,6 +19,7 @@ export function AssetAmountDisplay({
   className = '',
   valueClassName = '',
   unitClassName = '',
+  hideUnit = false,
 }: AssetAmountDisplayProps) {
   const { assetDetails, isLoading } = useAssetDetails(assetId);
   const metadata = assetDetails?.metadata;
@@ -28,16 +30,18 @@ export function AssetAmountDisplay({
   return (
     <span className={`${className} inline-flex items-center gap-1`}>
       <span className={valueClassName}>{formatted}</span>
-      {metadata?.icon && isSafeImageUrl(metadata.icon) && (
+      {!hideUnit && metadata?.icon && isSafeImageUrl(metadata.icon) && (
         <ImageLightbox src={metadata.icon} className="inline w-3.5 h-3.5 rounded-full" />
       )}
-      <Link
-        to={`/asset/${assetId}`}
-        className={`${unitClassName} hover:underline ${isLoading ? 'animate-pulse' : ''}`}
-        title={assetId}
-      >
-        {ticker}
-      </Link>
+      {!hideUnit && (
+        <Link
+          to={`/asset/${assetId}`}
+          className={`${unitClassName} hover:underline ${isLoading ? 'animate-pulse' : ''}`}
+          title={assetId}
+        >
+          {ticker}
+        </Link>
+      )}
     </span>
   );
 }

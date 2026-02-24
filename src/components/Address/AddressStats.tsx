@@ -80,36 +80,38 @@ export function AddressStats({ vtxos }: AddressStatsProps) {
       </div>
 
       {hasAssets && (
-        <Card>
-          <h3 className={`text-sm font-bold ${mypurple} uppercase mb-3`}>Asset Balances</h3>
-          <div className="space-y-2">
-            {Array.from(assetBalances.entries()).map(([assetId, balances]) => (
-              <div key={assetId} className="flex items-center justify-between border-b border-arkade-purple/30 pb-2 last:border-0 last:pb-0">
-                <AssetBadge assetId={assetId} />
-                <div className="flex items-center gap-6">
-                  <div className="text-right">
-                    <div className="text-arkade-gray uppercase text-xs">Balance</div>
-                    <AssetAmountDisplay
-                      amount={balances.active}
-                      assetId={assetId}
-                      valueClassName={`${mypurple} font-bold font-mono text-sm`}
-                      unitClassName={`${mypurple} font-mono text-xs`}
-                    />
-                  </div>
-                  <div className="text-right">
-                    <div className="text-arkade-gray uppercase text-xs">Received</div>
-                    <AssetAmountDisplay
-                      amount={balances.total}
-                      assetId={assetId}
-                      valueClassName="text-arkade-gray font-mono text-sm"
-                      unitClassName="text-arkade-gray font-mono text-xs"
-                    />
+        <div className="max-w-md">
+          <Card>
+            <h3 className={`text-sm font-bold ${mypurple} uppercase mb-3`}>Asset Balances</h3>
+            <div className="space-y-2">
+              {Array.from(assetBalances.entries()).map(([assetId, balances]) => (
+                <div key={assetId} className="flex items-center justify-between border-b border-arkade-purple/30 pb-2 last:border-0 last:pb-0">
+                  <AssetBadge assetId={assetId} />
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <div className="text-arkade-gray uppercase text-xs">Balance</div>
+                      <AssetAmountDisplay
+                        amount={balances.active}
+                        assetId={assetId}
+                        hideUnit
+                        valueClassName={`${mypurple} font-bold font-mono text-sm`}
+                      />
+                    </div>
+                    <div className="text-right">
+                      <div className="text-arkade-gray uppercase text-xs">Received</div>
+                      <AssetAmountDisplay
+                        amount={balances.total}
+                        assetId={assetId}
+                        hideUnit
+                        valueClassName="text-arkade-gray font-mono text-sm"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+              ))}
+            </div>
+          </Card>
+        </div>
       )}
     </>
   );
