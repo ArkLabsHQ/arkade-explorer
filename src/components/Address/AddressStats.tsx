@@ -82,26 +82,28 @@ export function AddressStats({ vtxos }: AddressStatsProps) {
       {hasAssets && (
         <div className="mt-4 space-y-2">
           <h3 className={`text-sm font-bold ${mypurple} uppercase`}>Asset Balances</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {Array.from(assetBalances.entries()).map(([assetId, balances]) => (
               <Card key={assetId}>
-                <div className="space-y-2">
+                <div className="text-center space-y-1">
                   <AssetBadge assetId={assetId} />
-                  <div className="flex items-center justify-between">
-                    <span className="text-arkade-gray uppercase text-xs">Balance</span>
+                  <div>
+                    <div className="text-arkade-gray uppercase text-xs">Balance</div>
                     <AssetAmountDisplay
                       amount={balances.active}
                       assetId={assetId}
+                      className="justify-center"
                       valueClassName={`${mypurple} font-bold font-mono text-sm`}
                       unitClassName="text-arkade-gray text-xs"
                     />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-arkade-gray uppercase text-xs">Received</span>
+                  <div>
+                    <div className="text-arkade-gray uppercase text-xs">Received</div>
                     <AssetAmountDisplay
                       amount={balances.total}
                       assetId={assetId}
-                      valueClassName="text-arkade-gray font-mono text-sm"
+                      className="justify-center"
+                      valueClassName="text-arkade-gray font-mono text-xs"
                       unitClassName="text-arkade-gray text-xs"
                     />
                   </div>

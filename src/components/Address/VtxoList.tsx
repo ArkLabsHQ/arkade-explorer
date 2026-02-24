@@ -118,14 +118,14 @@ export function VtxoList({ vtxos, showScript = false }: VtxoListProps) {
                 {vtxo.assets && vtxo.assets.length > 0 && (
                   <div className="space-y-1">
                     <span className="text-arkade-gray uppercase text-xs sm:text-sm">Assets:</span>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 ml-2">
+                    <div className="flex flex-wrap gap-2 ml-2">
                       {vtxo.assets.map((asset, assetIdx) => (
-                        <div key={assetIdx} className="inline-flex items-center border border-arkade-purple rounded px-1.5 py-0.5">
+                        <div key={assetIdx} className="inline-flex items-center border border-arkade-purple rounded px-2 py-0.5">
                           <AssetAmountDisplay
                             amount={asset.amount}
                             assetId={asset.assetId}
-                            valueClassName={`${moneyColor} font-bold font-mono text-xs`}
-                            unitClassName={`${moneyColor} font-mono text-xs`}
+                            valueClassName={`${moneyColor} font-bold font-mono text-xs sm:text-sm`}
+                            unitClassName={`${moneyColor} font-mono text-xs sm:text-sm`}
                           />
                         </div>
                       ))}
