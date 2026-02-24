@@ -50,8 +50,9 @@ export function TransactionPage() {
           ? Array.from(output.script).map(b => b.toString(16).padStart(2, '0')).join('')
           : '';
         const isAnchor = scriptHex.startsWith('51024e73');
-        
-        if (!isAnchor) {
+        const isOpReturn = scriptHex.startsWith('6a');
+
+        if (!isAnchor && !isOpReturn) {
           outpoints.push({ txid, vout });
         }
       }
