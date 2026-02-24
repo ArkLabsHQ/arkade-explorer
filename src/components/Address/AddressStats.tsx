@@ -80,38 +80,36 @@ export function AddressStats({ vtxos }: AddressStatsProps) {
       </div>
 
       {hasAssets && (
-        <div className="mt-4 space-y-2">
-          <h3 className={`text-sm font-bold ${mypurple} uppercase`}>Asset Balances</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <Card>
+          <h3 className={`text-sm font-bold ${mypurple} uppercase mb-3`}>Asset Balances</h3>
+          <div className="space-y-2">
             {Array.from(assetBalances.entries()).map(([assetId, balances]) => (
-              <Card key={assetId}>
-                <div className="text-center space-y-1">
-                  <AssetBadge assetId={assetId} />
-                  <div>
+              <div key={assetId} className="flex items-center justify-between border-b border-arkade-purple/30 pb-2 last:border-0 last:pb-0">
+                <AssetBadge assetId={assetId} />
+                <div className="flex items-center gap-6">
+                  <div className="text-right">
                     <div className="text-arkade-gray uppercase text-xs">Balance</div>
                     <AssetAmountDisplay
                       amount={balances.active}
                       assetId={assetId}
-                      className="justify-center"
                       valueClassName={`${mypurple} font-bold font-mono text-sm`}
-                      unitClassName="text-arkade-gray text-xs"
+                      unitClassName={`${mypurple} font-mono text-xs`}
                     />
                   </div>
-                  <div>
+                  <div className="text-right">
                     <div className="text-arkade-gray uppercase text-xs">Received</div>
                     <AssetAmountDisplay
                       amount={balances.total}
                       assetId={assetId}
-                      className="justify-center"
-                      valueClassName="text-arkade-gray font-mono text-xs"
-                      unitClassName="text-arkade-gray text-xs"
+                      valueClassName="text-arkade-gray font-mono text-sm"
+                      unitClassName="text-arkade-gray font-mono text-xs"
                     />
                   </div>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
     </>
   );
