@@ -83,13 +83,16 @@ export function AddressStats({ vtxos }: AddressStatsProps) {
         <div className="max-w-md">
           <Card>
             <h3 className={`text-sm font-bold ${mypurple} uppercase mb-3`}>Asset Balances</h3>
+            <div className="flex items-center justify-end gap-4 mb-2">
+              <span className="text-arkade-gray uppercase text-xs w-20 text-right">Balance</span>
+              <span className="text-arkade-gray uppercase text-xs w-20 text-right">Received</span>
+            </div>
             <div className="space-y-2">
               {Array.from(assetBalances.entries()).map(([assetId, balances]) => (
                 <div key={assetId} className="flex items-center justify-between border-b border-arkade-purple/30 pb-2 last:border-0 last:pb-0">
                   <AssetBadge assetId={assetId} />
                   <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <div className="text-arkade-gray uppercase text-xs">Balance</div>
+                    <div className="w-20 text-right">
                       <AssetAmountDisplay
                         amount={balances.active}
                         assetId={assetId}
@@ -97,8 +100,7 @@ export function AddressStats({ vtxos }: AddressStatsProps) {
                         valueClassName={`${mypurple} font-bold font-mono text-sm`}
                       />
                     </div>
-                    <div className="text-right">
-                      <div className="text-arkade-gray uppercase text-xs">Received</div>
+                    <div className="w-20 text-right">
                       <AssetAmountDisplay
                         amount={balances.total}
                         assetId={assetId}
