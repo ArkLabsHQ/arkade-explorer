@@ -35,86 +35,117 @@ export function AddressStats({ vtxos }: AddressStatsProps) {
   // purple doesn't work in dark mode well for text, so we switch to orange
   const mypurple = resolvedTheme === 'dark' ? 'text-arkade-orange' : 'text-arkade-purple';
 
-  return (
-    <>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+  if (hasAssets) {
+    return (
+      <div className="max-w-lg">
         <Card>
-          <div className="text-center space-y-2">
-            <div className="text-arkade-gray uppercase text-xs font-bold">Total Balance</div>
-            <MoneyDisplay
-              sats={totalBalance}
-              layout="block"
-              valueClassName={`${mypurple} text-xl font-bold font-mono`}
-              unitClassName="text-arkade-gray text-xs"
-            />
+          <h3 className={`text-sm font-bold ${mypurple} uppercase mb-3`}>Balances</h3>
+          <div className="flex items-center justify-end gap-4 mb-2">
+            <span className="text-arkade-gray uppercase text-xs w-24 text-right">Balance</span>
+            <span className="text-arkade-gray uppercase text-xs w-24 text-right">Received</span>
           </div>
-        </Card>
-
-        <Card>
-          <div className="text-center space-y-2">
-            <div className="text-arkade-gray uppercase text-xs font-bold">Total Received</div>
-            <MoneyDisplay
-              sats={totalReceived}
-              layout="block"
-              valueClassName={`${mypurple} text-xl font-bold font-mono`}
-              unitClassName="text-arkade-gray text-xs"
-            />
+          <div className="space-y-2">
+            {/* BTC row */}
+            <div className="flex items-center justify-between border-b border-arkade-purple/30 pb-2">
+              <span className={`${mypurple} font-bold text-sm uppercase`}>BTC</span>
+              <div className="flex items-center gap-4">
+                <div className="w-24 text-right">
+                  <MoneyDisplay
+                    sats={totalBalance}
+                    valueClassName={`${mypurple} font-bold font-mono text-sm`}
+                    unitClassName="text-arkade-gray text-xs"
+                  />
+                </div>
+                <div className="w-24 text-right">
+                  <MoneyDisplay
+                    sats={totalReceived}
+                    valueClassName="text-arkade-gray font-mono text-sm"
+                    unitClassName="text-arkade-gray text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+            {/* Asset rows */}
+            {Array.from(assetBalances.entries()).map(([assetId, balances]) => (
+              <div key={assetId} className="flex items-center justify-between border-b border-arkade-purple/30 pb-2 last:border-0 last:pb-0">
+                <AssetBadge assetId={assetId} />
+                <div className="flex items-center gap-4">
+                  <div className="w-24 text-right">
+                    <AssetAmountDisplay
+                      amount={balances.active}
+                      assetId={assetId}
+                      hideUnit
+                      valueClassName={`${mypurple} font-bold font-mono text-sm`}
+                    />
+                  </div>
+                  <div className="w-24 text-right">
+                    <AssetAmountDisplay
+                      amount={balances.total}
+                      assetId={assetId}
+                      hideUnit
+                      valueClassName="text-arkade-gray font-mono text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        </Card>
-
-        <Card>
-          <div className="text-center space-y-2">
-            <div className="text-arkade-gray uppercase text-xs font-bold">Active VTXOs</div>
-            <div className="text-green-500 text-xl font-bold font-mono">{activeVtxos.length}</div>
-            <div className="text-arkade-gray text-xs">of {vtxos.length}</div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="text-center space-y-2">
-            <div className="text-arkade-gray uppercase text-xs font-bold">Spent VTXOs</div>
-            <div className="text-arkade-gray text-xl font-bold font-mono">{spentVtxos.length}</div>
-            <div className="text-arkade-gray text-xs">of {vtxos.length}</div>
+          {/* VTXO summary */}
+          <div className="flex items-center gap-4 mt-3 pt-3 border-t border-arkade-purple/30 text-xs">
+            <span className="text-arkade-gray uppercase">
+              VTXOs: <span className="text-green-500 font-bold font-mono">{activeVtxos.length}</span> active
+            </span>
+            <span className="text-arkade-gray uppercase">
+              <span className="text-arkade-gray font-bold font-mono">{spentVtxos.length}</span> spent
+            </span>
+            <span className="text-arkade-gray uppercase">of {vtxos.length} total</span>
           </div>
         </Card>
       </div>
+    );
+  }
 
-      {hasAssets && (
-        <div className="max-w-md">
-          <Card>
-            <h3 className={`text-sm font-bold ${mypurple} uppercase mb-3`}>Asset Balances</h3>
-            <div className="flex items-center justify-end gap-4 mb-2">
-              <span className="text-arkade-gray uppercase text-xs w-20 text-right">Balance</span>
-              <span className="text-arkade-gray uppercase text-xs w-20 text-right">Received</span>
-            </div>
-            <div className="space-y-2">
-              {Array.from(assetBalances.entries()).map(([assetId, balances]) => (
-                <div key={assetId} className="flex items-center justify-between border-b border-arkade-purple/30 pb-2 last:border-0 last:pb-0">
-                  <AssetBadge assetId={assetId} />
-                  <div className="flex items-center gap-4">
-                    <div className="w-20 text-right">
-                      <AssetAmountDisplay
-                        amount={balances.active}
-                        assetId={assetId}
-                        hideUnit
-                        valueClassName={`${mypurple} font-bold font-mono text-sm`}
-                      />
-                    </div>
-                    <div className="w-20 text-right">
-                      <AssetAmountDisplay
-                        amount={balances.total}
-                        assetId={assetId}
-                        hideUnit
-                        valueClassName="text-arkade-gray font-mono text-sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <Card>
+        <div className="text-center space-y-2">
+          <div className="text-arkade-gray uppercase text-xs font-bold">Total Balance</div>
+          <MoneyDisplay
+            sats={totalBalance}
+            layout="block"
+            valueClassName={`${mypurple} text-xl font-bold font-mono`}
+            unitClassName="text-arkade-gray text-xs"
+          />
         </div>
-      )}
-    </>
+      </Card>
+
+      <Card>
+        <div className="text-center space-y-2">
+          <div className="text-arkade-gray uppercase text-xs font-bold">Total Received</div>
+          <MoneyDisplay
+            sats={totalReceived}
+            layout="block"
+            valueClassName={`${mypurple} text-xl font-bold font-mono`}
+            unitClassName="text-arkade-gray text-xs"
+          />
+        </div>
+      </Card>
+
+      <Card>
+        <div className="text-center space-y-2">
+          <div className="text-arkade-gray uppercase text-xs font-bold">Active VTXOs</div>
+          <div className="text-green-500 text-xl font-bold font-mono">{activeVtxos.length}</div>
+          <div className="text-arkade-gray text-xs">of {vtxos.length}</div>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="text-center space-y-2">
+          <div className="text-arkade-gray uppercase text-xs font-bold">Spent VTXOs</div>
+          <div className="text-arkade-gray text-xl font-bold font-mono">{spentVtxos.length}</div>
+          <div className="text-arkade-gray text-xs">of {vtxos.length}</div>
+        </div>
+      </Card>
+    </div>
   );
 }
