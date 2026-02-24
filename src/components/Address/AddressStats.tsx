@@ -82,7 +82,7 @@ export function AddressStats({ vtxos }: AddressStatsProps) {
       {hasAssets && (
         <div className="mt-4 space-y-2">
           <h3 className={`text-sm font-bold ${mypurple} uppercase`}>Asset Balances</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {Array.from(assetBalances.entries()).map(([assetId, balances]) => (
               <Card key={assetId}>
                 <div className="space-y-2">
