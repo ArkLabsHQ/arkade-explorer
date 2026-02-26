@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAssetDetails } from '../../hooks/useAssetDetails';
 import { truncateHash } from '../../lib/utils';
 import { isSafeImageUrl, formatAssetAmount } from '../../lib/api/indexer';
+import { useAssetIconApproval } from '../../contexts/AssetIconApprovalContext';
 import { ImageLightbox } from './ImageLightbox';
 
 interface AssetAmountDisplayProps {
@@ -22,6 +23,7 @@ export function AssetAmountDisplay({
   hideUnit = false,
 }: AssetAmountDisplayProps) {
   const { assetDetails, isLoading } = useAssetDetails(assetId);
+  const { isApproved } = useAssetIconApproval();
   const metadata = assetDetails?.metadata;
   const decimals = metadata?.decimals ?? 0;
   const ticker = metadata?.ticker || metadata?.name || truncateHash(assetId, 6, 6);
@@ -30,7 +32,7 @@ export function AssetAmountDisplay({
   return (
     <span className={`${className} inline-flex items-center gap-1`}>
       <span className={valueClassName}>{formatted}</span>
-      {!hideUnit && metadata?.icon && isSafeImageUrl(metadata.icon) && (
+      {!hideUnit && metadata?.icon && isSafeImageUrl(metadata.icon) && isApproved(assetId) && (
         <ImageLightbox src={metadata.icon} className="inline w-3.5 h-3.5 rounded-full" />
       )}
       {!hideUnit && (

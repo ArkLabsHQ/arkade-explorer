@@ -5,6 +5,7 @@ import { Copy, Check } from 'lucide-react';
 import { copyToClipboard, truncateHash } from '../../lib/utils';
 import type { AssetDetails as AssetDetailsType } from '../../lib/api/indexer';
 import { isSafeImageUrl, formatAssetAmount } from '../../lib/api/indexer';
+import { useAssetIconApproval } from '../../contexts/AssetIconApprovalContext';
 import { ImageLightbox } from '../UI/ImageLightbox';
 
 interface AssetDetailsProps {
@@ -14,11 +15,14 @@ interface AssetDetailsProps {
 export function AssetDetailsCard({ assetDetails }: AssetDetailsProps) {
   const [copiedId, setCopiedId] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
+  const { isApproved, isVerified, approve, revoke } = useAssetIconApproval();
 
   const metadata = assetDetails.metadata;
   const name = metadata?.name || truncateHash(assetDetails.assetId, 12, 12);
   const ticker = metadata?.ticker;
   const decimals = metadata?.decimals ?? 0;
+  const hasIcon = !!metadata?.icon && isSafeImageUrl(metadata.icon);
+  const showIcon = hasIcon && isApproved(assetDetails.assetId);
 
   // AssetId format: 64 hex chars (txid) + 4 hex chars (group index)
   const genesisTxid = assetDetails.assetId.length >= 64
@@ -36,8 +40,8 @@ export function AssetDetailsCard({ assetDetails }: AssetDetailsProps) {
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
-          {metadata?.icon && isSafeImageUrl(metadata.icon) && (
-            <ImageLightbox src={metadata.icon} className="w-10 h-10 rounded-full" />
+          {showIcon && (
+            <ImageLightbox src={metadata!.icon!} className="w-10 h-10 rounded-full" />
           )}
           <h1 className="text-2xl font-bold text-arkade-purple uppercase">{name}</h1>
           {ticker && (
@@ -112,6 +116,26 @@ export function AssetDetailsCard({ assetDetails }: AssetDetailsProps) {
             >
               {truncateHash(assetDetails.controlAssetId, 8, 8)}
             </Link>
+          </div>
+        )}
+
+        {/* Icon approval toggle (non-verified assets only) */}
+        {hasIcon && !isVerified(assetDetails.assetId) && (
+          <div className="flex items-center justify-between border-b border-arkade-purple pb-2">
+            <span className="text-arkade-gray uppercase text-sm font-bold">Asset Icon</span>
+            <button
+              onClick={() => {
+                if (isApproved(assetDetails.assetId)) {
+                  revoke(assetDetails.assetId);
+                } else {
+                  approve(assetDetails.assetId);
+                }
+              }}
+              className="px-3 py-1 text-xs font-bold uppercase border transition-colors
+                border-arkade-purple text-arkade-purple hover:bg-arkade-purple hover:text-white"
+            >
+              {isApproved(assetDetails.assetId) ? 'Hide icon' : 'Show icon'}
+            </button>
           </div>
         )}
 
