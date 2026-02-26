@@ -19,6 +19,8 @@ export function HomePage() {
     
     if (/^[0-9a-fA-F]{64}$/.test(query)) {
       navigate(`/tx/${query}`);
+    } else if (/^[0-9a-fA-F]{65,}$/.test(query)) {
+      navigate(`/asset/${query}`);
     } else {
       navigate(`/address/${query}`);
     }
@@ -42,7 +44,7 @@ export function HomePage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Transaction ID or Address..."
+              placeholder="Transaction ID, Address, or Asset ID..."
               className="w-full px-4 py-3 bg-arkade-black border-2 border-arkade-purple text-arkade-gray font-mono focus:outline-none focus:border-arkade-orange placeholder-gray-600"
             />
             <button
