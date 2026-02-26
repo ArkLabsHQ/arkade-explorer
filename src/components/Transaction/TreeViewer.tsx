@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { indexerClient } from '../../lib/api/indexer';
+import { fetchAllPages } from '../../lib/api/fetchAllPages';
 import { Card } from '../UI/Card';
 import { LoadingSpinner } from '../UI/LoadingSpinner';
 import { VtxoList } from '../Address/VtxoList';
@@ -36,7 +37,10 @@ export function TreeViewer({ commitmentTxid, batches }: TreeViewerProps) {
   // Fetch connectors
   const { data: connectorsData, isLoading: connectorsLoading, error: connectorsError } = useQuery({
     queryKey: ['connectors', commitmentTxid],
-    queryFn: () => indexerClient.getCommitmentTxConnectors(commitmentTxid),
+    queryFn: () => fetchAllPages(
+      (opts) => indexerClient.getCommitmentTxConnectors(commitmentTxid, opts),
+      'connectors',
+    ),
     enabled: showConnectors,
   });
 
@@ -124,13 +128,19 @@ function VtxoTreeSection({ batchId, batchIndex, batch, commitmentTxid, isExpande
   // Fetch both tree structure and leaves
   const { data: treeData, isLoading: treeLoading, error: treeError } = useQuery({
     queryKey: ['vtxo-tree', txid, vout],
-    queryFn: () => indexerClient.getVtxoTree({ txid, vout }),
+    queryFn: () => fetchAllPages(
+      (opts) => indexerClient.getVtxoTree({ txid, vout }, opts),
+      'vtxoTree',
+    ),
     enabled: isExpanded && !!txid,
   });
 
   const { data: leavesData, isLoading: leavesLoading, error: leavesError } = useQuery({
     queryKey: ['vtxo-leaves', txid, vout],
-    queryFn: () => indexerClient.getVtxoTreeLeaves({ txid, vout }),
+    queryFn: () => fetchAllPages(
+      (opts) => indexerClient.getVtxoTreeLeaves({ txid, vout }, opts),
+      'leaves',
+    ),
     enabled: isExpanded && !!txid,
   });
 
@@ -145,11 +155,10 @@ function VtxoTreeSection({ batchId, batchIndex, batch, commitmentTxid, isExpande
 
   const { data: vtxosData, isLoading: vtxosLoading } = useQuery({
     queryKey: ['vtxos-by-outpoints', outpointsKey],
-    queryFn: () => {
-      console.log('[TreeViewer] Fetching VTXOs by outpoints:', leafOutpoints);
-      console.trace('[TreeViewer] Stack trace for VTXO fetch');
-      return indexerClient.getVtxos({ outpoints: leafOutpoints });
-    },
+    queryFn: () => fetchAllPages(
+      (opts) => indexerClient.getVtxos({ outpoints: leafOutpoints, ...opts }),
+      'vtxos',
+    ),
     enabled: isExpanded && leafOutpoints.length > 0,
   });
 
@@ -160,9 +169,10 @@ function VtxoTreeSection({ batchId, batchIndex, batch, commitmentTxid, isExpande
     queryKey: ['virtual-txs', leafTxids],
     queryFn: async () => {
       if (leafTxids.length === 0) return { txs: [] };
-      // Fetch all virtual txs at once
-      const response = await indexerClient.getVirtualTxs(leafTxids as string[]);
-      // Map response to include txid for matching
+      const response = await fetchAllPages(
+        (opts) => indexerClient.getVirtualTxs(leafTxids as string[], opts),
+        'txs',
+      );
       const results = response.txs.map((tx: string, idx: number) => ({
         txid: leafTxids[idx],
         tx: tx

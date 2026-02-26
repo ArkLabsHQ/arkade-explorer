@@ -11,6 +11,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { constructArkAddress } from '../../lib/arkAddress';
 import type { VirtualCoin } from '../../lib/api/indexer';
 import { indexerClient } from '../../lib/api/indexer';
+import { fetchAllPages } from '../../lib/api/fetchAllPages';
 import { AssetBadge } from '../UI/AssetBadge';
 import { AssetAmountDisplay } from '../UI/AssetAmountDisplay';
 import { useRecentSearches } from '../../hooks/useRecentSearches';
@@ -284,7 +285,10 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
   const batchTreeQueries = useQueries({
     queries: batchVouts.map(vout => ({
       queryKey: ['vtxo-tree', txid, vout],
-      queryFn: () => indexerClient.getVtxoTree({ txid, vout }),
+      queryFn: () => fetchAllPages(
+        (opts) => indexerClient.getVtxoTree({ txid, vout }, opts),
+        'vtxoTree',
+      ),
       enabled: type === 'commitment' && !!txid,
     })),
   });

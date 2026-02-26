@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { indexerClient } from '../lib/api/indexer';
+import { fetchAllPages } from '../lib/api/fetchAllPages';
 import { TransactionDetails } from '../components/Transaction/TransactionDetails';
 import { BatchList } from '../components/Transaction/BatchList';
 import { LoadingSpinner } from '../components/UI/LoadingSpinner';
@@ -38,7 +39,10 @@ export function CommitmentTxPage() {
     queryKey: ['commitment-forfeit-txs', txid],
     queryFn: async () => {
       if (!txid) throw new Error('No txid provided');
-      return await indexerClient.getCommitmentTxForfeitTxs(txid);
+      return await fetchAllPages(
+        (opts) => indexerClient.getCommitmentTxForfeitTxs(txid, opts),
+        'txids',
+      );
     },
     enabled: !!txid,
   });
@@ -48,7 +52,10 @@ export function CommitmentTxPage() {
     queryKey: ['commitment-connectors', txid],
     queryFn: async () => {
       if (!txid) throw new Error('No txid provided');
-      return await indexerClient.getCommitmentTxConnectors(txid);
+      return await fetchAllPages(
+        (opts) => indexerClient.getCommitmentTxConnectors(txid, opts),
+        'connectors',
+      );
     },
     enabled: !!txid,
   });
