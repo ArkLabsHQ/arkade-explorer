@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@arkade-os/sdk':
-        specifier: github:arkade-os/ts-sdk
-        version: https://codeload.github.com/arkade-os/ts-sdk/tar.gz/6b2dfbe00ed35bd8c2e59eef57b97c7cc756c726
+        specifier: ^0.4.0-next.7
+        version: 0.4.0-next.7
       '@scure/base':
         specifier: ^2.0.0
         version: 2.0.0
@@ -88,10 +88,26 @@ packages:
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
 
-  '@arkade-os/sdk@https://codeload.github.com/arkade-os/ts-sdk/tar.gz/6b2dfbe00ed35bd8c2e59eef57b97c7cc756c726':
-    resolution: {tarball: https://codeload.github.com/arkade-os/ts-sdk/tar.gz/6b2dfbe00ed35bd8c2e59eef57b97c7cc756c726}
-    version: 0.3.13
-    engines: {node: '>=20.0.0'}
+  '@arkade-os/sdk@0.4.0-next.7':
+    resolution: {integrity: sha512-KGdYsUvBr8QhW8BEfCUCVh+cEAs2TcPLHJrbAuFbV0SEuM2TwYlBpAMsMxZheCjLfQw3Hl7DSTxREx1y1O02Ng==}
+    engines: {node: '>=22.12.0 <23', pnpm: '>=10.25.0 <11'}
+    peerDependencies:
+      '@react-native-async-storage/async-storage': '>=1.0.0'
+      expo: '>=54.0.0'
+      expo-background-task: ~1.0.10
+      expo-sqlite: ~16.0.10
+      expo-task-manager: ~14.0.9
+    peerDependenciesMeta:
+      '@react-native-async-storage/async-storage':
+        optional: true
+      expo:
+        optional: true
+      expo-background-task:
+        optional: true
+      expo-sqlite:
+        optional: true
+      expo-task-manager:
+        optional: true
 
   '@babel/code-frame@7.29.0':
     resolution: {integrity: sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw==}
@@ -1485,7 +1501,7 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@arkade-os/sdk@https://codeload.github.com/arkade-os/ts-sdk/tar.gz/6b2dfbe00ed35bd8c2e59eef57b97c7cc756c726':
+  '@arkade-os/sdk@0.4.0-next.7':
     dependencies:
       '@kukks/bitcoin-descriptors': 3.1.0
       '@marcbachmann/cel-js': 7.3.1
