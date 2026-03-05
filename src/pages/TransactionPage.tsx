@@ -8,8 +8,6 @@ import { TransactionHex } from '../components/Transaction/TransactionHex';
 import { LoadingSpinner } from '../components/UI/LoadingSpinner';
 import { ErrorMessage } from '../components/UI/ErrorMessage';
 import { useRecentSearches } from '../hooks/useRecentSearches';
-import { asset } from '@arkade-os/sdk';
-const { Packet } = asset;
 
 export function TransactionPage() {
   const { txid } = useParams<{ txid: string }>();
@@ -52,9 +50,17 @@ export function TransactionPage() {
           ? Array.from(output.script).map(b => b.toString(16).padStart(2, '0')).join('')
           : '';
         const isAnchor = scriptHex.startsWith('51024e73');
-        const isAssetPacket = output?.script ? (() => { try { return Packet.isAssetPacket(output.script); } catch { return false; } })() : false;
+        // Check for ARK extension OP_RETURN: 6a + push opcode(s) + 41524b (ARK magic)
+        const isArkExtension = scriptHex.startsWith('6a') && (() => {
+          try {
+            const decoded = btc.Script.decode(output!.script!);
+            if (decoded.length < 2 || decoded[0] !== 'RETURN') return false;
+            const data = decoded[1];
+            return data instanceof Uint8Array && data.length >= 3 && data[0] === 0x41 && data[1] === 0x52 && data[2] === 0x4b;
+          } catch { return false; }
+        })();
 
-        if (!isAnchor && !isAssetPacket) {
+        if (!isAnchor && !isArkExtension) {
           outpoints.push({ txid, vout });
         }
       }

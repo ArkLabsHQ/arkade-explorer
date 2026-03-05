@@ -20,6 +20,53 @@ import { hex } from '@scure/base';
 import { CosignerPublicKey, getArkPsbtFields, asset } from '@arkade-os/sdk';
 const { Packet } = asset;
 
+/** Check if a script is an ARK extension OP_RETURN */
+function isArkExtension(script: Uint8Array): boolean {
+  try {
+    const decoded = btc.Script.decode(script);
+    if (decoded.length < 2 || decoded[0] !== 'RETURN') return false;
+    const data = decoded[1];
+    if (!(data instanceof Uint8Array)) return false;
+    return data.length >= 3 && data[0] === 0x41 && data[1] === 0x52 && data[2] === 0x4b;
+  } catch { return false; }
+}
+
+/** Parse asset packet from an ARK extension OP_RETURN script */
+function parseAssetPacket(script: Uint8Array): any {
+  try {
+    const decoded = btc.Script.decode(script);
+    if (decoded.length < 2 || decoded[0] !== 'RETURN') return null;
+    const pushes = decoded.slice(1).filter((x): x is Uint8Array => x instanceof Uint8Array);
+    if (pushes.length === 0) return null;
+    // Concatenate all data pushes
+    const totalLen = pushes.reduce((sum, p) => sum + p.length, 0);
+    const buf = new Uint8Array(totalLen);
+    let offset = 0;
+    for (const p of pushes) { buf.set(p, offset); offset += p.length; }
+    // Check ARK magic
+    if (buf.length < 3 || buf[0] !== 0x41 || buf[1] !== 0x52 || buf[2] !== 0x4b) return null;
+    // Parse TLV records after magic
+    let pos = 3;
+    while (pos < buf.length) {
+      const packetType = buf[pos++];
+      // Decode varint length (LEB128)
+      let len = 0, shift = 0;
+      while (pos < buf.length) {
+        const b = buf[pos++];
+        len |= (b & 0x7f) << shift;
+        if ((b & 0x80) === 0) break;
+        shift += 7;
+      }
+      const data = buf.slice(pos, pos + len);
+      pos += len;
+      if (packetType === 0) { // PACKET_TYPE for asset packet
+        return Packet.fromBytes(data);
+      }
+    }
+    return null;
+  } catch { return null; }
+}
+
 interface TransactionDetailsProps {
   txid: string;
   type: 'commitment' | 'arkade';
@@ -193,8 +240,8 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
           const output = parsedTx.getOutput(i);
           if (output?.script) {
             try {
-              if (Packet.isAssetPacket(output.script)) {
-                assetPacket = Packet.fromTxOut(output.script);
+              if (isArkExtension(output.script)) {
+                assetPacket = parseAssetPacket(output.script);
                 break;
               }
             } catch (e) {
@@ -777,7 +824,7 @@ export function TransactionDetails({ txid, type, data, vtxoData }: TransactionDe
                       : '';
                     const isAnchorOutput = scriptHex.startsWith('51024e73');
                     const isForfeitOutput = isForfeitTx && scriptHex === forfeitScriptHex;
-                    const isAssetPacketOutput = output?.script ? (() => { try { return Packet.isAssetPacket(output.script); } catch { return false; } })() : false;
+                    const isAssetPacketOutput = output?.script ? isArkExtension(output.script) : false;
                     
                     // Find the corresponding VTXO for this output
                     // For checkpoint/forfeit/batch tree transactions, use the fetched VTXO (but ignore anchor outputs)
