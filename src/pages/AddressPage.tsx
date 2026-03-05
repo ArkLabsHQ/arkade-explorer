@@ -208,7 +208,7 @@ export function AddressPage() {
 
   return (
     <div className="space-y-6">
-      <div className={hasAssets ? 'flex flex-col md:flex-row gap-4 md:items-start' : ''}>
+      <div className={hasAssets ? 'flex flex-col md:flex-row gap-4 md:items-stretch' : ''}>
       <Card glowing className={hasAssets ? 'flex-1 min-w-0' : ''}>
         <div className="space-y-4">
           <div className="flex items-center justify-between">

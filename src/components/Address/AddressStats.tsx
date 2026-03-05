@@ -38,14 +38,14 @@ export function AddressStats({ vtxos, className }: AddressStatsProps) {
 
   if (hasAssets) {
     return (
-      <div className={className || 'max-w-lg'}>
-        <Card>
+      <div className={`${className || 'max-w-lg'} flex flex-col`}>
+        <Card className="flex-1 flex flex-col">
           <h3 className={`text-sm font-bold ${mypurple} uppercase mb-3`}>Balances</h3>
           <div className="flex items-center justify-end gap-4 mb-2">
             <span className="text-arkade-gray uppercase text-xs w-24 text-right">Balance</span>
             <span className="text-arkade-gray uppercase text-xs w-24 text-right">Received</span>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 overflow-y-auto min-h-0 flex-1">
             {/* BTC row */}
             <div className="flex items-center justify-between border-b border-arkade-purple/30 pb-2">
               <span className={`${mypurple} font-bold text-sm uppercase`}>BTC</span>
