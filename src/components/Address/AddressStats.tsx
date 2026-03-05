@@ -7,9 +7,10 @@ import { AssetAmountDisplay } from '../UI/AssetAmountDisplay';
 
 interface AddressStatsProps {
   vtxos: Vtxo[];
+  className?: string;
 }
 
-export function AddressStats({ vtxos }: AddressStatsProps) {
+export function AddressStats({ vtxos, className }: AddressStatsProps) {
   const { resolvedTheme } = useTheme();
 
   const isVtxoActive = (v: Vtxo) => !(v.spentBy && v.spentBy !== '') && !v.isSpent;
@@ -37,7 +38,7 @@ export function AddressStats({ vtxos }: AddressStatsProps) {
 
   if (hasAssets) {
     return (
-      <div className="max-w-lg">
+      <div className={className || 'max-w-lg'}>
         <Card>
           <h3 className={`text-sm font-bold ${mypurple} uppercase mb-3`}>Balances</h3>
           <div className="flex items-center justify-end gap-4 mb-2">

@@ -134,6 +134,7 @@ export function AddressPage() {
 
   // Calculate derived values
   const allVtxos = data?.pages.flatMap(p => p.vtxos) ?? [];
+  const hasAssets = allVtxos.some(v => v.assets && v.assets.length > 0);
   let vtxos = allVtxos.filter(v => {
     const isSpent = (v.spentBy && v.spentBy !== '') || (v as any).isSpent === true;
     const isRecoverable = !isSpent && (v as any).virtualStatus?.state === 'swept';
@@ -207,7 +208,8 @@ export function AddressPage() {
 
   return (
     <div className="space-y-6">
-      <Card glowing>
+      <div className={hasAssets ? 'flex flex-col md:flex-row gap-4 md:items-start' : ''}>
+      <Card glowing className={hasAssets ? 'flex-1 min-w-0' : ''}>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-arkade-purple uppercase">Address Details</h1>
@@ -276,7 +278,8 @@ export function AddressPage() {
         </div>
       </Card>
 
-      <AddressStats vtxos={allVtxos} />
+      <AddressStats vtxos={allVtxos} className={hasAssets ? 'md:w-fit md:flex-shrink-0' : undefined} />
+      </div>
 
       <div>
         <div className="mb-4">
