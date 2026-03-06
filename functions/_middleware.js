@@ -14,9 +14,23 @@ function esc(str) {
   return (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
 
-function formatSats(sats) {
-  const btc = sats / 1e8;
-  return btc.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 8 }) + ' BTC';
+function formatSats(satsBigInt) {
+  const str = satsBigInt.toString();
+  const padded = str.padStart(9, '0'); // at least 1 digit before decimal
+  const intPart = padded.slice(0, padded.length - 8);
+  const decPart = padded.slice(padded.length - 8).replace(/0+$/, '');
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return decPart ? `${formattedInt}.${decPart} BTC` : `${formattedInt} BTC`;
+}
+
+function formatAmount(amount, decimals) {
+  if (decimals === 0) return BigInt(amount).toLocaleString('en-US');
+  const str = BigInt(amount).toString();
+  const padded = str.padStart(decimals + 1, '0');
+  const intPart = padded.slice(0, padded.length - decimals);
+  const decPart = padded.slice(padded.length - decimals).replace(/0+$/, '');
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return decPart ? `${formattedInt}.${decPart}` : formattedInt;
 }
 
 /** Convert a tark1/ark1 address to its script hex for the indexer API */
@@ -52,13 +66,13 @@ async function getAddressMeta(indexerUrl, address) {
     if (!data?.vtxos) return null;
 
     const vtxos = data.vtxos;
-    let totalSats = 0;
+    let totalSats = 0n;
     let activeCount = 0;
     const assetIds = new Set();
 
     for (const v of vtxos) {
       if (!v.spent) {
-        totalSats += v.amount || 0;
+        totalSats += BigInt(v.amount || 0);
         activeCount++;
       }
       if (v.assets) {
@@ -90,9 +104,7 @@ async function getAssetMeta(indexerUrl, assetId) {
     const label = ticker || name || truncate(assetId);
     const parts = [label];
     if (supply != null) {
-      const formatted = decimals > 0
-        ? (supply / Math.pow(10, decimals)).toLocaleString('en-US', { maximumFractionDigits: decimals })
-        : supply.toLocaleString('en-US');
+      const formatted = formatAmount(supply, decimals);
       parts.push(`Supply: ${formatted}`);
     }
     if (name && ticker) parts.push(name);
