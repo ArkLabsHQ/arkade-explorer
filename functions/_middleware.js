@@ -1,6 +1,5 @@
 import { ArkAddress } from '@arkade-os/sdk';
 import { hex } from '@scure/base';
-import { ImageResponse } from 'workers-og';
 
 const BOT_UA = /Twitterbot|facebookexternalhit|Slackbot|Slack-ImgProxy|LinkedInBot|Discordbot|WhatsApp|TelegramBot|Googlebot|bingbot|yandex|Embedly|showyoubot|outbrain|pinterest|vkShare|W3C_Validator|Iframely/i;
 
@@ -187,16 +186,7 @@ async function getPageMeta(pagePath, indexerUrl) {
 // OG Image generation (1200x630 PNG)
 // ---------------------------------------------------------------------------
 
-function buildOgImageHtml(meta) {
-  const statsHtml = meta.stats.length > 0
-    ? meta.stats.map(s =>
-        `<div style="display:flex;flex-direction:column;align-items:center;padding:0 28px;">
-          <div style="font-size:36px;font-weight:bold;color:white;">${esc(s.value)}</div>
-          <div style="font-size:18px;color:#9ca3af;text-transform:uppercase;margin-top:4px;">${esc(s.label)}</div>
-        </div>`
-      ).join('')
-    : `<div style="display:flex;font-size:28px;color:#9ca3af;">Arkade Protocol Explorer</div>`;
-
+function buildOgImageSvg(meta) {
   const displayId = meta.type === 'address'
     ? truncate(meta.id, 16, 12)
     : meta.type === 'asset'
@@ -205,35 +195,42 @@ function buildOgImageHtml(meta) {
 
   const typeLabel = meta.type === 'asset' ? '' : meta.label;
 
-  return `<div style="display:flex;flex-direction:column;width:1200px;height:630px;background:#0f0b1a;padding:60px;">
-    <div style="display:flex;align-items:center;margin-bottom:40px;">
-      <div style="display:flex;font-size:48px;font-weight:bold;color:${BRAND_ORANGE};">ARKADE</div>
-    </div>
-    <div style="display:flex;flex-direction:column;flex:1;justify-content:center;">
-      <div style="display:flex;align-items:baseline;margin-bottom:24px;">
-        ${typeLabel ? `<div style="display:flex;font-size:22px;color:${BRAND_ORANGE};text-transform:uppercase;font-weight:bold;margin-right:16px;">${esc(typeLabel)}</div>` : ''}
-        ${meta.type === 'asset'
-          ? `<div style="display:flex;font-size:48px;font-weight:bold;color:${BRAND_ORANGE};">${esc(meta.label)}</div>`
-          : displayId ? `<div style="display:flex;font-size:28px;color:#d1d5db;">${esc(displayId)}</div>` : ''}
-      </div>
-      <div style="display:flex;align-items:center;">
-        ${statsHtml}
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;border-top:2px solid #2d2640;padding-top:20px;margin-top:auto;">
-      <div style="display:flex;font-size:18px;color:#6b7280;">arkade.sh</div>
-    </div>
-  </div>`;
+  // Build stats rows
+  let statsBlock = '';
+  if (meta.stats.length > 0) {
+    const statItems = meta.stats.map((s, i) => {
+      const x = 80 + i * 300;
+      return `<text x="${x}" y="380" font-size="36" font-weight="bold" fill="white">${esc(s.value)}</text>
+        <text x="${x}" y="410" font-size="18" fill="#9ca3af" text-transform="uppercase">${esc(s.label)}</text>`;
+    }).join('\n');
+    statsBlock = statItems;
+  } else {
+    statsBlock = `<text x="80" y="380" font-size="28" fill="#9ca3af">Arkade Protocol Explorer</text>`;
+  }
+
+  return `<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="630" fill="#0f0b1a"/>
+    <text x="80" y="120" font-size="48" font-weight="bold" fill="${BRAND_ORANGE}" font-family="sans-serif">ARKADE</text>
+    ${typeLabel ? `<text x="80" y="260" font-size="22" font-weight="bold" fill="${BRAND_ORANGE}" font-family="sans-serif">${esc(typeLabel.toUpperCase())}</text>` : ''}
+    ${meta.type === 'asset'
+      ? `<text x="80" y="310" font-size="48" font-weight="bold" fill="${BRAND_ORANGE}" font-family="sans-serif">${esc(meta.label)}</text>`
+      : displayId ? `<text x="${typeLabel ? '80' : '80'}" y="310" font-size="28" fill="#d1d5db" font-family="monospace">${esc(displayId)}</text>` : ''}
+    ${statsBlock}
+    <line x1="80" y1="560" x2="1120" y2="560" stroke="#2d2640" stroke-width="2"/>
+    <text x="80" y="590" font-size="18" fill="#6b7280" font-family="sans-serif">arkade.sh</text>
+  </svg>`;
 }
 
 async function handleOgImage(pagePath, indexerUrl) {
   const meta = await getPageMeta(pagePath, indexerUrl);
   if (!meta) return null;
 
-  const html = buildOgImageHtml(meta);
-  return new ImageResponse(html, {
-    width: 1200,
-    height: 630,
+  const svg = buildOgImageSvg(meta);
+  return new Response(svg, {
+    headers: {
+      'Content-Type': 'image/svg+xml',
+      'Cache-Control': 'public, max-age=3600',
+    },
   });
 }
 
