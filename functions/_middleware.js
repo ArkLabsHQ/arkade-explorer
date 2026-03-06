@@ -71,13 +71,14 @@ async function getAddressMeta(indexerUrl, address) {
     const assetIds = new Set();
 
     for (const v of vtxos) {
-      if (!v.spent) {
+      const isSpent = (v.spentBy && v.spentBy !== '') || v.isSpent;
+      if (!isSpent) {
         totalSats += BigInt(v.amount || 0);
         activeCount++;
       }
       if (v.assets) {
         for (const a of v.assets) {
-          if (a.id) assetIds.add(a.id);
+          if (a.assetId) assetIds.add(a.assetId);
         }
       }
     }
