@@ -23,6 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 
+# Plans
+docs/plans
+
 # Environment variables
 .env
 .env.local
