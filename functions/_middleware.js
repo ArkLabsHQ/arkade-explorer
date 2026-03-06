@@ -195,7 +195,7 @@ function buildOgImageHtml(meta) {
           <div style="font-size:18px;color:#9ca3af;text-transform:uppercase;margin-top:4px;">${esc(s.label)}</div>
         </div>`
       ).join('')
-    : `<div style="font-size:28px;color:#9ca3af;">Arkade Protocol Explorer</div>`;
+    : `<div style="display:flex;font-size:28px;color:#9ca3af;">Arkade Protocol Explorer</div>`;
 
   const displayId = meta.type === 'address'
     ? truncate(meta.id, 16, 12)
@@ -207,21 +207,21 @@ function buildOgImageHtml(meta) {
 
   return `<div style="display:flex;flex-direction:column;width:1200px;height:630px;background:#0f0b1a;padding:60px;">
     <div style="display:flex;align-items:center;margin-bottom:40px;">
-      ${LOGO_SVG}
+      <div style="display:flex;font-size:48px;font-weight:bold;color:${BRAND_ORANGE};">ARKADE</div>
     </div>
     <div style="display:flex;flex-direction:column;flex:1;justify-content:center;">
       <div style="display:flex;align-items:baseline;margin-bottom:24px;">
-        ${typeLabel ? `<div style="font-size:22px;color:${BRAND_ORANGE};text-transform:uppercase;font-weight:bold;margin-right:16px;">${esc(typeLabel)}</div>` : ''}
+        ${typeLabel ? `<div style="display:flex;font-size:22px;color:${BRAND_ORANGE};text-transform:uppercase;font-weight:bold;margin-right:16px;">${esc(typeLabel)}</div>` : ''}
         ${meta.type === 'asset'
-          ? `<div style="font-size:48px;font-weight:bold;color:${BRAND_ORANGE};">${esc(meta.label)}</div>`
-          : displayId ? `<div style="font-size:28px;color:#d1d5db;font-family:monospace;">${esc(displayId)}</div>` : ''}
+          ? `<div style="display:flex;font-size:48px;font-weight:bold;color:${BRAND_ORANGE};">${esc(meta.label)}</div>`
+          : displayId ? `<div style="display:flex;font-size:28px;color:#d1d5db;">${esc(displayId)}</div>` : ''}
       </div>
-      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:16px;">
+      <div style="display:flex;align-items:center;">
         ${statsHtml}
       </div>
     </div>
     <div style="display:flex;align-items:center;border-top:2px solid #2d2640;padding-top:20px;margin-top:auto;">
-      <div style="font-size:18px;color:#6b7280;">arkade.sh</div>
+      <div style="display:flex;font-size:18px;color:#6b7280;">arkade.sh</div>
     </div>
   </div>`;
 }
