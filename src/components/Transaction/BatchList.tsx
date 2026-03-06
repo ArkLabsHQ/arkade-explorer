@@ -9,6 +9,7 @@ import { MoneyDisplay } from '../UI/MoneyDisplay';
 import { truncateHash, formatTimestamp } from '../../lib/utils';
 import { Batch } from '../../lib/api/indexer';
 import { indexerClient } from '../../lib/api/indexer';
+import { fetchAllPages } from '../../lib/api/fetchAllPages';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import * as React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -130,12 +131,18 @@ function BatchTreeContent({ commitmentTxid, vout }: { commitmentTxid: string; vo
   // Fetch tree and leaves data
   const { data: treeData, isLoading: treeLoading } = useQuery({
     queryKey: ['vtxo-tree', commitmentTxid, vout],
-    queryFn: () => indexerClient.getVtxoTree({ txid: commitmentTxid, vout }),
+    queryFn: () => fetchAllPages(
+      (opts) => indexerClient.getVtxoTree({ txid: commitmentTxid, vout }, opts),
+      'vtxoTree',
+    ),
   });
 
   const { data: leavesData, isLoading: leavesLoading } = useQuery({
     queryKey: ['vtxo-leaves', commitmentTxid, vout],
-    queryFn: () => indexerClient.getVtxoTreeLeaves({ txid: commitmentTxid, vout }),
+    queryFn: () => fetchAllPages(
+      (opts) => indexerClient.getVtxoTreeLeaves({ txid: commitmentTxid, vout }, opts),
+      'leaves',
+    ),
   });
 
   // Get unique txids from leaves to fetch virtual transactions
@@ -145,7 +152,10 @@ function BatchTreeContent({ commitmentTxid, vout }: { commitmentTxid: string; vo
     queryKey: ['virtual-txs', leafTxids],
     queryFn: async () => {
       if (leafTxids.length === 0) return { txs: [] };
-      const response = await indexerClient.getVirtualTxs(leafTxids as string[]);
+      const response = await fetchAllPages(
+        (opts) => indexerClient.getVirtualTxs(leafTxids as string[], opts),
+        'txs',
+      );
       const results = response.txs.map((tx: string, idx: number) => ({
         txid: leafTxids[idx],
         tx: tx
@@ -166,11 +176,10 @@ function BatchTreeContent({ commitmentTxid, vout }: { commitmentTxid: string; vo
 
   const { data: vtxosData, isLoading: vtxosLoading } = useQuery({
     queryKey: ['vtxos-by-outpoints', outpointsKey],
-    queryFn: () => {
-      console.log('[BatchList] Fetching VTXOs by outpoints:', leafOutpoints);
-      console.trace('[BatchList] Stack trace for VTXO fetch');
-      return indexerClient.getVtxos({ outpoints: leafOutpoints });
-    },
+    queryFn: () => fetchAllPages(
+      (opts) => indexerClient.getVtxos({ outpoints: leafOutpoints, ...opts }),
+      'vtxos',
+    ),
     enabled: leafOutpoints.length > 0,
   });
 

@@ -16,6 +16,11 @@ export function TransactionPage() {
   const [txType, setTxType] = useState<'commitment' | 'arkade' | null>(null);
   const addedToRecentRef = useRef<string | null>(null);
 
+  useEffect(() => {
+    document.title = txid ? `Tx ${txid.slice(0, 8)}... | Arkade Explorer` : 'Arkade Explorer';
+    return () => { document.title = 'Arkade Explorer'; };
+  }, [txid]);
+
   // Reset txType when txid changes
   useEffect(() => {
     setTxType(null);
@@ -50,8 +55,17 @@ export function TransactionPage() {
           ? Array.from(output.script).map(b => b.toString(16).padStart(2, '0')).join('')
           : '';
         const isAnchor = scriptHex.startsWith('51024e73');
-        
-        if (!isAnchor) {
+        // Check for ARK extension OP_RETURN: 6a + push opcode(s) + 41524b (ARK magic)
+        const isArkExtension = scriptHex.startsWith('6a') && (() => {
+          try {
+            const decoded = btc.Script.decode(output!.script!);
+            if (decoded.length < 2 || decoded[0] !== 'RETURN') return false;
+            const data = decoded[1];
+            return data instanceof Uint8Array && data.length >= 3 && data[0] === 0x41 && data[1] === 0x52 && data[2] === 0x4b;
+          } catch { return false; }
+        })();
+
+        if (!isAnchor && !isArkExtension) {
           outpoints.push({ txid, vout });
         }
       }
@@ -77,16 +91,30 @@ export function TransactionPage() {
     enabled: currentTxOutpoints.length > 0 && txType === 'arkade',
   });
 
+  // Virtual tx not found: either errored or returned empty data
+  const virtualTxNotFound = !!virtualError || (!isLoadingVirtual && !!virtualTxData && !virtualTxData.txs?.[0]);
+
+  // Fallback: try fetching as commitment tx if virtual tx not found
+  const { data: commitmentData, isLoading: isLoadingCommitment } = useQuery({
+    queryKey: ['commitment-tx-check', txid],
+    queryFn: async () => {
+      if (!txid) throw new Error('No txid provided');
+      return await indexerClient.getCommitmentTx(txid);
+    },
+    enabled: !!txid && virtualTxNotFound,
+    retry: false,
+  });
+
   // Determine transaction type based on virtual tx data
   useEffect(() => {
     if (virtualTxData?.txs?.[0]) {
       const txData = virtualTxData.txs[0];
-      
+
       // Check if it's hex (commitment tx) or base64 (arkade PSBT)
       // Hex will only contain characters 0-9, a-f, A-F
       // Base64 contains +, /, = and other characters
       const isHex = /^[0-9a-fA-F]+$/.test(txData);
-      
+
       if (isHex) {
         // It's a commitment transaction - redirect to commitment-tx route
         setTxType('commitment');
@@ -95,12 +123,16 @@ export function TransactionPage() {
         // It's an arkade transaction (PSBT in base64)
         setTxType('arkade');
       }
-    } else if (virtualError) {
-      // Virtual tx not found - could still be a commitment tx, but unlikely
-      // For now, show error
-      setTxType('arkade'); // Set to arkade to show the error
+    } else if (virtualTxNotFound) {
+      // Virtual tx not found — check if it's a commitment tx
+      if (commitmentData) {
+        navigate(`/commitment-tx/${txid}`, { replace: true });
+      } else if (!isLoadingCommitment) {
+        // Neither virtual nor commitment tx found
+        setTxType('arkade');
+      }
     }
-  }, [virtualTxData, virtualError, txid, navigate]);
+  }, [virtualTxData, virtualTxNotFound, commitmentData, isLoadingCommitment, txid, navigate]);
 
   // Add to recent searches when page loads
   useLayoutEffect(() => {
@@ -121,7 +153,7 @@ export function TransactionPage() {
   }
 
   // Show loading while determining transaction type
-  if (isLoadingVirtual || txType === null) {
+  if (isLoadingVirtual || isLoadingCommitment || txType === null) {
     return <LoadingSpinner />;
   }
 

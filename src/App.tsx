@@ -5,10 +5,12 @@ import { HomePage } from './pages/HomePage';
 import { TransactionPage } from './pages/TransactionPage';
 import { AddressPage } from './pages/AddressPage';
 import { CommitmentTxPage } from './pages/CommitmentTxPage';
+import { AssetPage } from './pages/AssetPage';
 import { ServerInfoProvider } from './contexts/ServerInfoContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ActivityStreamProvider } from './contexts/ActivityStreamContext';
 import { MoneyDisplayProvider } from './contexts/MoneyDisplayContext';
+import { AssetIconApprovalProvider } from './contexts/AssetIconApprovalContext';
 import { NotFoundPage } from './components/NotFound/NotFoundPage';
 
 const queryClient = new QueryClient({
@@ -23,25 +25,28 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <MoneyDisplayProvider>
-          <ServerInfoProvider>
-            <ActivityStreamProvider>
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Layout />}>
-                    <Route index element={<HomePage />} />
-                    <Route path="tx/:txid" element={<TransactionPage />} />
-                    <Route path="address/:address" element={<AddressPage />} />
-                    <Route path="commitment-tx/:txid" element={<CommitmentTxPage />} />
-                    <Route path="*" element={<NotFoundPage />} />
-                  </Route>
-                </Routes>
-              </BrowserRouter>
-            </ActivityStreamProvider>
-          </ServerInfoProvider>
-        </MoneyDisplayProvider>
-      </ThemeProvider>
+      <AssetIconApprovalProvider>
+        <ThemeProvider>
+          <MoneyDisplayProvider>
+            <ServerInfoProvider>
+              <ActivityStreamProvider>
+                <BrowserRouter>
+                  <Routes>
+                    <Route path="/" element={<Layout />}>
+                      <Route index element={<HomePage />} />
+                      <Route path="tx/:txid" element={<TransactionPage />} />
+                      <Route path="address/:address" element={<AddressPage />} />
+                      <Route path="commitment-tx/:txid" element={<CommitmentTxPage />} />
+                      <Route path="asset/:assetId" element={<AssetPage />} />
+                      <Route path="*" element={<NotFoundPage />} />
+                    </Route>
+                  </Routes>
+                </BrowserRouter>
+              </ActivityStreamProvider>
+            </ServerInfoProvider>
+          </MoneyDisplayProvider>
+        </ThemeProvider>
+      </AssetIconApprovalProvider>
     </QueryClientProvider>
   );
 }

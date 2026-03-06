@@ -29,7 +29,7 @@ export function Header() {
           <div className="flex items-center gap-1 sm:gap-2">
             <SearchBar />
             <a
-              href="https://arkade.money"
+              href={import.meta.env.VITE_ARKADE_URL || 'https://arkade.money'}
               target="_blank"
               rel="noopener noreferrer"
               className="retro-button shrink-0 hidden sm:block text-xs md:text-sm px-2 md:px-3">

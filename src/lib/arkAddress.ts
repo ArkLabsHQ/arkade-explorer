@@ -16,8 +16,8 @@ export function constructArkAddress(scriptPubkey: Uint8Array, aspPubkeyHex: stri
       aspPubkey = aspPubkey.slice(1);
     }
     
-    let witnessProgram = scriptPubkey;
-    
+    let witnessProgram: Uint8Array | null = null;
+
     // Handle sub-dust OP_RETURN scripts: OP_RETURN (0x6a) + length + pubkey (32 bytes)
     // For sub-dust amounts, the script is: RETURN + vtxoTaprootKey
     if (scriptPubkey.length >= 2 && scriptPubkey[0] === 0x6a) {
@@ -36,7 +36,10 @@ export function constructArkAddress(scriptPubkey: Uint8Array, aspPubkeyHex: stri
       // Extract the 32-byte witness program (skip OP_1 and length byte)
       witnessProgram = new Uint8Array(scriptPubkey.buffer, scriptPubkey.byteOffset + 2, 32);
     }
-    
+
+    // Script doesn't match any known Ark output format
+    if (!witnessProgram) return null;
+
     // Create ArkAddress instance from witness program
     const arkAddress = new ArkAddress(aspPubkey, witnessProgram, network === 'bitcoin' ? 'ark' : 'tark');
     

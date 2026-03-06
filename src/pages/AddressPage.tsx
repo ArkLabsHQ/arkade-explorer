@@ -1,7 +1,8 @@
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { indexerClient } from '../lib/api/indexer';
+import { PAGINATION } from '../lib/constants';
 import { Card } from '../components/UI/Card';
 import { VtxoList } from '../components/Address/VtxoList';
 import { AddressStats } from '../components/Address/AddressStats';
@@ -18,17 +19,19 @@ import { useServerInfo } from '../contexts/ServerInfoContext';
 export function AddressPage() {
   const { address } = useParams<{ address: string }>();
   const { addRecentSearch, pinSearch, unpinSearch, isPinned } = useRecentSearches();
+
+  useEffect(() => {
+    document.title = address ? `Address ${address.slice(0, 12)}... | Arkade Explorer` : 'Arkade Explorer';
+    return () => { document.title = 'Arkade Explorer'; };
+  }, [address]);
   const { serverInfo } = useServerInfo();
   const { resolvedTheme } = useTheme();
   const [vtxoFilter, setVtxoFilter] = useState<'all' | 'spendable' | 'recoverable' | 'spent'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'preconfirmed' | 'settled'>('all');
-  const [displayCount, setDisplayCount] = useState(20);
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [copiedScript, setCopiedScript] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const addedToRecentRef = useRef<string | null>(null);
-  
-  const itemsPerPage = 20;
 
   // Convert address/script and handle validation
   const addressInfo = useMemo(() => {
@@ -57,12 +60,38 @@ export function AddressPage() {
 
   const { scriptHex, displayAddress } = addressInfo;
 
-  const { data, isLoading, error, refetch } = useQuery({
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['address-vtxos', address],
-    queryFn: async () => {
+    queryFn: async ({ pageParam = 0 }) => {
       if (!address) throw new Error('No address provided');
-      return await indexerClient.getVtxos({ scripts: [scriptHex] });
+      return await indexerClient.getVtxos({
+        scripts: [scriptHex],
+        pageIndex: pageParam,
+        pageSize: PAGINATION.DEFAULT_PAGE_SIZE,
+      });
     },
+    getNextPageParam: (lastPage, allPages) => {
+      if (!lastPage.page || !lastPage.vtxos?.length) return undefined;
+      if (lastPage.vtxos.length < PAGINATION.DEFAULT_PAGE_SIZE) return undefined;
+      const { next, current, total } = lastPage.page;
+      // Stop if next doesn't advance past current
+      if (next <= current) return undefined;
+      // Stop if we've reached the last page (total = number of pages)
+      if (total > 0 && current >= total - 1) return undefined;
+      // Stop if we'd re-fetch a page we already have
+      const fetched = new Set(allPages.map(p => p.page?.current));
+      if (fetched.has(next)) return undefined;
+      return next;
+    },
+    initialPageParam: 0,
     enabled: !!address && !!scriptHex,
   });
 
@@ -118,7 +147,17 @@ export function AddressPage() {
   }, [displayAddress]);
 
   // Calculate derived values
-  const allVtxos = data?.vtxos || [];
+  const allVtxos = useMemo(() => {
+    const raw = data?.pages.flatMap(p => p.vtxos) ?? [];
+    const seen = new Set<string>();
+    return raw.filter(v => {
+      const key = `${v.txid}:${v.vout}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [data]);
+  const hasAssets = allVtxos.some(v => v.assets && v.assets.length > 0);
   let vtxos = allVtxos.filter(v => {
     const isSpent = (v.spentBy && v.spentBy !== '') || (v as any).isSpent === true;
     const isRecoverable = !isSpent && (v as any).virtualStatus?.state === 'swept';
@@ -139,31 +178,18 @@ export function AddressPage() {
     return true;
   });
 
-  // Infinite scroll - show only first N items
-  const displayedVtxos = vtxos.slice(0, displayCount);
-  const hasMore = displayCount < vtxos.length;
-
   // Calculate total balance of filtered VTXOs
   const filteredBalance = vtxos.reduce((sum, v) => sum + parseInt(v.value.toString()), 0);
 
-  // Reset display count when filters change
-  const resetDisplayCount = () => {
-    setDisplayCount(itemsPerPage);
-  };
-
-  const loadMore = () => {
-    setDisplayCount(prev => prev + itemsPerPage);
-  };
-
-  // Infinite scroll observer - MUST be before any returns
+  // Infinite scroll observer — fetches next server page
   useEffect(() => {
-    if (!hasMore || !loadMoreRef.current) return;
+    if (!hasNextPage || isFetchingNextPage || !loadMoreRef.current) return;
 
     const currentRef = loadMoreRef.current;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          loadMore();
+          fetchNextPage();
         }
       },
       { threshold: 0.1 }
@@ -174,7 +200,7 @@ export function AddressPage() {
     return () => {
       observer.unobserve(currentRef);
     };
-  }, [hasMore]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Handler functions
   const handleCopyAddress = () => {
@@ -205,7 +231,8 @@ export function AddressPage() {
 
   return (
     <div className="space-y-6">
-      <Card glowing>
+      <div className={hasAssets ? 'flex flex-col md:flex-row gap-4 md:items-stretch' : ''}>
+      <Card glowing className={hasAssets ? 'flex-1 min-w-0' : ''}>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-arkade-purple uppercase">Address Details</h1>
@@ -274,7 +301,8 @@ export function AddressPage() {
         </div>
       </Card>
 
-      <AddressStats vtxos={allVtxos} />
+      <AddressStats vtxos={allVtxos} className={hasAssets ? 'md:w-fit md:flex-shrink-0' : undefined} />
+      </div>
 
       <div>
         <div className="mb-4">
@@ -288,7 +316,7 @@ export function AddressPage() {
               <span className="text-arkade-gray text-xs uppercase font-bold flex-shrink-0 w-24 md:w-auto">VTXOs:</span>
               <div className="flex space-x-1 flex-1 md:flex-initial">
                 <button
-                  onClick={() => { setVtxoFilter('all'); resetDisplayCount(); }}
+                  onClick={() => { setVtxoFilter('all'); }}
                   className={`px-2 py-1 text-xs uppercase font-bold transition-colors ${
                     vtxoFilter === 'all'
                       ? 'bg-arkade-purple text-white border-2 border-arkade-purple'
@@ -298,7 +326,7 @@ export function AddressPage() {
                   All
                 </button>
                 <button
-                  onClick={() => { setVtxoFilter('spendable'); resetDisplayCount(); }}
+                  onClick={() => { setVtxoFilter('spendable'); }}
                   className={`px-2 py-1 text-xs uppercase font-bold transition-colors ${
                     vtxoFilter === 'spendable'
                       ? 'bg-arkade-purple text-white border-2 border-arkade-purple'
@@ -308,7 +336,7 @@ export function AddressPage() {
                   Spendable
                 </button>
                 <button
-                  onClick={() => { setVtxoFilter('recoverable'); resetDisplayCount(); }}
+                  onClick={() => { setVtxoFilter('recoverable'); }}
                   className={`px-2 py-1 text-xs uppercase font-bold transition-colors ${
                     vtxoFilter === 'recoverable'
                       ? 'bg-arkade-purple text-white border-2 border-arkade-purple'
@@ -318,7 +346,7 @@ export function AddressPage() {
                   Recoverable
                 </button>
                 <button
-                  onClick={() => { setVtxoFilter('spent'); resetDisplayCount(); }}
+                  onClick={() => { setVtxoFilter('spent'); }}
                   className={`px-2 py-1 text-xs uppercase font-bold transition-colors ${
                     vtxoFilter === 'spent'
                       ? 'bg-arkade-purple text-white border-2 border-arkade-purple'
@@ -337,7 +365,7 @@ export function AddressPage() {
               <span className="text-arkade-gray text-xs uppercase font-bold flex-shrink-0 w-24 md:w-auto">Status:</span>
               <div className="flex space-x-1 flex-1 md:flex-initial">
                 <button
-                  onClick={() => { setStatusFilter('all'); resetDisplayCount(); }}
+                  onClick={() => { setStatusFilter('all'); }}
                   className={`px-2 py-1 text-xs uppercase font-bold transition-colors ${
                     statusFilter === 'all'
                       ? 'bg-arkade-purple text-white border-2 border-arkade-purple'
@@ -347,7 +375,7 @@ export function AddressPage() {
                   All
                 </button>
                 <button
-                  onClick={() => { setStatusFilter('preconfirmed'); resetDisplayCount(); }}
+                  onClick={() => { setStatusFilter('preconfirmed'); }}
                   className={`px-2 py-1 text-xs uppercase font-bold transition-colors ${
                     statusFilter === 'preconfirmed'
                       ? 'bg-arkade-purple text-white border-2 border-arkade-purple'
@@ -357,7 +385,7 @@ export function AddressPage() {
                   Preconfirmed
                 </button>
                 <button
-                  onClick={() => { setStatusFilter('settled'); resetDisplayCount(); }}
+                  onClick={() => { setStatusFilter('settled'); }}
                   className={`px-2 py-1 text-xs uppercase font-bold transition-colors ${
                     statusFilter === 'settled'
                       ? 'bg-arkade-purple text-white border-2 border-arkade-purple'
@@ -371,22 +399,22 @@ export function AddressPage() {
           </div>
         </div>
         
-        <VtxoList vtxos={displayedVtxos} />
-        
-        {hasMore && (
+        <VtxoList vtxos={vtxos} />
+
+        {(hasNextPage || isFetchingNextPage) && (
           <div ref={loadMoreRef} className="flex justify-center py-6">
             <div className="flex items-center space-x-3">
               <div className="relative w-8 h-8">
                 <div className="absolute inset-0 border-4 border-arkade-purple border-t-transparent rounded-full animate-spin"></div>
               </div>
               <span className="text-arkade-gray uppercase text-sm">
-                Loading more... ({vtxos.length - displayCount} remaining)
+                Loading more...
               </span>
             </div>
           </div>
         )}
 
-        {!hasMore && vtxos.length > itemsPerPage && (
+        {!hasNextPage && vtxos.length > PAGINATION.DEFAULT_PAGE_SIZE && (
           <div className="text-center py-4">
             <p className="text-arkade-gray text-sm uppercase">
               Showing all {vtxos.length} VTXOs

@@ -38,7 +38,15 @@ Create a `.env` file (or use `.env.example`):
 
 ```env
 VITE_INDEXER_URL=https://indexer.arkadeos.com
+VITE_VERIFIED_ASSETS_URL=https://arklabshq.github.io/asset-registry/mutinynet.json
 ```
+
+### Environment Variables
+
+| Variable | Description | Required | Example |
+|---|---|---|---|
+| `VITE_INDEXER_URL` | Arkade indexer API URL | Yes | `https://indexer.arkadeos.com` |
+| `VITE_VERIFIED_ASSETS_URL` | URL to fetch verified asset IDs (JSON array of strings). When set, only verified or user-approved assets show icons. | No | `https://arklabshq.github.io/asset-registry/mutinynet.json` |
 
 ### Development
 

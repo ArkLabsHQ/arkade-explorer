@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 export interface RecentSearch {
   value: string;
-  type: 'address' | 'transaction' | 'commitment-tx';
+  type: 'address' | 'transaction' | 'commitment-tx' | 'asset';
   timestamp: number;
   label?: string;
 }
