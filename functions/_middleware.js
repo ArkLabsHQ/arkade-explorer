@@ -195,29 +195,36 @@ function buildOgImageSvg(meta) {
 
   const typeLabel = meta.type === 'asset' ? '' : meta.label;
 
-  // Build stats rows
+  // Stats: evenly distributed across the width
+  const statsCount = meta.stats.length;
   let statsBlock = '';
-  if (meta.stats.length > 0) {
+  if (statsCount > 0) {
+    const colWidth = 1040 / statsCount; // usable width = 1200 - 80*2
     const statItems = meta.stats.map((s, i) => {
-      const x = 80 + i * 300;
-      return `<text x="${x}" y="380" font-size="36" font-weight="bold" fill="white">${esc(s.value)}</text>
-        <text x="${x}" y="410" font-size="18" fill="#9ca3af" text-transform="uppercase">${esc(s.label)}</text>`;
+      const x = 80 + i * colWidth;
+      return `<text x="${x}" y="420" font-size="52" font-weight="bold" fill="white" font-family="sans-serif">${esc(s.value)}</text>
+        <text x="${x}" y="460" font-size="24" fill="#9ca3af" font-family="sans-serif">${esc(s.label.toUpperCase())}</text>`;
     }).join('\n');
     statsBlock = statItems;
   } else {
-    statsBlock = `<text x="80" y="380" font-size="28" fill="#9ca3af">Arkade Protocol Explorer</text>`;
+    statsBlock = `<text x="80" y="420" font-size="36" fill="#9ca3af" font-family="sans-serif">Arkade Protocol Explorer</text>`;
   }
 
+  // Accent bar at top
   return `<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="630" fill="#0f0b1a"/>
-    <text x="80" y="120" font-size="48" font-weight="bold" fill="${BRAND_ORANGE}" font-family="sans-serif">ARKADE</text>
-    ${typeLabel ? `<text x="80" y="260" font-size="22" font-weight="bold" fill="${BRAND_ORANGE}" font-family="sans-serif">${esc(typeLabel.toUpperCase())}</text>` : ''}
+    <rect width="1200" height="6" fill="${BRAND_ORANGE}"/>
+    <text x="80" y="100" font-size="64" font-weight="bold" fill="${BRAND_ORANGE}" font-family="sans-serif">ARKADE</text>
+    <text x="370" y="100" font-size="64" font-weight="300" fill="#4b5563" font-family="sans-serif">EXPLORER</text>
+    ${typeLabel ? `<text x="80" y="200" font-size="32" font-weight="bold" fill="${BRAND_ORANGE}" font-family="sans-serif">${esc(typeLabel.toUpperCase())}</text>` : ''}
     ${meta.type === 'asset'
-      ? `<text x="80" y="310" font-size="48" font-weight="bold" fill="${BRAND_ORANGE}" font-family="sans-serif">${esc(meta.label)}</text>`
-      : displayId ? `<text x="${typeLabel ? '80' : '80'}" y="310" font-size="28" fill="#d1d5db" font-family="monospace">${esc(displayId)}</text>` : ''}
+      ? `<text x="80" y="280" font-size="56" font-weight="bold" fill="white" font-family="sans-serif">${esc(meta.label)}</text>`
+      : displayId ? `<text x="80" y="${typeLabel ? '270' : '200'}" font-size="38" fill="#d1d5db" font-family="monospace">${esc(displayId)}</text>` : ''}
+    <line x1="80" y1="340" x2="1120" y2="340" stroke="#2d2640" stroke-width="1"/>
     ${statsBlock}
-    <line x1="80" y1="560" x2="1120" y2="560" stroke="#2d2640" stroke-width="2"/>
-    <text x="80" y="590" font-size="18" fill="#6b7280" font-family="sans-serif">arkade.sh</text>
+    <line x1="80" y1="520" x2="1120" y2="520" stroke="#2d2640" stroke-width="1"/>
+    <text x="80" y="570" font-size="28" fill="#6b7280" font-family="sans-serif">arkade.sh</text>
+    <text x="1120" y="570" font-size="28" fill="#4b5563" font-family="sans-serif" text-anchor="end">Ark Protocol Explorer</text>
   </svg>`;
 }
 
