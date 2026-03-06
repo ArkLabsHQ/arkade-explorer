@@ -138,7 +138,16 @@ export function AddressPage() {
   }, [displayAddress]);
 
   // Calculate derived values
-  const allVtxos = data?.pages.flatMap(p => p.vtxos) ?? [];
+  const allVtxos = useMemo(() => {
+    const raw = data?.pages.flatMap(p => p.vtxos) ?? [];
+    const seen = new Set<string>();
+    return raw.filter(v => {
+      const key = `${v.txid}:${v.vout}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [data]);
   const hasAssets = allVtxos.some(v => v.assets && v.assets.length > 0);
   let vtxos = allVtxos.filter(v => {
     const isSpent = (v.spentBy && v.spentBy !== '') || (v as any).isSpent === true;
