@@ -19,6 +19,12 @@ export function AssetPage() {
     }
   }, [assetId, addRecentSearch]);
 
+  useEffect(() => {
+    const name = assetDetails?.metadata?.ticker || assetDetails?.metadata?.name;
+    document.title = name ? `${name} | Arkade Explorer` : assetId ? `Asset ${assetId.slice(0, 8)}... | Arkade Explorer` : 'Arkade Explorer';
+    return () => { document.title = 'Arkade Explorer'; };
+  }, [assetId, assetDetails]);
+
   if (!assetId) {
     return <ErrorMessage message="No asset ID provided" />;
   }

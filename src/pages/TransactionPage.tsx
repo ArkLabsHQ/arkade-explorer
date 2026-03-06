@@ -16,6 +16,11 @@ export function TransactionPage() {
   const [txType, setTxType] = useState<'commitment' | 'arkade' | null>(null);
   const addedToRecentRef = useRef<string | null>(null);
 
+  useEffect(() => {
+    document.title = txid ? `Tx ${txid.slice(0, 8)}... | Arkade Explorer` : 'Arkade Explorer';
+    return () => { document.title = 'Arkade Explorer'; };
+  }, [txid]);
+
   // Reset txType when txid changes
   useEffect(() => {
     setTxType(null);

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { indexerClient } from '../lib/api/indexer';
@@ -13,6 +13,11 @@ export function CommitmentTxPage() {
   const { txid } = useParams<{ txid: string }>();
   const { addRecentSearch } = useRecentSearches();
   const addedToRecentRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    document.title = txid ? `Round ${txid.slice(0, 8)}... | Arkade Explorer` : 'Arkade Explorer';
+    return () => { document.title = 'Arkade Explorer'; };
+  }, [txid]);
 
   // Fetch commitment transaction metadata
   const { data, isLoading, error } = useQuery({

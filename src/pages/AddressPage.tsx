@@ -19,6 +19,11 @@ import { useServerInfo } from '../contexts/ServerInfoContext';
 export function AddressPage() {
   const { address } = useParams<{ address: string }>();
   const { addRecentSearch, pinSearch, unpinSearch, isPinned } = useRecentSearches();
+
+  useEffect(() => {
+    document.title = address ? `Address ${address.slice(0, 12)}... | Arkade Explorer` : 'Arkade Explorer';
+    return () => { document.title = 'Arkade Explorer'; };
+  }, [address]);
   const { serverInfo } = useServerInfo();
   const { resolvedTheme } = useTheme();
   const [vtxoFilter, setVtxoFilter] = useState<'all' | 'spendable' | 'recoverable' | 'spent'>('all');
