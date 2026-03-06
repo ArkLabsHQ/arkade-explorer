@@ -78,8 +78,15 @@ export function AddressPage() {
         pageSize: PAGINATION.DEFAULT_PAGE_SIZE,
       });
     },
-    getNextPageParam: (lastPage) => {
-      if (!lastPage.page || lastPage.page.next === 0) return undefined;
+    getNextPageParam: (lastPage, allPages) => {
+      // No pagination info or no vtxos returned — done
+      if (!lastPage.page || !lastPage.vtxos?.length) return undefined;
+      // Fewer results than page size — last page
+      if (lastPage.vtxos.length < PAGINATION.DEFAULT_PAGE_SIZE) return undefined;
+      // next points back to current or first page — done
+      if (lastPage.page.next <= lastPage.page.current) return undefined;
+      // next exceeds total pages — done
+      if (lastPage.page.total > 0 && lastPage.page.next >= lastPage.page.total) return undefined;
       return lastPage.page.next;
     },
     initialPageParam: 0,

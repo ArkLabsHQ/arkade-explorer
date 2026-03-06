@@ -26,10 +26,12 @@ export async function fetchAllPages<T extends Record<string, unknown>>(
       }
     }
 
-    // Stop if no page info or next page is 0 (no more pages)
-    if (!response.page || response.page.next === 0) {
-      break;
-    }
+    // Stop when there are no more pages
+    if (!response.page) break;
+    const items = response[mergeKey];
+    if (Array.isArray(items) && items.length < pageSize) break;
+    if (response.page.next <= response.page.current) break;
+    if (response.page.total > 0 && response.page.next >= response.page.total) break;
 
     pageIndex = response.page.next;
   }
