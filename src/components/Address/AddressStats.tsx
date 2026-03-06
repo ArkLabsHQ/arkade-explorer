@@ -39,7 +39,7 @@ export function AddressStats({ vtxos, className }: AddressStatsProps) {
   if (hasAssets) {
     return (
       <div className={`${className || 'max-w-lg'} flex flex-col`}>
-        <Card className="flex-1 flex flex-col">
+        <Card className="flex-1 flex flex-col overflow-hidden">
           <h3 className={`text-sm font-bold ${mypurple} uppercase mb-3`}>Balances</h3>
           <div className="flex items-center justify-end gap-4 mb-2">
             <span className="text-arkade-gray uppercase text-xs w-24 text-right">Balance</span>
@@ -53,15 +53,15 @@ export function AddressStats({ vtxos, className }: AddressStatsProps) {
                 <div className="w-24 text-right">
                   <MoneyDisplay
                     sats={totalBalance}
+                    showUnit={false}
                     valueClassName={`${mypurple} font-bold font-mono text-sm`}
-                    unitClassName="text-arkade-gray text-xs"
                   />
                 </div>
                 <div className="w-24 text-right">
                   <MoneyDisplay
                     sats={totalReceived}
+                    showUnit={false}
                     valueClassName="text-arkade-gray font-mono text-sm"
-                    unitClassName="text-arkade-gray text-xs"
                   />
                 </div>
               </div>
