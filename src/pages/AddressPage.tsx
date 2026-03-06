@@ -79,15 +79,17 @@ export function AddressPage() {
       });
     },
     getNextPageParam: (lastPage, allPages) => {
-      // No pagination info or no vtxos returned — done
       if (!lastPage.page || !lastPage.vtxos?.length) return undefined;
-      // Fewer results than page size — last page
       if (lastPage.vtxos.length < PAGINATION.DEFAULT_PAGE_SIZE) return undefined;
-      // next points back to current or first page — done
-      if (lastPage.page.next <= lastPage.page.current) return undefined;
-      // next exceeds total pages — done
-      if (lastPage.page.total > 0 && lastPage.page.next >= lastPage.page.total) return undefined;
-      return lastPage.page.next;
+      const { next, current, total } = lastPage.page;
+      // Stop if next doesn't advance past current
+      if (next <= current) return undefined;
+      // Stop if we've reached the last page (total = number of pages)
+      if (total > 0 && current >= total - 1) return undefined;
+      // Stop if we'd re-fetch a page we already have
+      const fetched = new Set(allPages.map(p => p.page?.current));
+      if (fetched.has(next)) return undefined;
+      return next;
     },
     initialPageParam: 0,
     enabled: !!address && !!scriptHex,

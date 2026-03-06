@@ -12,9 +12,11 @@ export async function fetchAllPages<T extends Record<string, unknown>>(
 ): Promise<T> {
   let pageIndex = 0;
   let result: T | undefined;
+  const fetched = new Set<number>();
 
   while (true) {
     const response = await fn({ pageIndex, pageSize });
+    fetched.add(pageIndex);
 
     if (!result) {
       result = response;
@@ -30,10 +32,12 @@ export async function fetchAllPages<T extends Record<string, unknown>>(
     if (!response.page) break;
     const items = response[mergeKey];
     if (Array.isArray(items) && items.length < pageSize) break;
-    if (response.page.next <= response.page.current) break;
-    if (response.page.total > 0 && response.page.next >= response.page.total) break;
+    const { next, current, total } = response.page;
+    if (next <= current) break;
+    if (total > 0 && current >= total - 1) break;
+    if (fetched.has(next)) break;
 
-    pageIndex = response.page.next;
+    pageIndex = next;
   }
 
   return result!;
