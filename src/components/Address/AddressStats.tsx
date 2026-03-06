@@ -41,55 +41,58 @@ export function AddressStats({ vtxos, className }: AddressStatsProps) {
       <div className={`${className || 'max-w-lg'} flex flex-col`}>
         <Card className="flex-1 flex flex-col overflow-hidden">
           <h3 className={`text-sm font-bold ${mypurple} uppercase mb-3`}>Balances</h3>
-          <div className="flex items-center justify-end gap-4 mb-2">
-            <span className="text-arkade-gray uppercase text-xs w-24 text-right">Balance</span>
-            <span className="text-arkade-gray uppercase text-xs w-24 text-right">Received</span>
-          </div>
-          <div className="space-y-2 overflow-y-auto min-h-0 flex-1">
-            {/* BTC row */}
-            <div className="flex items-center justify-between border-b border-arkade-purple/30 pb-2">
-              <span className={`${mypurple} font-bold text-sm uppercase`}>BTC</span>
-              <div className="flex items-center gap-4">
-                <div className="w-24 text-right">
-                  <MoneyDisplay
-                    sats={totalBalance}
-                    showUnit={false}
-                    valueClassName={`${mypurple} font-bold font-mono text-sm`}
-                  />
-                </div>
-                <div className="w-24 text-right">
-                  <MoneyDisplay
-                    sats={totalReceived}
-                    showUnit={false}
-                    valueClassName="text-arkade-gray font-mono text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-            {/* Asset rows */}
-            {Array.from(assetBalances.entries()).map(([assetId, balances]) => (
-              <div key={assetId} className="flex items-center justify-between border-b border-arkade-purple/30 pb-2 last:border-0 last:pb-0">
-                <AssetBadge assetId={assetId} />
-                <div className="flex items-center gap-4">
-                  <div className="w-24 text-right">
-                    <AssetAmountDisplay
-                      amount={balances.active}
-                      assetId={assetId}
-                      hideUnit
-                      valueClassName={`${mypurple} font-bold font-mono text-sm`}
+          <div className="overflow-y-auto overflow-x-hidden min-h-0 flex-1">
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="text-left" />
+                  <th className="text-arkade-gray uppercase text-xs font-normal text-right pb-2">Balance</th>
+                  <th className="text-arkade-gray uppercase text-xs font-normal text-right pb-2 pl-3">Received</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* BTC row */}
+                <tr className="border-b border-arkade-purple/30">
+                  <td className="py-1.5"><span className={`${mypurple} font-bold uppercase`}>BTC</span></td>
+                  <td className="text-right py-1.5">
+                    <MoneyDisplay
+                      sats={totalBalance}
+                      showUnit={false}
+                      valueClassName={`${mypurple} font-bold font-mono`}
                     />
-                  </div>
-                  <div className="w-24 text-right">
-                    <AssetAmountDisplay
-                      amount={balances.total}
-                      assetId={assetId}
-                      hideUnit
-                      valueClassName="text-arkade-gray font-mono text-sm"
+                  </td>
+                  <td className="text-right py-1.5 pl-3">
+                    <MoneyDisplay
+                      sats={totalReceived}
+                      showUnit={false}
+                      valueClassName="text-arkade-gray font-mono"
                     />
-                  </div>
-                </div>
-              </div>
-            ))}
+                  </td>
+                </tr>
+                {/* Asset rows */}
+                {Array.from(assetBalances.entries()).map(([assetId, balances], idx) => (
+                  <tr key={assetId} className={idx < assetBalances.size - 1 ? 'border-b border-arkade-purple/30' : ''}>
+                    <td className="py-1.5"><AssetBadge assetId={assetId} /></td>
+                    <td className="text-right py-1.5">
+                      <AssetAmountDisplay
+                        amount={balances.active}
+                        assetId={assetId}
+                        hideUnit
+                        valueClassName={`${mypurple} font-bold font-mono`}
+                      />
+                    </td>
+                    <td className="text-right py-1.5 pl-3">
+                      <AssetAmountDisplay
+                        amount={balances.total}
+                        assetId={assetId}
+                        hideUnit
+                        valueClassName="text-arkade-gray font-mono"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
           {/* VTXO summary */}
           <div className="flex items-center gap-4 mt-3 pt-3 border-t border-arkade-purple/30 text-xs">
