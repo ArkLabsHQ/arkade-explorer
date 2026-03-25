@@ -34,3 +34,4 @@ docs/plans
 .env
 .env.local
 .env.production
+tsconfig.tsbuildinfo
