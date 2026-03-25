@@ -12,6 +12,7 @@ import { copyToClipboard, cn } from '@/lib/utils';
 import { useRecentSearches } from '@/hooks/use-recent-searches';
 import { MoneyDisplay } from '@/components/shared/money-display';
 import { VtxoList } from '@/components/shared/vtxo-list';
+import { AddressStats } from '@/components/shared/address-stats';
 import { LoadingSpinner } from '@/components/shared/loading-spinner';
 import { ErrorMessage } from '@/components/shared/error-message';
 import { PageTransition } from '@/components/shared/page-transition';
@@ -263,6 +264,11 @@ export function AddressPageClient({ address }: AddressPageClientProps) {
           </div>
         </div>
       </div>
+
+      {/* Address stats */}
+      {!isLoading && !error && allVtxos.length > 0 && (
+        <AddressStats vtxos={allVtxos} />
+      )}
 
       {/* Filter controls */}
       <div className="space-y-3">

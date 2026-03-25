@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, useAnimationControls } from 'framer-motion';
 import { Search, ArrowRight, Layers, GitBranch, Coins, Activity, Clock, ExternalLink } from 'lucide-react';
 import { useServerInfo } from '@/providers/server-info-provider';
 import { useActivityStream } from '@/providers/activity-stream-provider';
@@ -213,6 +213,24 @@ function StatsMinimal() {
       )}
     </div>
   );
+}
+
+function ActivityPulseWrapper({ children }: { children: React.ReactNode }) {
+  const controls = useAnimationControls();
+  const { subscribeToNewActivity } = useActivityStream();
+
+  useEffect(() => {
+    const unsubscribe = subscribeToNewActivity(() => {
+      controls.start({
+        scale: [1, 1.02, 1],
+        opacity: [1, 0.85, 1],
+        transition: { duration: 0.2, ease: [0.165, 0.84, 0.44, 1] },
+      });
+    });
+    return unsubscribe;
+  }, [controls, subscribeToNewActivity]);
+
+  return <motion.div animate={controls}>{children}</motion.div>;
 }
 
 function ActivityFeed() {
@@ -431,18 +449,24 @@ export function HomePageClient() {
 
   // Determine activity variant
   const renderActivity = () => {
-    switch (preferences.activityVariant) {
-      case 'feed':
-        return <ActivityFeed />;
-      case 'compact-list':
-        return <ActivityCompactList />;
-      case 'ticker':
-        return <ActivityTicker />;
-      case 'hidden':
-        return null;
-      default:
-        return <ActivityFeed />;
-    }
+    const content = (() => {
+      switch (preferences.activityVariant) {
+        case 'feed':
+          return <ActivityFeed />;
+        case 'compact-list':
+          return <ActivityCompactList />;
+        case 'ticker':
+          return <ActivityTicker />;
+        case 'hidden':
+          return null;
+        default:
+          return <ActivityFeed />;
+      }
+    })();
+
+    if (!content) return null;
+
+    return <ActivityPulseWrapper>{content}</ActivityPulseWrapper>;
   };
 
   // Blocks horizon structure: show block timeline as primary content

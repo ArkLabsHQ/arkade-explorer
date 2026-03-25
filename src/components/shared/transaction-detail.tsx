@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronRight, FileText, ArrowLeft, ArrowRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileText, ArrowLeft, ArrowRight, Pin, PinOff } from 'lucide-react';
 import { CopyButton } from '@/components/shared/copy-button';
 import { InfoRow } from '@/components/shared/info-row';
 import { MoneyDisplay } from '@/components/shared/money-display';
@@ -10,6 +10,7 @@ import { BadgeStatus, deriveVtxoStatus } from '@/components/shared/badge-status'
 import { truncateHash, formatTimestamp } from '@/lib/utils';
 import { constructArkAddress } from '@/lib/arkAddress';
 import { useServerInfo } from '@/providers/server-info-provider';
+import { useRecentSearches } from '@/hooks/use-recent-searches';
 import * as btc from '@scure/btc-signer';
 import { hex } from '@scure/base';
 import { CosignerPublicKey, getArkPsbtFields, asset } from '@arkade-os/sdk';
@@ -410,9 +411,14 @@ function OutputCard({
               Output #{output.index}
             </span>
             {output.isBatch && output.batchInfo && (
-              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+              <Link
+                href={`#batch-${output.batchKey}`}
+                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full border bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/25 transition-colors duration-150"
+                aria-label={`View batch ${parseInt(output.batchKey) + 1} details`}
+              >
                 Batch #{parseInt(output.batchKey) + 1}
-              </span>
+                <ArrowRight className="h-3 w-3" aria-hidden="true" />
+              </Link>
             )}
             {output.isAnchor && (
               <span className="text-xs text-muted-foreground">Anchor</span>
@@ -629,6 +635,17 @@ export function TransactionDetail({
 }: TransactionDetailProps) {
   const txid = (type === 'arkade' ? arkadeData?.txid : commitmentData?.txid) || '';
   const { serverInfo } = useServerInfo();
+  const { isPinned, pinSearch, unpinSearch } = useRecentSearches();
+
+  const pinned = txid ? isPinned(txid) : false;
+  const handleTogglePin = () => {
+    if (!txid) return;
+    if (pinned) {
+      unpinSearch(txid);
+    } else {
+      pinSearch(txid, type === 'commitment' ? 'commitment-tx' : 'transaction');
+    }
+  };
 
   // -------------------------------------------------------------------------
   // Parse the transaction
@@ -984,6 +1001,18 @@ export function TransactionDetail({
               {txid}
             </span>
             <CopyButton text={txid} className="shrink-0" />
+            <button
+              onClick={handleTogglePin}
+              className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors duration-150 active:scale-[0.95]"
+              aria-label={pinned ? 'Unpin from search' : 'Pin to search'}
+              title={pinned ? 'Unpin from search' : 'Pin to search'}
+            >
+              {pinned ? (
+                <PinOff className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Pin className="h-4 w-4" aria-hidden="true" />
+              )}
+            </button>
           </div>
         )}
 

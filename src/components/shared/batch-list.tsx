@@ -174,8 +174,16 @@ function BatchItem({ batch }: { batch: BatchEntry }) {
     setExpanded(!expanded);
   }, [expanded, loaded, outpoint]);
 
+  // Derive batch index from the outpoint key (e.g., "txid:2" -> "2", or plain "2" -> "2")
+  const batchIndex = batch.outpoint.includes(':')
+    ? batch.outpoint.split(':')[1]
+    : batch.outpoint;
+
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_hsl(var(--border)/0.2)]">
+    <div
+      id={`batch-${batchIndex}`}
+      className="rounded-xl border border-border bg-card overflow-hidden shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_hsl(var(--border)/0.2)] scroll-mt-6"
+    >
       {/* Header (always visible) */}
       <button
         onClick={handleToggle}
