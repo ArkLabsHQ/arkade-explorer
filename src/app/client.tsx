@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, useAnimationControls } from 'framer-motion';
-import { Activity } from 'lucide-react';
+import { Activity, ArrowUpRight } from 'lucide-react';
 import { useActivityStream } from '@/providers/activity-stream-provider';
 import { truncateHash } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/formatters';
@@ -113,9 +113,10 @@ export function HomePageClient() {
             href={EXTERNAL_LINKS.DOCS}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200"
+            className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors duration-200"
           >
             Learn more about Arkade
+            <ArrowUpRight className="h-3.5 w-3.5" />
           </a>
         </div>
       </div>
