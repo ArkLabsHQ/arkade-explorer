@@ -13,8 +13,7 @@ import { truncateHash, copyToClipboard, formatTimestamp } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { constructArkAddress } from '@/lib/arkAddress';
 import { useServerInfo } from '@/providers/server-info-provider';
-import { useStructure } from '@/hooks/use-structure';
-import type { ListStyle } from '@/structures';
+type ListStyle = 'table' | 'cards' | 'dense-rows';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -713,9 +712,8 @@ function VtxoDenseRow({
 // ---------------------------------------------------------------------------
 
 export function VtxoList({ vtxos, showScript, variant: overrideVariant, className }: VtxoListProps) {
-  const { preferences } = useStructure();
   const { serverInfo } = useServerInfo();
-  const variant = overrideVariant ?? preferences.listStyle;
+  const variant = overrideVariant ?? 'table';
 
   const signerPubkey = serverInfo?.signerPubkey;
   const network = serverInfo?.network;

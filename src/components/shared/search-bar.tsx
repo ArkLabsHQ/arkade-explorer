@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Command } from 'cmdk';
 import { Search, Clock, ArrowRight, X, Pin, PinOff, Pencil, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useStructure } from '@/hooks/use-structure';
 import { useRecentSearches } from '@/hooks/use-recent-searches';
 import { isValidTxid, isValidOutpoint } from '@/lib/validation';
 import { truncateHash } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import type { SearchVariant } from '@/structures';
+
+type SearchVariant = 'header' | 'hero' | 'sidebar' | 'command-palette';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -536,8 +536,7 @@ function SearchCommandPalette({ className }: { className?: string }) {
 // ---------------------------------------------------------------------------
 
 export function SearchBar({ variant: overrideVariant, className, placeholder }: SearchBarProps) {
-  const { preferences } = useStructure();
-  const variant = overrideVariant ?? preferences.searchVariant;
+  const variant = overrideVariant ?? 'header';
 
   switch (variant) {
     case 'header':

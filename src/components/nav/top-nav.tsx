@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { isValidTxid, isValidOutpoint } from '@/lib/validation';
 import { EXTERNAL_LINKS } from '@/lib/constants';
@@ -11,6 +11,11 @@ import { ArkadeLogo } from '@/components/shared/arkade-logo';
 export function TopNav() {
   const router = useRouter();
   const [query, setQuery] = useState('');
+  const [isMac, setIsMac] = useState(true);
+
+  useEffect(() => {
+    setIsMac(navigator.platform?.toLowerCase().includes('mac') ?? true);
+  }, []);
 
   const handleSearch = useCallback(
     (e: React.FormEvent) => {
@@ -32,6 +37,18 @@ export function TopNav() {
     [query, router],
   );
 
+  // Cmd+K to focus search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        document.getElementById('global-search')?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur-sm" role="banner">
       <div className="max-w-7xl mx-auto flex items-center justify-between h-14 px-4">
@@ -41,7 +58,7 @@ export function TopNav() {
 
         <form
           onSubmit={handleSearch}
-          className="hidden sm:flex items-center gap-2 flex-1 max-w-md mx-6"
+          className="hidden sm:flex items-center flex-1 max-w-lg mx-6"
           role="search"
           aria-label="Search transactions, addresses, and outpoints"
         >
@@ -54,8 +71,11 @@ export function TopNav() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search txid, address, or outpoint..."
               aria-label="Search by transaction ID, address, or outpoint"
-              className="w-full h-9 pl-9 pr-3 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-shadow duration-200"
+              className="w-full h-9 pl-9 pr-16 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-shadow duration-200"
             />
+            <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:inline-flex items-center gap-0.5 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+              {isMac ? '⌘' : 'Ctrl+'}K
+            </kbd>
           </div>
         </form>
 
