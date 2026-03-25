@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { ChevronDown, ChevronRight, Layers, Leaf, TreePine } from 'lucide-react';
 import { MoneyDisplay } from '@/components/shared/money-display';
 import { BadgeStatus, deriveVtxoStatus } from '@/components/shared/badge-status';
 import { CopyButton } from '@/components/shared/copy-button';
+import { VtxoList } from '@/components/shared/vtxo-list';
 import { truncateHash, formatTimestamp } from '@/lib/utils';
 import { indexerClient } from '@/lib/api/indexer';
 import { fetchAllPages } from '@/lib/api/fetchAllPages';
-import type { BatchInfo, Outpoint, Tx } from '@arkade-os/sdk';
+import type { BatchInfo, Outpoint, Tx, VirtualCoin } from '@arkade-os/sdk';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -136,12 +137,31 @@ function BatchItem({ batch }: { batch: BatchEntry }) {
   const [expanded, setExpanded] = useState(false);
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [leaves, setLeaves] = useState<LeafVtxo[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [vtxosData, setVtxosData] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [virtualTxsData, setVirtualTxsData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   const outpoint = parseOutpointKey(batch.outpoint);
   const expiryDate = batch.info.expiresAt ? formatTimestamp(batch.info.expiresAt) : '--';
   const totalAmount = parseInt(batch.info.totalOutputAmount || '0');
+
+  // Enrich VTXOs with PSBT data from virtual transactions
+  const enrichedVtxos: VirtualCoin[] = useMemo(() => {
+    if (!vtxosData?.vtxos) return [];
+    if (!virtualTxsData?.txs) return vtxosData.vtxos;
+
+    return vtxosData.vtxos.map((vtxo: VirtualCoin) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const virtualTx = virtualTxsData.txs.find((t: any) => t.txid === vtxo.txid);
+      if (virtualTx?.tx) {
+        return { ...vtxo, _psbt: virtualTx.tx };
+      }
+      return vtxo;
+    });
+  }, [vtxosData, virtualTxsData]);
 
   const handleToggle = useCallback(async () => {
     if (!expanded && !loaded && outpoint) {
@@ -159,11 +179,45 @@ function BatchItem({ batch }: { batch: BatchEntry }) {
         ]);
 
         setTree(treeResult.vtxoTree || []);
+        const rawLeaves: Outpoint[] = leavesResult.leaves || [];
         setLeaves(
-          (leavesResult.leaves || []).map((l: Outpoint) => ({
+          rawLeaves.map((l: Outpoint) => ({
             outpoint: l,
           })),
         );
+
+        // Fetch full VTXO data for leaves
+        const leafOutpoints = rawLeaves.map((l: Outpoint) => ({
+          txid: l.txid,
+          vout: l.vout,
+        }));
+
+        if (leafOutpoints.length > 0) {
+          const vtxosResult = await fetchAllPages(
+            (opts) => indexerClient.getVtxos({ outpoints: leafOutpoints, ...opts }),
+            'vtxos',
+          );
+          setVtxosData(vtxosResult);
+
+          // Fetch PSBTs via virtual txs
+          const leafTxids = [...new Set(rawLeaves.map((l: Outpoint) => l.txid))];
+          if (leafTxids.length > 0) {
+            try {
+              const vtxsResult = await fetchAllPages(
+                (opts) => indexerClient.getVirtualTxs(leafTxids, opts),
+                'txs',
+              );
+              const txsWithIds = vtxsResult.txs.map((tx: string, idx: number) => ({
+                txid: leafTxids[idx],
+                tx,
+              }));
+              setVirtualTxsData({ txs: txsWithIds });
+            } catch {
+              // Virtual txs may not be available for all leaves
+            }
+          }
+        }
+
         setLoaded(true);
       } catch (err) {
         console.error('Failed to load batch tree:', err);
@@ -263,8 +317,16 @@ function BatchItem({ batch }: { batch: BatchEntry }) {
                 </div>
               )}
 
-              {/* Leaf VTXOs */}
-              {leaves.length > 0 && (
+              {/* Leaf VTXOs (enriched with full data) */}
+              {enrichedVtxos.length > 0 ? (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                    <Leaf className="h-4 w-4 text-muted-foreground" />
+                    VTXOs ({enrichedVtxos.length})
+                  </h4>
+                  <VtxoList vtxos={enrichedVtxos} showScript />
+                </div>
+              ) : leaves.length > 0 ? (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
                     <Leaf className="h-4 w-4 text-muted-foreground" />
@@ -279,7 +341,7 @@ function BatchItem({ batch }: { batch: BatchEntry }) {
                     ))}
                   </div>
                 </div>
-              )}
+              ) : null}
 
               {tree.length === 0 && leaves.length === 0 && loaded && (
                 <p className="text-sm text-muted-foreground text-center py-4">

@@ -956,6 +956,41 @@ export function TransactionDetail({
   }, [type, subtype]);
 
   // -------------------------------------------------------------------------
+  // Derive timestamps from vtxoData for Arkade transactions
+  // -------------------------------------------------------------------------
+
+  const { earliestCreatedAt, earliestExpiry } = useMemo(() => {
+    if (type !== 'arkade' || !vtxoData || vtxoData.length === 0) {
+      return { earliestCreatedAt: null, earliestExpiry: null };
+    }
+
+    let minCreated: number | null = null;
+    let minExpiry: number | null = null;
+
+    for (const vtxo of vtxoData) {
+      // createdAt
+      if (vtxo.createdAt) {
+        const ts = vtxo.createdAt instanceof Date
+          ? vtxo.createdAt.getTime()
+          : Number(vtxo.createdAt);
+        if (!isNaN(ts) && (minCreated === null || ts < minCreated)) {
+          minCreated = ts;
+        }
+      }
+      // Expiry from virtualStatus.batchExpiry
+      const expiry = vtxo.virtualStatus?.batchExpiry;
+      if (expiry) {
+        const ts = new Date(expiry).getTime();
+        if (!isNaN(ts) && (minExpiry === null || ts < minExpiry)) {
+          minExpiry = ts;
+        }
+      }
+    }
+
+    return { earliestCreatedAt: minCreated, earliestExpiry: minExpiry };
+  }, [type, vtxoData]);
+
+  // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
 
@@ -993,11 +1028,11 @@ export function TransactionDetail({
 
         {/* Txid row */}
         {txid && (
-          <div className="flex items-center gap-2 mb-6 rounded-lg bg-secondary/50 border border-border px-4 py-3">
+          <div className="flex items-center gap-2 mb-6 rounded-lg bg-secondary/50 border border-border px-4 py-3 overflow-x-auto">
             <span className="text-xs text-muted-foreground font-medium shrink-0">
               TXID
             </span>
-            <span className="text-sm font-mono text-foreground break-all min-w-0">
+            <span className="text-xs font-mono text-foreground break-all min-w-0">
               {txid}
             </span>
             <CopyButton text={txid} className="shrink-0" />
@@ -1098,6 +1133,24 @@ export function TransactionDetail({
           </div>
         )}
 
+        {/* Arkade tx timestamps derived from vtxoData */}
+        {type === 'arkade' && (earliestCreatedAt || earliestExpiry) && (
+          <dl className="divide-y-0 mt-6">
+            {earliestCreatedAt && (
+              <InfoRow
+                label="Created"
+                value={formatTimestamp(earliestCreatedAt)}
+              />
+            )}
+            {earliestExpiry && (
+              <InfoRow
+                label="Expires"
+                value={formatTimestamp(earliestExpiry)}
+              />
+            )}
+          </dl>
+        )}
+
         {/* Raw hex viewer (moved after inputs/outputs) */}
         {type === 'arkade' && arkadeData?.hex && !parsedTx && (
           <div className="space-y-6">
@@ -1113,7 +1166,7 @@ export function TransactionDetail({
       {parsedTx && (inputs.length > 0 || outputs.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Inputs */}
-          <div className={`rounded-xl border border-border bg-card p-5 ${CARD_SHADOW}`}>
+          <div className={`rounded-xl border border-border bg-card p-5 overflow-x-auto ${CARD_SHADOW}`}>
             <h2 className="text-sm font-semibold text-foreground mb-4">
               Inputs ({inputs.length}
               {type === 'commitment' && commitmentData?.forfeitTxids?.length
@@ -1172,7 +1225,7 @@ export function TransactionDetail({
           </div>
 
           {/* Outputs */}
-          <div className={`rounded-xl border border-border bg-card p-5 ${CARD_SHADOW}`}>
+          <div className={`rounded-xl border border-border bg-card p-5 overflow-x-auto ${CARD_SHADOW}`}>
             <h2 className="text-sm font-semibold text-foreground mb-4">
               Outputs ({outputs.length})
             </h2>

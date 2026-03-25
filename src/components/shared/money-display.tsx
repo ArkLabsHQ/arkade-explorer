@@ -81,8 +81,8 @@ export function MoneyDisplay({
 
     if (layout === 'block') {
       return (
-        <div className={className}>
-          <div className={valueClassName}>
+        <div className={`min-w-0 ${className}`}>
+          <div className={`tabular-nums ${valueClassName}`}>
             {leadingZeros && <span className="opacity-30">{leadingZeros}</span>}
             {significantPart}
           </div>
@@ -93,7 +93,7 @@ export function MoneyDisplay({
 
     return (
       <span className={className}>
-        <span className={valueClassName}>
+        <span className={`tabular-nums ${valueClassName}`}>
           {leadingZeros && <span className="opacity-30">{leadingZeros}</span>}
           {significantPart}
         </span>
@@ -108,8 +108,8 @@ export function MoneyDisplay({
 
   if (layout === 'block') {
     return (
-      <div className={className}>
-        <div className={valueClassName}>{value}</div>
+      <div className={`min-w-0 ${className}`}>
+        <div className={`tabular-nums ${valueClassName}`}>{value}</div>
         {showUnit && <div className={unitClassName}>{unitLabel}</div>}
       </div>
     );
@@ -117,7 +117,7 @@ export function MoneyDisplay({
 
   return (
     <span className={className}>
-      <span className={valueClassName}>{value}</span>
+      <span className={`tabular-nums ${valueClassName}`}>{value}</span>
       {showUnit && <span className={unitClassName}> {unitLabel}</span>}
     </span>
   );

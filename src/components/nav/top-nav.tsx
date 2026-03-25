@@ -7,11 +7,13 @@ import { Search } from 'lucide-react';
 import { isValidTxid, isValidOutpoint } from '@/lib/validation';
 import { EXTERNAL_LINKS } from '@/lib/constants';
 import { ArkadeLogo } from '@/components/shared/arkade-logo';
+import { SearchCommandPaletteOverlay } from '@/components/shared/search-bar';
 
 export function TopNav() {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [isMac, setIsMac] = useState(true);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   useEffect(() => {
     setIsMac(navigator.platform?.toLowerCase().includes('mac') ?? true);
@@ -37,12 +39,17 @@ export function TopNav() {
     [query, router],
   );
 
-  // Cmd+K to focus search
+  // Cmd+K to focus search (desktop) or open palette (mobile)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        document.getElementById('global-search')?.focus();
+        // On small screens, open the command palette
+        if (window.innerWidth < 640) {
+          setCommandPaletteOpen(true);
+        } else {
+          document.getElementById('global-search')?.focus();
+        }
       }
     };
     window.addEventListener('keydown', handler);
@@ -55,6 +62,21 @@ export function TopNav() {
         <Link href="/" className="shrink-0" aria-label="Arkade Explorer home">
           <ArkadeLogo size="md" />
         </Link>
+
+        {/* Mobile search icon */}
+        <button
+          onClick={() => setCommandPaletteOpen(true)}
+          className="sm:hidden p-2 -mr-1 text-muted-foreground hover:text-foreground transition-colors duration-200"
+          aria-label="Open search"
+        >
+          <Search className="h-5 w-5" aria-hidden="true" />
+        </button>
+
+        {/* Mobile command palette overlay */}
+        <SearchCommandPaletteOverlay
+          open={commandPaletteOpen}
+          onOpenChange={setCommandPaletteOpen}
+        />
 
         <form
           onSubmit={handleSearch}
@@ -74,7 +96,7 @@ export function TopNav() {
               className="w-full h-9 pl-9 pr-16 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-shadow duration-200"
             />
             <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:inline-flex items-center gap-0.5 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
-              {isMac ? '⌘' : 'Ctrl+'}K
+              {isMac ? '\u2318' : 'Ctrl+'}K
             </kbd>
           </div>
         </form>
@@ -84,7 +106,7 @@ export function TopNav() {
             href={EXTERNAL_LINKS.ARKADE}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-primary hover:text-primary/80 transition-colors duration-200 active:scale-[0.97]"
+            className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-200 active:scale-[0.97]"
             aria-label="Try Arkade (opens in new tab)"
           >
             Try Arkade

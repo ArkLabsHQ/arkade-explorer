@@ -273,7 +273,7 @@ export function AddressPageClient({ address }: AddressPageClientProps) {
       {/* Filter controls */}
       <div className="space-y-3">
         {/* VTXO type filter */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground mr-1">
             Type
           </span>
@@ -294,7 +294,7 @@ export function AddressPageClient({ address }: AddressPageClientProps) {
         </div>
 
         {/* Status filter */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground mr-1">
             Status
           </span>

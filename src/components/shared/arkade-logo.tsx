@@ -9,7 +9,7 @@ interface ArkadeLogoProps {
 export function ArkadeLogo({ className, showText = true, size = 'md' }: ArkadeLogoProps) {
   const config = {
     sm:  { icon: 16, text: '0.875rem' },
-    md:  { icon: 19, text: '1rem' },
+    md:  { icon: 18, text: '1rem' },
     lg:  { icon: 24, text: '1.25rem' },
   }[size];
 
@@ -21,7 +21,7 @@ export function ArkadeLogo({ className, showText = true, size = 'md' }: ArkadeLo
         viewBox="0 0 35 35"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="text-primary shrink-0 translate-y-[1.5px]"
+        className="text-primary shrink-0 self-end mb-[1px]"
         aria-hidden="true"
       >
         <path d="M0 8.75L8.75 0H26.25L35 8.75V17.5H26.25V8.75H8.75V17.5H2.45431e-07L0 8.75Z" fill="currentColor"/>

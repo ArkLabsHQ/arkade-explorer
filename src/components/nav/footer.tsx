@@ -5,8 +5,8 @@ import { EXTERNAL_LINKS } from '@/lib/constants';
 export function Footer() {
   return (
     <footer className="border-t border-border bg-card/40" role="contentinfo">
-      <div className="max-w-7xl mx-auto flex items-center justify-between h-12 px-4 text-xs text-muted-foreground">
-        <span>
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center sm:justify-between py-4 gap-2 sm:gap-0 px-4 text-xs text-muted-foreground">
+        <span className="text-center sm:text-left">
           Powered by{' '}
           <a
             href={EXTERNAL_LINKS.ARKADE}
