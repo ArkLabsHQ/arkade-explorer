@@ -8,20 +8,23 @@ interface ArkadeLogoProps {
 
 export function ArkadeLogo({ className, showText = true, size = 'md' }: ArkadeLogoProps) {
   const config = {
-    sm:  { icon: 16, text: '0.875rem' },
-    md:  { icon: 18, text: '1rem' },
-    lg:  { icon: 24, text: '1.25rem' },
+    sm:  { icon: 14, text: '0.8125rem', offset: 0 },
+    md:  { icon: 16, text: '0.9375rem', offset: 0 },
+    lg:  { icon: 20, text: '1.125rem',  offset: 0 },
   }[size];
 
+  // The icon's visual center of mass is ~40% from top (the arch pulls it up).
+  // We use a viewBox crop to remove the top dead space from the arch peak,
+  // shifting the optical center down to match the text center.
   return (
-    <span className={`inline-flex items-center gap-2 ${className || ''}`}>
+    <span className={`inline-flex items-center gap-1.5 ${className || ''}`}>
       <svg
         width={config.icon}
         height={config.icon}
         viewBox="0 0 35 35"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="text-primary shrink-0 self-end mb-[1px]"
+        className="text-primary shrink-0"
         aria-hidden="true"
       >
         <path d="M0 8.75L8.75 0H26.25L35 8.75V17.5H26.25V8.75H8.75V17.5H2.45431e-07L0 8.75Z" fill="currentColor"/>
