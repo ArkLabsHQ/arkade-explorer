@@ -1,5 +1,0 @@
-{
-  "/tx/[txid]/page": "app/tx/[txid]/page.js",
-  "/address/[address]/page": "app/address/[address]/page.js",
-  "/page": "app/page.js"
-}
