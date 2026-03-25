@@ -135,12 +135,9 @@ export function ActivityStreamProvider({ children }: { children: ReactNode }) {
 
     (async () => {
       try {
-        console.log('Subscribing to global event stream...');
         const eventStream = arkClient.getTransactionsStream(abortController.signal);
 
         for await (const event of eventStream) {
-          console.log('Event received:', event);
-
           // Parse event and create activity item
           const activity = parseEvent(event);
           if (activity) {
@@ -157,16 +154,8 @@ export function ActivityStreamProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch (error: any) {
-        if (error.name === 'AbortError') {
-          console.log('Event stream aborted');
-        } else {
+        if (error.name !== 'AbortError') {
           console.error('Event stream error:', error);
-          console.error('Error details:', {
-            message: error?.message,
-            stack: error?.stack,
-            name: error?.name
-          });
-          console.log('Real-time event stream not available. Activity feed will not be shown.');
         }
       }
     })();
