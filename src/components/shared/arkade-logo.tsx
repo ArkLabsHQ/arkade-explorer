@@ -33,7 +33,7 @@ export function ArkadeLogo({ className, showText = true, size = 'md' }: ArkadeLo
         <path d="M26.25 26.25V35H35V26.25H26.25Z" fill="currentColor"/>
       </svg>
       {showText && (
-        <span className="font-heading leading-none" style={{ fontSize: config.text }}>
+        <span className="font-heading leading-none translate-y-[1.5px]" style={{ fontSize: config.text }}>
           <span className="font-semibold text-foreground">Arkade</span>
           {' '}
           <span className="font-normal text-muted-foreground">Explorer</span>
