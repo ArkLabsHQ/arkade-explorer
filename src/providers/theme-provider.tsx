@@ -1,53 +1,51 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { type ThemeName, THEMES } from '@/themes';
+import { type ThemeName } from '@/themes';
 
 interface ThemeContextType {
   theme: ThemeName;
-  setTheme: (theme: ThemeName) => void;
   isDark: boolean;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const ThemeContext = createContext<ThemeContextType>({ theme: 'dawn', isDark: false });
 
-const STORAGE_KEY = 'arkade-explorer-theme';
+function getSystemTheme(): ThemeName {
+  if (typeof window === 'undefined') return 'dawn';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'midnight' : 'dawn';
+}
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeName>('midnight');
+  const [theme, setTheme] = useState<ThemeName>('dawn');
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as ThemeName | null;
-    if (stored && stored in THEMES) {
-      setThemeState(stored);
-    }
+    const apply = (t: ThemeName) => {
+      setTheme(t);
+      document.documentElement.setAttribute('data-theme', t);
+      if (t === 'midnight') {
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      }
+    };
+
+    apply(getSystemTheme());
+
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => apply(e.matches ? 'midnight' : 'dawn');
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
   }, []);
 
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    if (THEMES[theme].isDark) {
-      document.documentElement.classList.add('dark');
-      document.documentElement.classList.remove('light');
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.classList.add('light');
-    }
-  }, [theme]);
-
-  const setTheme = (newTheme: ThemeName) => {
-    setThemeState(newTheme);
-    localStorage.setItem(STORAGE_KEY, newTheme);
-  };
-
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, isDark: THEMES[theme].isDark }}>
+    <ThemeContext.Provider value={{ theme, isDark: theme === 'midnight' }}>
       {children}
     </ThemeContext.Provider>
   );
 }
 
 export function useTheme() {
-  const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error('useTheme must be used within ThemeProvider');
-  return ctx;
+  return useContext(ThemeContext);
 }

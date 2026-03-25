@@ -1,14 +1,6 @@
 @import "tailwindcss";
-@import "../themes/midnight.css";
 @import "../themes/dawn.css";
-@import "../themes/glass.css";
-@import "../themes/phantom.css";
-@import "../themes/nebula.css";
-@import "../themes/carbon.css";
-@import "../themes/paper.css";
-@import "../themes/obsidian.css";
-@import "../themes/slate.css";
-@import "../themes/ember.css";
+@import "../themes/midnight.css";
 
 @layer base {
   @font-face {

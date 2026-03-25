@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="midnight" className="dark" suppressHydrationWarning>
+    <html lang="en" data-theme="dawn" className="light" suppressHydrationWarning>
       <body className="antialiased">
         <AppProviders>
           <DynamicLayout>
