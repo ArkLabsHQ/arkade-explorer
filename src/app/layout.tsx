@@ -1,0 +1,25 @@
+import type { Metadata } from 'next';
+import { AppProviders } from '@/providers/app-providers';
+import { DynamicLayout } from '@/components/dynamic-layout';
+import { ThemeStructureSwitcher } from '@/components/dev/theme-structure-switcher';
+import './globals.css';
+
+export const metadata: Metadata = {
+  title: 'Arkade Explorer',
+  description: 'Explore Arkade protocol transactions, VTXOs, and addresses',
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en" data-theme="midnight" className="dark" suppressHydrationWarning>
+      <body className="antialiased">
+        <AppProviders>
+          <DynamicLayout>
+            {children}
+          </DynamicLayout>
+          {process.env.NEXT_PUBLIC_SHOW_SWITCHER === 'true' && <ThemeStructureSwitcher />}
+        </AppProviders>
+      </body>
+    </html>
+  );
+}

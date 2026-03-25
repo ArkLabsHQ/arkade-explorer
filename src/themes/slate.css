@@ -1,0 +1,51 @@
+[data-theme="slate"] {
+  color-scheme: dark;
+
+  /* Sacred purple: #391998 = hsl(256, 72%, 35%) */
+  --primary: 256 72% 35%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Backgrounds — dark blue-gray */
+  --background: 220 28% 8%;          /* #0f1219 */
+  --foreground: 213 27% 84%;         /* #cbd5e1 */
+
+  /* Cards — slightly lighter blue-gray */
+  --card: 220 22% 12%;               /* #161b25 */
+  --card-foreground: 213 27% 84%;    /* #cbd5e1 */
+
+  /* Popovers */
+  --popover: 220 22% 12%;            /* #161b25 */
+  --popover-foreground: 213 27% 84%; /* #cbd5e1 */
+
+  /* Secondary */
+  --secondary: 220 18% 16%;          /* #1e2530 */
+  --secondary-foreground: 213 20% 78%;
+
+  /* Muted */
+  --muted: 220 15% 19%;              /* #262e3a */
+  --muted-foreground: 215 16% 47%;   /* #64748b */
+
+  /* Accent */
+  --accent: 256 35% 20%;
+  --accent-foreground: 256 55% 78%;
+
+  /* Destructive */
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Borders & inputs — cool gray */
+  --border: 217 15% 18%;             /* #252d3a */
+  --input: 217 15% 20%;
+  --ring: 256 72% 35%;
+
+  /* Radius */
+  --radius: 0.5rem;
+
+  /* Elevation surfaces */
+  --surface-elevated: 220 20% 14%;   /* #1a2030 */
+  --surface-sunken: 220 30% 5%;      /* #0a0d14 */
+
+  /* Semantic */
+  --success: 142 72% 40%;
+  --warning: 38 92% 50%;
+}

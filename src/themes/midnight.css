@@ -1,0 +1,51 @@
+[data-theme="midnight"] {
+  color-scheme: dark;
+
+  /* Sacred purple: #391998 = hsl(256, 72%, 35%) */
+  --primary: 256 72% 35%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Backgrounds */
+  --background: 240 33% 4%;          /* #0a0a0f */
+  --foreground: 240 5% 90%;          /* #e4e4e7 */
+
+  /* Cards */
+  --card: 240 20% 8%;                /* #12121a */
+  --card-foreground: 240 5% 90%;     /* #e4e4e7 */
+
+  /* Popovers */
+  --popover: 240 20% 8%;             /* #12121a */
+  --popover-foreground: 240 5% 90%;  /* #e4e4e7 */
+
+  /* Secondary */
+  --secondary: 240 15% 14%;          /* #1e1e28 */
+  --secondary-foreground: 240 5% 85%;
+
+  /* Muted */
+  --muted: 240 12% 16%;              /* #232330 */
+  --muted-foreground: 240 5% 55%;    /* #88889a */
+
+  /* Accent */
+  --accent: 256 40% 18%;             /* Purple-tinted dark */
+  --accent-foreground: 256 60% 80%;
+
+  /* Destructive */
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Borders & inputs */
+  --border: 256 20% 18%;             /* Purple-tinted border */
+  --input: 256 15% 20%;
+  --ring: 256 72% 35%;
+
+  /* Radius */
+  --radius: 0.5rem;
+
+  /* Elevation surfaces */
+  --surface-elevated: 240 18% 11%;   /* #171722 */
+  --surface-sunken: 240 30% 3%;      /* #070710 */
+
+  /* Semantic */
+  --success: 142 72% 40%;
+  --warning: 38 92% 50%;
+}

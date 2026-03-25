@@ -1,0 +1,51 @@
+[data-theme="carbon"] {
+  color-scheme: dark;
+
+  /* Sacred purple: #391998 = hsl(256, 72%, 35%) */
+  --primary: 256 72% 35%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Backgrounds — matte dark gray */
+  --background: 0 0% 10%;            /* #1a1a1a */
+  --foreground: 0 0% 83%;            /* #d4d4d4 */
+
+  /* Cards — slightly lighter gray */
+  --card: 0 0% 13%;                  /* #222222 */
+  --card-foreground: 0 0% 83%;       /* #d4d4d4 */
+
+  /* Popovers */
+  --popover: 0 0% 13%;               /* #222222 */
+  --popover-foreground: 0 0% 83%;    /* #d4d4d4 */
+
+  /* Secondary */
+  --secondary: 0 0% 17%;             /* #2b2b2b */
+  --secondary-foreground: 0 0% 78%;
+
+  /* Muted */
+  --muted: 0 0% 20%;                 /* #333333 */
+  --muted-foreground: 0 0% 50%;      /* #808080 */
+
+  /* Accent */
+  --accent: 256 30% 18%;
+  --accent-foreground: 256 50% 75%;
+
+  /* Destructive */
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Borders & inputs — solid, visible, no opacity */
+  --border: 0 0% 22%;                /* #383838 */
+  --input: 0 0% 24%;
+  --ring: 256 72% 35%;
+
+  /* Radius */
+  --radius: 0.5rem;
+
+  /* Elevation surfaces */
+  --surface-elevated: 0 0% 16%;      /* #282828 */
+  --surface-sunken: 0 0% 7%;         /* #121212 */
+
+  /* Semantic */
+  --success: 142 72% 40%;
+  --warning: 38 92% 50%;
+}

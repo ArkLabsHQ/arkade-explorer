@@ -1,0 +1,51 @@
+[data-theme="nebula"] {
+  color-scheme: dark;
+
+  /* Sacred purple: #391998 = hsl(256, 72%, 35%) */
+  --primary: 256 72% 35%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Backgrounds — deep purple-black */
+  --background: 260 40% 5%;          /* #0d0a1a */
+  --foreground: 240 5% 90%;          /* #e4e4e7 */
+
+  /* Cards — dark purple */
+  --card: 260 35% 11%;               /* #16102a */
+  --card-foreground: 240 5% 90%;     /* #e4e4e7 */
+
+  /* Popovers */
+  --popover: 260 35% 11%;            /* #16102a */
+  --popover-foreground: 240 5% 90%;  /* #e4e4e7 */
+
+  /* Secondary — purple-enriched */
+  --secondary: 260 30% 16%;
+  --secondary-foreground: 260 15% 85%;
+
+  /* Muted */
+  --muted: 260 25% 18%;
+  --muted-foreground: 260 10% 55%;
+
+  /* Accent — liberal purple usage */
+  --accent: 256 50% 22%;
+  --accent-foreground: 256 65% 82%;
+
+  /* Destructive */
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Borders & inputs — purple-tinted */
+  --border: 260 25% 16%;
+  --input: 260 20% 18%;
+  --ring: 256 72% 35%;
+
+  /* Radius */
+  --radius: 0.5rem;
+
+  /* Elevation surfaces */
+  --surface-elevated: 260 32% 14%;
+  --surface-sunken: 260 40% 3%;
+
+  /* Semantic */
+  --success: 142 72% 40%;
+  --warning: 38 92% 50%;
+}

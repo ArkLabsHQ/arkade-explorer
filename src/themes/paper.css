@@ -1,0 +1,51 @@
+[data-theme="paper"] {
+  color-scheme: light;
+
+  /* Sacred purple: #391998 = hsl(256, 72%, 35%) */
+  --primary: 256 72% 35%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Backgrounds — warm cream */
+  --background: 38 38% 93%;          /* #f5f0e8 */
+  --foreground: 30 25% 13%;          /* #2c2416 */
+
+  /* Cards — lighter cream */
+  --card: 36 40% 97%;                /* #faf7f2 */
+  --card-foreground: 30 25% 13%;     /* #2c2416 */
+
+  /* Popovers */
+  --popover: 36 40% 97%;             /* #faf7f2 */
+  --popover-foreground: 30 25% 13%;  /* #2c2416 */
+
+  /* Secondary */
+  --secondary: 36 25% 90%;           /* #ece5d8 */
+  --secondary-foreground: 30 20% 25%;
+
+  /* Muted */
+  --muted: 36 20% 88%;               /* #e6ded0 */
+  --muted-foreground: 30 12% 48%;    /* #7a6e5c */
+
+  /* Accent */
+  --accent: 256 50% 95%;             /* Light purple on warm base */
+  --accent-foreground: 256 72% 35%;
+
+  /* Destructive */
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Borders & inputs — warm brown at low opacity */
+  --border: 30 18% 82%;              /* #d4cbbf */
+  --input: 30 18% 82%;
+  --ring: 256 72% 35%;
+
+  /* Radius */
+  --radius: 0.5rem;
+
+  /* Elevation surfaces */
+  --surface-elevated: 36 45% 98%;    /* Slightly lighter than card */
+  --surface-sunken: 38 30% 90%;      /* Slightly darker than bg */
+
+  /* Semantic */
+  --success: 142 72% 35%;
+  --warning: 38 92% 50%;
+}

@@ -1,0 +1,55 @@
+[data-theme="glass"] {
+  color-scheme: dark;
+
+  /* Sacred purple: #391998 = hsl(256, 72%, 35%) */
+  --primary: 256 72% 35%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Backgrounds */
+  --background: 240 30% 5%;          /* #0c0c14 */
+  --foreground: 240 5% 90%;          /* #e4e4e7 */
+
+  /* Cards — semi-transparent for glass effect */
+  --card: 240 27% 14%;               /* #1a1a2e */
+  --card-foreground: 240 5% 90%;     /* #e4e4e7 */
+
+  /* Popovers */
+  --popover: 240 27% 14%;            /* #1a1a2e */
+  --popover-foreground: 240 5% 90%;  /* #e4e4e7 */
+
+  /* Secondary */
+  --secondary: 240 20% 18%;
+  --secondary-foreground: 240 5% 85%;
+
+  /* Muted */
+  --muted: 240 18% 20%;
+  --muted-foreground: 240 5% 55%;
+
+  /* Accent */
+  --accent: 256 35% 22%;
+  --accent-foreground: 256 60% 80%;
+
+  /* Destructive */
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Borders & inputs — light for glass edge effect */
+  --border: 0 0% 100% / 0.08;
+  --input: 0 0% 100% / 0.1;
+  --ring: 256 72% 35%;
+
+  /* Radius */
+  --radius: 0.5rem;
+
+  /* Elevation surfaces */
+  --surface-elevated: 240 25% 16%;
+  --surface-sunken: 240 30% 4%;
+
+  /* Semantic */
+  --success: 142 72% 40%;
+  --warning: 38 92% 50%;
+
+  /* Glass-specific variables */
+  --surface-blur: 16px;
+  --surface-opacity: 0.7;
+}

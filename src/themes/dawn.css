@@ -1,0 +1,51 @@
+[data-theme="dawn"] {
+  color-scheme: light;
+
+  /* Sacred purple: #391998 = hsl(256, 72%, 35%) */
+  --primary: 256 72% 35%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Backgrounds */
+  --background: 0 0% 98%;            /* #fafafa */
+  --foreground: 240 6% 10%;          /* #18181b */
+
+  /* Cards */
+  --card: 0 0% 100%;                 /* #ffffff */
+  --card-foreground: 240 6% 10%;     /* #18181b */
+
+  /* Popovers */
+  --popover: 0 0% 100%;              /* #ffffff */
+  --popover-foreground: 240 6% 10%;  /* #18181b */
+
+  /* Secondary */
+  --secondary: 240 5% 95%;           /* #f1f1f4 */
+  --secondary-foreground: 240 6% 25%;
+
+  /* Muted */
+  --muted: 240 5% 93%;               /* #ededf0 */
+  --muted-foreground: 240 4% 46%;    /* #71717a */
+
+  /* Accent */
+  --accent: 256 60% 96%;             /* Light purple tint */
+  --accent-foreground: 256 72% 35%;
+
+  /* Destructive */
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Borders & inputs */
+  --border: 240 6% 90%;              /* Light gray border */
+  --input: 240 6% 90%;
+  --ring: 256 72% 35%;
+
+  /* Radius */
+  --radius: 0.5rem;
+
+  /* Elevation surfaces */
+  --surface-elevated: 0 0% 100%;     /* Pure white */
+  --surface-sunken: 240 5% 96%;      /* Slightly darker than bg */
+
+  /* Semantic */
+  --success: 142 72% 35%;
+  --warning: 38 92% 50%;
+}
