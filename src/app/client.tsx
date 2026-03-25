@@ -235,8 +235,13 @@ function ActivityPulseWrapper({ children }: { children: React.ReactNode }) {
 
 function ActivityFeed() {
   const { activities, isVisible } = useActivityStream();
+  const [mounted, setMounted] = useState(false);
 
-  if (!isVisible || activities.length === 0) {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || !isVisible || activities.length === 0) {
     return (
       <div className="rounded-xl border border-border bg-card p-6 text-center">
         <Activity className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
