@@ -33,7 +33,7 @@ export function AssetAmountDisplay({
   return (
     <span className={`${className} inline-flex items-center gap-1`}>
       <span className={valueClassName}>{formatted}</span>
-      {!hideUnit && metadata?.icon && isSafeImageUrl(metadata.icon) && isApproved(assetId) && (
+      {!hideUnit && metadata?.icon && isSafeImageUrl(metadata.icon) && (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
           src={metadata.icon}
