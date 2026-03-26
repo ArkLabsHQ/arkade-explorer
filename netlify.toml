@@ -4,5 +4,5 @@
   status = 200
 
 [build]
-  command = "npm run build"
+  command = "bun run build"
   publish = "dist"

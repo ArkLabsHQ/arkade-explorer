@@ -1,5 +1,3 @@
-'use client';
-
 import { createContext, useContext, useEffect, useRef, useState, useCallback, type ReactNode } from 'react';
 import { AssetIconApprovalManager } from '@/lib/assetIconApproval';
 
@@ -19,7 +17,7 @@ export function AssetIconApprovalProvider({ children }: { children: ReactNode })
   const refresh = useCallback(() => setRevision((r) => r + 1), []);
 
   useEffect(() => {
-    const verifiedUrl = process.env.NEXT_PUBLIC_VERIFIED_ASSETS_URL;
+    const verifiedUrl = import.meta.env.VITE_VERIFIED_ASSETS_URL;
     if (!verifiedUrl) return;
 
     fetch(verifiedUrl)

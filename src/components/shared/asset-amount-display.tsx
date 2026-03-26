@@ -1,6 +1,4 @@
-'use client';
-
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { useAssetDetails } from '@/hooks/use-asset-details';
 import { useAssetIconApproval } from '@/providers/asset-icon-approval-provider';
 import { truncateHash } from '@/lib/utils';
@@ -34,7 +32,6 @@ export function AssetAmountDisplay({
     <span className={`${className} inline-flex items-center gap-1`}>
       <span className={valueClassName}>{formatted}</span>
       {!hideUnit && metadata?.icon && isSafeImageUrl(metadata.icon) && (
-        /* eslint-disable-next-line @next/next/no-img-element */
         <img
           src={metadata.icon}
           alt={ticker}
@@ -43,7 +40,7 @@ export function AssetAmountDisplay({
       )}
       {!hideUnit && (
         <Link
-          href={`/asset/${assetId}`}
+          to={`/asset/${assetId}`}
           className={`${unitClassName} hover:underline ${isLoading ? 'animate-pulse' : ''}`}
           title={assetId}
         >

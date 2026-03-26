@@ -1,7 +1,4 @@
-'use client';
-
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState, useCallback, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { isValidTxid, isValidOutpoint } from '@/lib/validation';
@@ -10,7 +7,7 @@ import { ArkadeLogo } from '@/components/shared/arkade-logo';
 import { SearchCommandPaletteOverlay } from '@/components/shared/search-bar';
 
 export function TopNav() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [isMac, setIsMac] = useState(true);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -26,17 +23,17 @@ export function TopNav() {
       if (!q) return;
 
       if (isValidTxid(q)) {
-        router.push(`/tx/${q}`);
+        navigate(`/tx/${q}`);
       } else if (isValidOutpoint(q)) {
-        router.push(`/tx/${q}`);
+        navigate(`/tx/${q}`);
       } else if (q.startsWith('tark1') || q.startsWith('ark1')) {
-        router.push(`/address/${q}`);
+        navigate(`/address/${q}`);
       } else {
-        router.push(`/tx/${q}`);
+        navigate(`/tx/${q}`);
       }
       setQuery('');
     },
-    [query, router],
+    [query, navigate],
   );
 
   // Cmd+K to focus search (desktop) or open palette (mobile)
@@ -59,7 +56,7 @@ export function TopNav() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur-sm" role="banner">
       <div className="max-w-7xl mx-auto flex items-center justify-between h-14 px-4">
-        <Link href="/" className="shrink-0" aria-label="Arkade Explorer home">
+        <Link to="/" className="shrink-0" aria-label="Arkade Explorer home">
           <ArkadeLogo size="md" />
         </Link>
 
@@ -102,7 +99,7 @@ export function TopNav() {
         </form>
 
         <div className="flex items-center gap-3 shrink-0">
-          <Link
+          <a
             href={EXTERNAL_LINKS.ARKADE}
             target="_blank"
             rel="noopener noreferrer"
@@ -110,7 +107,7 @@ export function TopNav() {
             aria-label="Try Arkade (opens in new tab)"
           >
             Try Arkade
-          </Link>
+          </a>
         </div>
       </div>
     </header>

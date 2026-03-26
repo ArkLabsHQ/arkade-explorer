@@ -1,7 +1,5 @@
-'use client';
-
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { motion, useAnimationControls } from 'framer-motion';
 import { Activity, ArrowUpRight } from 'lucide-react';
 import { useActivityStream } from '@/providers/activity-stream-provider';
@@ -73,7 +71,7 @@ function ActivityFeed() {
           >
             {activity.txid ? (
               <Link
-                href={`/tx/${activity.txid}`}
+                to={`/tx/${activity.txid}`}
                 className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-secondary/40 transition-colors duration-200"
               >
                 <div className="min-w-0">
@@ -101,7 +99,7 @@ function ActivityFeed() {
   );
 }
 
-export function HomePageClient() {
+export function HomePage() {
   return (
     <PageTransition>
       <div className="space-y-6">

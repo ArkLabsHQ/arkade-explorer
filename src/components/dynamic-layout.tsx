@@ -1,5 +1,3 @@
-'use client';
-
 import { TopNav } from '@/components/nav/top-nav';
 import { Footer } from '@/components/nav/footer';
 

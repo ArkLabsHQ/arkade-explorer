@@ -1,6 +1,4 @@
-'use client';
-
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { useAssetDetails } from '@/hooks/use-asset-details';
 import { useAssetIconApproval } from '@/providers/asset-icon-approval-provider';
 import { truncateHash } from '@/lib/utils';
@@ -22,7 +20,7 @@ export function AssetBadge({ assetId, className = '' }: AssetBadgeProps) {
   return (
     <span className={`inline-flex items-center gap-1.5 ${className}`}>
       <Link
-        href={`/asset/${assetId}`}
+        to={`/asset/${assetId}`}
         className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-bold uppercase
           bg-primary/10 border border-primary/30 text-primary
           rounded-md hover:bg-primary/20 transition-colors duration-150"
@@ -30,7 +28,6 @@ export function AssetBadge({ assetId, className = '' }: AssetBadgeProps) {
       >
         {label}
         {hasIcon && (
-          /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={metadata.icon}
             alt={label}

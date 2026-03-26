@@ -1,7 +1,5 @@
-'use client';
-
 import { useState, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 import { Command } from 'cmdk';
 import { Search, Clock, ArrowRight, X, Pin, PinOff, Pencil, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,7 +25,7 @@ interface SearchBarProps {
 // ---------------------------------------------------------------------------
 
 function useSearch() {
-  const router = useRouter();
+  const routerNavigate = useNavigate();
   const { addRecentSearch } = useRecentSearches();
 
   const navigate = useCallback(
@@ -37,19 +35,19 @@ function useSearch() {
 
       if (isValidTxid(q)) {
         addRecentSearch(q, 'transaction');
-        router.push(`/tx/${q}`);
+        routerNavigate(`/tx/${q}`);
       } else if (isValidOutpoint(q)) {
         addRecentSearch(q, 'transaction');
-        router.push(`/tx/${q}`);
+        routerNavigate(`/tx/${q}`);
       } else if (q.startsWith('tark1') || q.startsWith('ark1')) {
         addRecentSearch(q, 'address');
-        router.push(`/address/${q}`);
+        routerNavigate(`/address/${q}`);
       } else {
         addRecentSearch(q, 'transaction');
-        router.push(`/tx/${q}`);
+        routerNavigate(`/tx/${q}`);
       }
     },
-    [router, addRecentSearch],
+    [routerNavigate, addRecentSearch],
   );
 
   return { navigate };

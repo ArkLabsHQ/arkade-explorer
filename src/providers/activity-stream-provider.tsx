@@ -1,5 +1,3 @@
-'use client';
-
 import { createContext, useContext, useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { arkClient } from '@/lib/api/indexer';
 
