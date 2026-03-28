@@ -1,14 +1,11 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { useState, useCallback, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
-import { isValidTxid, isValidOutpoint } from '@/lib/validation';
 import { EXTERNAL_LINKS } from '@/lib/constants';
 import { ArkadeLogo } from '@/components/shared/arkade-logo';
 import { SearchCommandPaletteOverlay } from '@/components/shared/search-bar';
 
 export function TopNav() {
-  const navigate = useNavigate();
-  const [query, setQuery] = useState('');
   const [isMac, setIsMac] = useState(true);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
@@ -16,37 +13,12 @@ export function TopNav() {
     setIsMac(navigator.platform?.toLowerCase().includes('mac') ?? true);
   }, []);
 
-  const handleSearch = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      const q = query.trim();
-      if (!q) return;
-
-      if (isValidTxid(q)) {
-        navigate(`/tx/${q}`);
-      } else if (isValidOutpoint(q)) {
-        navigate(`/tx/${q}`);
-      } else if (q.startsWith('tark1') || q.startsWith('ark1')) {
-        navigate(`/address/${q}`);
-      } else {
-        navigate(`/tx/${q}`);
-      }
-      setQuery('');
-    },
-    [query, navigate],
-  );
-
-  // Cmd+K to focus search (desktop) or open palette (mobile)
+  // Cmd+K opens command palette on all screen sizes
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        // On small screens, open the command palette
-        if (window.innerWidth < 640) {
-          setCommandPaletteOpen(true);
-        } else {
-          document.getElementById('global-search')?.focus();
-        }
+        setCommandPaletteOpen(true);
       }
     };
     window.addEventListener('keydown', handler);
@@ -75,28 +47,17 @@ export function TopNav() {
           onOpenChange={setCommandPaletteOpen}
         />
 
-        <form
-          onSubmit={handleSearch}
-          className="hidden sm:flex items-center flex-1 max-w-lg mx-6"
-          role="search"
-          aria-label="Search transactions, addresses, and outpoints"
+        <button
+          onClick={() => setCommandPaletteOpen(true)}
+          className="hidden sm:flex items-center flex-1 max-w-lg mx-6 h-9 px-3 rounded-lg bg-secondary border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors duration-200 cursor-text"
+          aria-label="Open search (Cmd+K)"
         >
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-            <input
-              id="global-search"
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search txid, address, or outpoint..."
-              aria-label="Search by transaction ID, address, or outpoint"
-              className="w-full h-9 pl-9 pr-16 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-shadow duration-200"
-            />
-            <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:inline-flex items-center gap-0.5 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
-              {isMac ? '\u2318' : 'Ctrl+'}K
-            </kbd>
-          </div>
-        </form>
+          <Search className="h-4 w-4 shrink-0 mr-2" aria-hidden="true" />
+          <span className="flex-1 text-left">Search txid, address, or outpoint...</span>
+          <kbd className="ml-auto inline-flex items-center gap-0.5 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+            {isMac ? '\u2318' : 'Ctrl+'}K
+          </kbd>
+        </button>
 
         <div className="flex items-center gap-3 shrink-0">
           <a
