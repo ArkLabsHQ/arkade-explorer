@@ -1,5 +1,5 @@
-import { ArkAddress } from '@arkade-os/sdk';
-import { hex } from '@scure/base';
+import { bech32m, hex } from '@scure/base';
+import { Script } from '@scure/btc-signer/script.js';
 
 const BOT_UA = /Twitterbot|facebookexternalhit|Slackbot|Slack-ImgProxy|LinkedInBot|Discordbot|WhatsApp|TelegramBot|Googlebot|bingbot|yandex|Embedly|showyoubot|outbrain|pinterest|vkShare|W3C_Validator|Iframely/i;
 
@@ -56,8 +56,15 @@ function addressToScriptHex(address) {
   if (/^[0-9a-fA-F]+$/.test(address) && address.length % 2 === 0) {
     return address.toLowerCase();
   }
-  const decoded = ArkAddress.decode(address);
-  return hex.encode(decoded.pkScript);
+  // Inline ArkAddress.decode() to avoid importing the full SDK (which pulls in
+  // @bitcoinerlab/descriptors-core and breaks the Wrangler/esbuild bundle).
+  const decoded = bech32m.decodeUnsafe(address, 1023);
+  if (!decoded) throw new Error('Invalid address');
+  const data = new Uint8Array(bech32m.fromWords(decoded.words));
+  if (data.length !== 65) throw new Error('Invalid data length');
+  const vtxoTaprootKey = data.slice(33, 65);
+  const pkScript = Script.encode(['OP_1', vtxoTaprootKey]);
+  return hex.encode(pkScript);
 }
 
 async function indexerFetch(indexerUrl, path) {

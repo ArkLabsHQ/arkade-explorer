@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       '@arkade-os/sdk':
-        specifier: ^0.4.0-next.7
+        specifier: 0.4.13
         version: 0.4.13
       '@radix-ui/react-dialog':
         specifier: ^1.1.4
