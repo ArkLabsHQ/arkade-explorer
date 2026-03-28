@@ -1,7 +1,5 @@
-'use client';
-
 import { useState, useMemo } from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronRight, FileText, ArrowLeft, ArrowRight, Pin, PinOff } from 'lucide-react';
 import { CopyButton } from '@/components/shared/copy-button';
 import { InfoRow } from '@/components/shared/info-row';
@@ -218,7 +216,7 @@ function ForfeitTxList({ txids }: { txids: string[] }) {
       {visible.map((txid) => (
         <div key={txid} className="flex items-center gap-2">
           <Link
-            href={`/tx/${txid}`}
+            to={`/tx/${txid}`}
             className="text-xs font-mono text-primary hover:text-primary/80 transition-colors duration-200 truncate"
             aria-label={`View forfeit transaction ${truncateHash(txid, 8, 8)}`}
           >
@@ -254,7 +252,7 @@ function ConnectorList({ connectors }: { connectors: Array<{ txid: string; child
       {visible.map((conn) => (
         <div key={conn.txid} className="flex items-start gap-2">
           <Link
-            href={`/tx/${conn.txid}`}
+            to={`/tx/${conn.txid}`}
             className="text-xs font-mono text-primary hover:text-primary/80 transition-colors duration-200 shrink-0"
             aria-label={`View connector ${truncateHash(conn.txid, 8, 8)}`}
           >
@@ -291,7 +289,7 @@ function InputCard({ input }: { input: ParsedInput }) {
       <div className="w-7 flex items-center justify-center shrink-0">
         {input.txid && (
           <Link
-            href={`/tx/${input.txid}`}
+            to={`/tx/${input.txid}`}
             className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 transition-colors duration-200 active:scale-[0.97]"
             aria-label={`Go to input transaction ${truncateHash(input.txid, 6, 6)}`}
           >
@@ -315,7 +313,7 @@ function InputCard({ input }: { input: ParsedInput }) {
         </div>
         {input.arkAddress ? (
           <Link
-            href={`/address/${input.arkAddress}`}
+            to={`/address/${input.arkAddress}`}
             className="text-xs font-mono text-primary hover:text-primary/80 transition-colors duration-200 flex items-center gap-1"
             aria-label={`View address ${truncateHash(input.arkAddress, 8, 8)}`}
           >
@@ -412,7 +410,7 @@ function OutputCard({
             </span>
             {output.isBatch && output.batchInfo && (
               <Link
-                href={`#batch-${output.batchKey}`}
+                to={`#batch-${output.batchKey}`}
                 className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full border bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/25 transition-colors duration-150"
                 aria-label={`View batch ${parseInt(output.batchKey) + 1} details`}
               >
@@ -480,7 +478,7 @@ function OutputCard({
         ) : output.arkAddress ? (
           <div className="flex items-center gap-1.5">
             <Link
-              href={`/address/${output.arkAddress}`}
+              to={`/address/${output.arkAddress}`}
               className="text-xs font-mono text-primary hover:text-primary/80 transition-colors duration-200 flex items-center gap-1"
               aria-label={`View address ${truncateHash(output.arkAddress, 8, 8)}`}
             >
@@ -500,7 +498,7 @@ function OutputCard({
         ) : output.scriptHex ? (
           <div className="flex items-center gap-1.5">
             <Link
-              href={`/address/${output.scriptHex}`}
+              to={`/address/${output.scriptHex}`}
               className="text-xs font-mono text-primary hover:text-primary/80 transition-colors duration-200 break-all"
               aria-label={`View script ${output.scriptHex.substring(0, 16)}...`}
             >
@@ -515,7 +513,7 @@ function OutputCard({
       <div className="w-7 flex items-center justify-center shrink-0">
         {isSpent && spendingTxid && (
           <Link
-            href={`/tx/${spendingTxid}`}
+            to={`/tx/${spendingTxid}`}
             className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 transition-colors duration-200 active:scale-[0.97]"
             aria-label={`View spending transaction ${truncateHash(spendingTxid, 6, 6)}`}
           >
@@ -999,7 +997,7 @@ export function TransactionDetail({
       {/* Breadcrumb */}
       <div className="flex items-center gap-3">
         <Link
-          href="/"
+          to="/"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
           aria-label="Back to home"
         >
@@ -1190,7 +1188,7 @@ export function TransactionDetail({
                     >
                       <div className="w-7 flex items-center justify-center shrink-0">
                         <Link
-                          href={`/tx/${fTxid}`}
+                          to={`/tx/${fTxid}`}
                           className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 transition-colors duration-200 active:scale-[0.97]"
                           aria-label={`View forfeit transaction ${truncateHash(fTxid, 6, 6)}`}
                         >

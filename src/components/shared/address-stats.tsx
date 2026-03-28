@@ -1,5 +1,3 @@
-'use client';
-
 import type { VirtualCoin } from '@arkade-os/sdk';
 import { MoneyDisplay } from '@/components/shared/money-display';
 import { AssetBadge } from '@/components/shared/asset-badge';

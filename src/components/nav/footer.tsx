@@ -1,5 +1,3 @@
-'use client';
-
 import { EXTERNAL_LINKS } from '@/lib/constants';
 
 export function Footer() {

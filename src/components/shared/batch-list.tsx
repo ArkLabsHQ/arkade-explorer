@@ -1,7 +1,5 @@
-'use client';
-
 import { useState, useCallback, useMemo } from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronRight, Layers, Leaf, TreePine } from 'lucide-react';
 import { MoneyDisplay } from '@/components/shared/money-display';
 import { BadgeStatus, deriveVtxoStatus } from '@/components/shared/badge-status';
@@ -75,7 +73,7 @@ function TreeNodeView({ node, depth }: { node: TreeNode; depth: number }) {
         )}
         <TreePine className="h-3 w-3 text-muted-foreground shrink-0" />
         <Link
-          href={`/tx/${node.txid}`}
+          to={`/tx/${node.txid}`}
           className="text-xs font-mono text-primary hover:text-primary/80 transition-colors duration-200 truncate"
         >
           {truncateHash(node.txid, 10, 10)}
@@ -93,7 +91,7 @@ function TreeNodeView({ node, depth }: { node: TreeNode; depth: number }) {
             <div key={`${vout}-${childTxid}`} style={{ paddingLeft: '16px' }} className="flex items-center gap-2 py-1">
               <span className="text-xs text-muted-foreground">:{vout}</span>
               <Link
-                href={`/tx/${childTxid}`}
+                to={`/tx/${childTxid}`}
                 className="text-xs font-mono text-primary hover:text-primary/80 transition-colors duration-200 truncate"
               >
                 {truncateHash(childTxid, 10, 10)}
@@ -119,7 +117,7 @@ function LeafVtxoRow({ leaf }: { leaf: LeafVtxo }) {
     <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-secondary/50 transition-colors duration-150">
       <Leaf className="h-3 w-3 text-muted-foreground shrink-0" />
       <Link
-        href={`/tx/${leaf.outpoint.txid}`}
+        to={`/tx/${leaf.outpoint.txid}`}
         className="text-xs font-mono text-primary hover:text-primary/80 transition-colors duration-200 truncate min-w-0"
       >
         {truncateHash(outpointStr, 12, 12)}

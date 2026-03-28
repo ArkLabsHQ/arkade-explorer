@@ -1,7 +1,5 @@
-'use client';
-
 import { useCallback, useState } from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { Copy, ExternalLink, Clock, ChevronDown, ChevronRight } from 'lucide-react';
 import * as btc from '@scure/btc-signer';
 import { hex } from '@scure/base';
@@ -144,7 +142,7 @@ function SpentByLink({ vtxo }: { vtxo: VirtualCoin }) {
     <div className="flex items-center gap-2 text-xs">
       <span className="text-muted-foreground uppercase shrink-0">{label}</span>
       <Link
-        href={`/tx/${vtxo.spentBy}`}
+        to={`/tx/${vtxo.spentBy}`}
         className="font-mono text-foreground hover:text-primary transition-colors duration-150"
       >
         {truncateHash(vtxo.spentBy, 8, 8)}
@@ -159,7 +157,7 @@ function SettledByLink({ vtxo }: { vtxo: VirtualCoin }) {
     <div className="flex items-center gap-2 text-xs">
       <span className="text-muted-foreground uppercase shrink-0">Settled by:</span>
       <Link
-        href={`/commitment-tx/${vtxo.settledBy}`}
+        to={`/commitment-tx/${vtxo.settledBy}`}
         className="font-mono text-foreground hover:text-primary transition-colors duration-150"
       >
         {truncateHash(vtxo.settledBy, 8, 8)}
@@ -213,7 +211,7 @@ function AddressLink({
     <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-xs">
       <span className="text-muted-foreground uppercase shrink-0">Address:</span>
       <Link
-        href={`/address/${address}`}
+        to={`/address/${address}`}
         className="font-mono text-foreground hover:text-primary transition-colors duration-150 inline-flex items-center gap-1 break-all"
       >
         <span className="sm:hidden">{truncateHash(address, 8, 8)}</span>
@@ -395,7 +393,7 @@ function VtxoTableRow({
               )}
             </button>
             <Link
-              href={`/tx/${vtxo.txid}`}
+              to={`/tx/${vtxo.txid}`}
               className="font-mono text-xs text-foreground hover:text-primary transition-colors duration-150"
             >
               {truncateHash(vtxo.txid, 8, 6)}:{vtxo.vout}
@@ -509,7 +507,7 @@ function VtxoCard({
       {/* Header: outpoint + copy */}
       <div className="flex items-center justify-between gap-2 mb-3">
         <Link
-          href={`/tx/${vtxo.txid}`}
+          to={`/tx/${vtxo.txid}`}
           className="font-mono text-xs text-foreground hover:text-primary transition-colors duration-150 truncate min-w-0"
         >
           {truncateHash(vtxo.txid, 8, 6)}:{vtxo.vout}
@@ -652,7 +650,7 @@ function VtxoDenseRow({
 
         {/* Outpoint */}
         <Link
-          href={`/tx/${vtxo.txid}`}
+          to={`/tx/${vtxo.txid}`}
           className="font-mono text-xs text-foreground hover:text-primary transition-colors duration-150 truncate min-w-0 shrink"
         >
           {truncateHash(vtxo.txid, 6, 4)}:{vtxo.vout}
@@ -661,7 +659,7 @@ function VtxoDenseRow({
         {/* Spent by inline */}
         {vtxo.spentBy && (
           <Link
-            href={`/tx/${vtxo.spentBy}`}
+            to={`/tx/${vtxo.spentBy}`}
             className="text-[10px] text-muted-foreground hover:text-foreground font-mono transition-colors duration-150 shrink-0 hidden sm:inline"
             title={`Spent by ${vtxo.spentBy}`}
           >

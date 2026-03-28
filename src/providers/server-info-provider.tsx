@@ -1,5 +1,3 @@
-'use client';
-
 import { createContext, useContext, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { arkClient } from '@/lib/api/indexer';

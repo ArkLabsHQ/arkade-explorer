@@ -1,7 +1,5 @@
-'use client';
-
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { indexerClient } from '@/lib/api/indexer';
 import { useRecentSearches } from '@/hooks/use-recent-searches';
 import { TransactionDetail } from '@/components/shared/transaction-detail';
@@ -9,12 +7,9 @@ import { PageTransition } from '@/components/shared/page-transition';
 
 type TxType = 'arkade' | 'commitment' | 'loading' | 'error';
 
-interface TransactionPageClientProps {
-  txid: string;
-}
-
-export function TransactionPageClient({ txid }: TransactionPageClientProps) {
-  const router = useRouter();
+export function TransactionPage() {
+  const { txid } = useParams<{ txid: string }>();
+  const navigate = useNavigate();
   const { addRecentSearch } = useRecentSearches();
 
   const [txType, setTxType] = useState<TxType>('loading');
@@ -22,6 +17,7 @@ export function TransactionPageClient({ txid }: TransactionPageClientProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!txid) return;
     let cancelled = false;
 
     async function determineTxType() {
@@ -29,32 +25,28 @@ export function TransactionPageClient({ txid }: TransactionPageClientProps) {
       setError(null);
 
       try {
-        // Try fetching as commitment tx first
-        const commitmentTx = await indexerClient.getCommitmentTx(txid).catch(() => null);
+        const commitmentTx = await indexerClient.getCommitmentTx(txid!).catch(() => null);
 
         if (cancelled) return;
 
         if (commitmentTx && commitmentTx.batches && Object.keys(commitmentTx.batches).length > 0) {
-          // This is a commitment tx, redirect to the commitment-tx page
-          addRecentSearch(txid, 'commitment-tx');
-          router.replace(`/commitment-tx/${txid}`);
+          addRecentSearch(txid!, 'commitment-tx');
+          navigate(`/commitment-tx/${txid}`, { replace: true });
           return;
         }
 
-        // Otherwise, treat as an arkade virtual transaction
-        const virtualTxResult = await indexerClient.getVirtualTxs([txid]).catch(() => null);
+        const virtualTxResult = await indexerClient.getVirtualTxs([txid!]).catch(() => null);
 
         if (cancelled) return;
 
         if (virtualTxResult?.txs && virtualTxResult.txs.length > 0) {
           setHex(virtualTxResult.txs[0]);
           setTxType('arkade');
-          addRecentSearch(txid, 'transaction');
+          addRecentSearch(txid!, 'transaction');
         } else {
-          // Could not find it as either type, still show what we can
           setTxType('arkade');
           setHex('');
-          addRecentSearch(txid, 'transaction');
+          addRecentSearch(txid!, 'transaction');
         }
       } catch (err) {
         if (cancelled) return;
@@ -68,9 +60,8 @@ export function TransactionPageClient({ txid }: TransactionPageClientProps) {
     return () => {
       cancelled = true;
     };
-  }, [txid, router, addRecentSearch]);
+  }, [txid, navigate, addRecentSearch]);
 
-  // Loading state
   if (txType === 'loading') {
     return (
       <div className="space-y-6">
@@ -89,17 +80,11 @@ export function TransactionPageClient({ txid }: TransactionPageClientProps) {
     );
   }
 
-  // Error state
   if (txType === 'error') {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <a
-            href="/"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
-          >
-            Home
-          </a>
+          <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200">Home</Link>
           <span className="text-muted-foreground">/</span>
           <span className="text-sm text-foreground">Transaction</span>
         </div>
@@ -114,13 +99,12 @@ export function TransactionPageClient({ txid }: TransactionPageClientProps) {
     );
   }
 
-  // Arkade tx
   return (
     <PageTransition>
       <TransactionDetail
         type="arkade"
         arkadeData={{
-          txid,
+          txid: txid!,
           hex,
         }}
       />

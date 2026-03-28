@@ -1,6 +1,4 @@
-'use client';
-
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { useAssetDetails } from '@/hooks/use-asset-details';
 import { useAssetIconApproval } from '@/providers/asset-icon-approval-provider';
 import { truncateHash } from '@/lib/utils';
@@ -17,24 +15,25 @@ export function AssetBadge({ assetId, className = '' }: AssetBadgeProps) {
   const metadata = assetDetails?.metadata;
   const label = metadata?.ticker || metadata?.name || truncateHash(assetId, 6, 6);
 
+  const hasIcon = metadata?.icon && isSafeImageUrl(metadata.icon);
+
   return (
     <span className={`inline-flex items-center gap-1.5 ${className}`}>
-      {metadata?.icon && isSafeImageUrl(metadata.icon) && isApproved(assetId) && (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
-          src={metadata.icon}
-          alt={label}
-          className="w-3.5 h-3.5 rounded-full"
-        />
-      )}
       <Link
-        href={`/asset/${assetId}`}
-        className="inline-flex items-center px-2 py-0.5 text-xs font-bold uppercase
+        to={`/asset/${assetId}`}
+        className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-bold uppercase
           bg-primary/10 border border-primary/30 text-primary
           rounded-md hover:bg-primary/20 transition-colors duration-150"
         title={assetId}
       >
         {label}
+        {hasIcon && (
+          <img
+            src={metadata.icon}
+            alt={label}
+            className="w-3.5 h-3.5 rounded-full"
+          />
+        )}
       </Link>
     </span>
   );
