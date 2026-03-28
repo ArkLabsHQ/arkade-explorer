@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect } from 'react';
 
 export function useKeyboardShortcut(key: string, callback: () => void, options?: { meta?: boolean; ctrl?: boolean }) {

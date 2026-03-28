@@ -1,7 +1,5 @@
-'use client';
-
 import { useCallback, useState } from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { Copy, Check, Shield, Image as ImageIcon, ChevronDown, ChevronRight } from 'lucide-react';
 import type { AssetDetails } from '@/lib/api/indexer';
 import { isSafeImageUrl, formatAssetAmount } from '@/lib/api/indexer';
@@ -127,7 +125,7 @@ export function AssetDetail({ assetDetails, className }: AssetDetailProps) {
               Genesis TX
             </label>
             <Link
-              href={`/tx/${genesisTxid}`}
+              to={`/tx/${genesisTxid}`}
               className="text-primary hover:text-primary/80 font-mono text-sm transition-colors duration-150"
             >
               {truncateHash(genesisTxid, 8, 8)}
@@ -162,7 +160,7 @@ export function AssetDetail({ assetDetails, className }: AssetDetailProps) {
             </label>
             <div className="flex items-center gap-2">
               <Link
-                href={`/asset/${assetDetails.controlAssetId}`}
+                to={`/asset/${assetDetails.controlAssetId}`}
                 className="text-primary hover:text-primary/80 font-mono text-xs break-all transition-colors duration-150"
               >
                 {truncateHash(assetDetails.controlAssetId, 8, 8)}

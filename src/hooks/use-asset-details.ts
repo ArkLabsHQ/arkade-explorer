@@ -1,5 +1,3 @@
-'use client';
-
 import { useQuery } from '@tanstack/react-query';
 import { indexerClient } from '@/lib/api/indexer';
 import type { AssetDetails } from '@/lib/api/indexer';

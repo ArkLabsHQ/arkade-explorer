@@ -1,7 +1,6 @@
-'use client';
-
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Copy, Check, Pin, PinOff } from 'lucide-react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import type { VirtualCoin } from '@arkade-os/sdk';
@@ -19,10 +18,6 @@ import { PageTransition } from '@/components/shared/page-transition';
 
 type VtxoFilter = 'all' | 'spendable' | 'recoverable' | 'spent';
 type StatusFilter = 'all' | 'preconfirmed' | 'settled';
-
-interface AddressPageClientProps {
-  address: string;
-}
 
 function CopyableValue({ value, truncate }: { value: string; truncate?: boolean }) {
   const [copied, setCopied] = useState(false);
@@ -69,15 +64,16 @@ const STATUS_BUTTONS: { value: StatusFilter; label: string }[] = [
   { value: 'settled', label: 'Settled' },
 ];
 
-export function AddressPageClient({ address }: AddressPageClientProps) {
+export function AddressPage() {
+  const { address } = useParams<{ address: string }>();
   const [vtxoFilter, setVtxoFilter] = useState<VtxoFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const { addRecentSearch, isPinned, pinSearch, unpinSearch } = useRecentSearches();
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const subscriptionRef = useRef<AbortController | null>(null);
 
-  // Compute script hex from address
   const scriptHex = useMemo(() => {
+    if (!address) return null;
     try {
       return addressToScriptHex(address);
     } catch {
@@ -85,12 +81,10 @@ export function AddressPageClient({ address }: AddressPageClientProps) {
     }
   }, [address]);
 
-  // Add to recent searches on mount
   useEffect(() => {
-    addRecentSearch(address, 'address');
+    if (address) addRecentSearch(address, 'address');
   }, [address, addRecentSearch]);
 
-  // Fetch VTXOs with infinite query
   const {
     data,
     isLoading,
@@ -127,7 +121,6 @@ export function AddressPageClient({ address }: AddressPageClientProps) {
     enabled: !!scriptHex,
   });
 
-  // Subscribe for real-time updates
   useEffect(() => {
     if (!scriptHex) return;
 
@@ -137,7 +130,6 @@ export function AddressPageClient({ address }: AddressPageClientProps) {
     async function subscribe() {
       try {
         const subscriptionId = await indexerClient.subscribeForScripts([scriptHex!]);
-
         const subscription = indexerClient.getSubscription(
           subscriptionId,
           abortController.signal,
@@ -145,7 +137,6 @@ export function AddressPageClient({ address }: AddressPageClientProps) {
 
         for await (const _event of subscription) {
           if (abortController.signal.aborted) break;
-          // Refetch VTXOs when we get an update
           refetch();
         }
       } catch (err) {
@@ -163,7 +154,6 @@ export function AddressPageClient({ address }: AddressPageClientProps) {
     };
   }, [scriptHex, refetch]);
 
-  // Infinite scroll observer
   useEffect(() => {
     const sentinel = loadMoreRef.current;
     if (!sentinel) return;
@@ -181,13 +171,11 @@ export function AddressPageClient({ address }: AddressPageClientProps) {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Flatten all pages of VTXOs
   const allVtxos = useMemo(
     () => data?.pages.flatMap((page) => page.vtxos) ?? [],
     [data],
   );
 
-  // Apply status filter client-side
   const filteredVtxos = useMemo(() => {
     if (statusFilter === 'all') return allVtxos;
     return allVtxos.filter(
@@ -195,15 +183,15 @@ export function AddressPageClient({ address }: AddressPageClientProps) {
     );
   }, [allVtxos, statusFilter]);
 
-  // Compute filtered balance
   const filteredBalance = useMemo(
     () => filteredVtxos.reduce((sum, vtxo) => sum + vtxo.value, 0),
     [filteredVtxos],
   );
 
-  const pinned = isPinned(address);
+  const pinned = address ? isPinned(address) : false;
 
   const handleTogglePin = useCallback(() => {
+    if (!address) return;
     if (pinned) {
       unpinSearch(address);
     } else {
@@ -225,7 +213,6 @@ export function AddressPageClient({ address }: AddressPageClientProps) {
     <div className="space-y-6">
       <Breadcrumb />
 
-      {/* Address details card */}
       <div className="rounded-xl border border-border bg-card p-6 shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_hsl(var(--border)/0.2)]">
         <div className="flex items-center justify-between mb-4">
           <h1 className="font-heading text-xl font-bold text-foreground">
@@ -253,7 +240,7 @@ export function AddressPageClient({ address }: AddressPageClientProps) {
             <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1 block">
               Address
             </label>
-            <CopyableValue value={address} />
+            <CopyableValue value={address!} />
           </div>
 
           <div>
@@ -265,18 +252,13 @@ export function AddressPageClient({ address }: AddressPageClientProps) {
         </div>
       </div>
 
-      {/* Address stats */}
       {!isLoading && !error && allVtxos.length > 0 && (
         <AddressStats vtxos={allVtxos} />
       )}
 
-      {/* Filter controls */}
       <div className="space-y-3">
-        {/* VTXO type filter */}
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground mr-1">
-            Type
-          </span>
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground mr-1">Type</span>
           {FILTER_BUTTONS.map((btn) => (
             <button
               key={btn.value}
@@ -293,11 +275,8 @@ export function AddressPageClient({ address }: AddressPageClientProps) {
           ))}
         </div>
 
-        {/* Status filter */}
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground mr-1">
-            Status
-          </span>
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground mr-1">Status</span>
           {STATUS_BUTTONS.map((btn) => (
             <button
               key={btn.value}
@@ -315,44 +294,25 @@ export function AddressPageClient({ address }: AddressPageClientProps) {
         </div>
       </div>
 
-      {/* Balance summary */}
       <div className="flex items-center gap-3">
-        <h2 className="font-heading text-sm font-semibold text-foreground">
-          Balance
-        </h2>
-        <MoneyDisplay
-          sats={filteredBalance}
-          className="text-foreground font-mono text-sm"
-        />
+        <h2 className="font-heading text-sm font-semibold text-foreground">Balance</h2>
+        <MoneyDisplay sats={filteredBalance} className="text-foreground font-mono text-sm" />
         <span className="text-xs text-muted-foreground">
           ({filteredVtxos.length} VTXO{filteredVtxos.length !== 1 ? 's' : ''})
         </span>
       </div>
 
-      {/* VTXO list */}
       {isLoading ? (
         <LoadingSpinner />
       ) : error ? (
-        <ErrorMessage
-          message={
-            error instanceof Error
-              ? error.message
-              : 'Failed to fetch VTXOs'
-          }
-        />
+        <ErrorMessage message={error instanceof Error ? error.message : 'Failed to fetch VTXOs'} />
       ) : (
         <>
           <VtxoList vtxos={filteredVtxos} />
-
-          {/* Infinite scroll sentinel */}
           <div ref={loadMoreRef} className="h-1" />
-
           {isFetchingNextPage && <LoadingSpinner />}
-
           {!hasNextPage && filteredVtxos.length > 0 && (
-            <p className="text-center text-xs text-muted-foreground py-4">
-              All VTXOs loaded
-            </p>
+            <p className="text-center text-xs text-muted-foreground py-4">All VTXOs loaded</p>
           )}
         </>
       )}
@@ -365,7 +325,7 @@ function Breadcrumb() {
   return (
     <div className="flex items-center gap-3">
       <Link
-        href="/"
+        to="/"
         className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
       >
         Home

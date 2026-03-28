@@ -1,5 +1,3 @@
-'use client';
-
 import { useMoneyDisplay } from '@/providers/money-display-provider';
 import { formatSats } from '@/lib/utils';
 

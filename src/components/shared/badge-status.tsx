@@ -1,5 +1,3 @@
-'use client';
-
 type VtxoStatus = 'spendable' | 'spent' | 'swept' | 'preconfirmed' | 'settled' | 'expired';
 
 interface BadgeStatusProps {

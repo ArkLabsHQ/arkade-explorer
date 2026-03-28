@@ -1,6 +1,6 @@
 @import "tailwindcss";
-@import "../themes/dawn.css";
-@import "../themes/midnight.css";
+@import "./themes/dawn.css";
+@import "./themes/midnight.css";
 
 @layer base {
   @font-face {
