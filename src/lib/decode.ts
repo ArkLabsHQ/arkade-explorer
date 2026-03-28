@@ -1,5 +1,5 @@
 import * as btc from '@scure/btc-signer';
-import { hex, base64 } from '@scure/base';
+import { hex } from '@scure/base';
 import { ArkAddress } from '@arkade-os/sdk';
 import { constructArkAddress } from '@/lib/arkAddress';
 

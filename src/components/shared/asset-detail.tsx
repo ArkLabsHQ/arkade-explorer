@@ -46,7 +46,7 @@ export function AssetDetail({ assetDetails, className }: AssetDetailProps) {
   const hasIcon = !!iconUrl && isSafeImageUrl(iconUrl);
   const iconApproved = isApproved(assetDetails.assetId);
   const iconVerified = isVerified(assetDetails.assetId);
-  const showIcon = hasIcon;
+  const showIcon = hasIcon && (iconApproved || iconVerified);
 
   // AssetId format: 64 hex chars (txid) + remaining chars (group index)
   const genesisTxid =

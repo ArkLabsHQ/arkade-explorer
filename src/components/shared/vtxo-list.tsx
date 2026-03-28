@@ -351,8 +351,6 @@ function VtxoTable({
 function VtxoTableRow({
   vtxo,
   status,
-  outpointStr,
-  hasDetails,
   showScript,
   signerPubkey,
   network,

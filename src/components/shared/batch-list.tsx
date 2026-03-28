@@ -8,7 +8,7 @@ import { VtxoList } from '@/components/shared/vtxo-list';
 import { truncateHash, formatTimestamp } from '@/lib/utils';
 import { indexerClient } from '@/lib/api/indexer';
 import { fetchAllPages } from '@/lib/api/fetchAllPages';
-import type { BatchInfo, Outpoint, Tx, VirtualCoin } from '@arkade-os/sdk';
+import type { BatchInfo, Outpoint, VirtualCoin } from '@arkade-os/sdk';
 
 // ---------------------------------------------------------------------------
 // Types

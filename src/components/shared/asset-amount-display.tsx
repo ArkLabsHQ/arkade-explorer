@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAssetDetails } from '@/hooks/use-asset-details';
-import { useAssetIconApproval } from '@/providers/asset-icon-approval-provider';
+
 import { truncateHash } from '@/lib/utils';
 import { isSafeImageUrl, formatAssetAmount } from '@/lib/api/indexer';
 
@@ -22,7 +22,7 @@ export function AssetAmountDisplay({
   hideUnit = false,
 }: AssetAmountDisplayProps) {
   const { assetDetails, isLoading } = useAssetDetails(assetId);
-  const { isApproved } = useAssetIconApproval();
+
   const metadata = assetDetails?.metadata;
   const decimals = metadata?.decimals ?? 0;
   const ticker = metadata?.ticker || metadata?.name || truncateHash(assetId, 6, 6);

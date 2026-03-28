@@ -344,7 +344,6 @@ function InputCard({ input }: { input: ParsedInput }) {
 function OutputCard({
   output,
   txid,
-  subtype,
   forfeitAddress,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   assetPacket,

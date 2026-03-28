@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import { Copy, Check, Pin, PinOff } from 'lucide-react';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import type { VirtualCoin } from '@arkade-os/sdk';
+
 import { indexerClient } from '@/lib/api/indexer';
 import { addressToScriptHex } from '@/lib/decode';
 import { PAGINATION } from '@/lib/constants';

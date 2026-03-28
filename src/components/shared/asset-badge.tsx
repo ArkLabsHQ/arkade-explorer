@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAssetDetails } from '@/hooks/use-asset-details';
-import { useAssetIconApproval } from '@/providers/asset-icon-approval-provider';
+
 import { truncateHash } from '@/lib/utils';
 import { isSafeImageUrl } from '@/lib/api/indexer';
 
@@ -11,7 +11,7 @@ interface AssetBadgeProps {
 
 export function AssetBadge({ assetId, className = '' }: AssetBadgeProps) {
   const { assetDetails } = useAssetDetails(assetId);
-  const { isApproved } = useAssetIconApproval();
+
   const metadata = assetDetails?.metadata;
   const label = metadata?.ticker || metadata?.name || truncateHash(assetId, 6, 6);
 

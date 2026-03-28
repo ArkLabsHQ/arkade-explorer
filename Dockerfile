@@ -1,9 +1,11 @@
-FROM oven/bun:1-alpine AS build
+FROM node:22-alpine AS build
+RUN apk add --no-cache git
+RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
-COPY package.json bun.lock* ./
-RUN bun install --frozen-lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY . .
-RUN bun run build
+RUN pnpm run build
 
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
