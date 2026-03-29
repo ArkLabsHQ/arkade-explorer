@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useQueries } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight, FileText, ArrowLeft, ArrowRight, Pin, PinOff } from 'lucide-react';
 import { CopyButton } from '@/components/shared/copy-button';
 import { InfoRow } from '@/components/shared/info-row';
@@ -7,6 +8,8 @@ import { MoneyDisplay } from '@/components/shared/money-display';
 import { BadgeStatus, deriveVtxoStatus } from '@/components/shared/badge-status';
 import { truncateHash, formatTimestamp } from '@/lib/utils';
 import { constructArkAddress } from '@/lib/arkAddress';
+import { indexerClient } from '@/lib/api/indexer';
+import { fetchAllPages } from '@/lib/api/fetchAllPages';
 import { useServerInfo } from '@/providers/server-info-provider';
 import { useRecentSearches } from '@/hooks/use-recent-searches';
 import * as btc from '@scure/btc-signer';
@@ -347,6 +350,9 @@ function OutputCard({
   forfeitAddress,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   assetPacket,
+  isConnector,
+  batchRootTxid,
+  forfeitVtxo,
 }: {
   output: ParsedOutput;
   txid: string;
@@ -354,6 +360,9 @@ function OutputCard({
   forfeitAddress: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   assetPacket: any;
+  isConnector?: boolean;
+  batchRootTxid?: string;
+  forfeitVtxo?: VirtualCoin | null;
 }) {
   const vtxo = output.vtxo;
   const isSpent =
@@ -409,13 +418,19 @@ function OutputCard({
             </span>
             {output.isBatch && output.batchInfo && (
               <Link
-                to={`#batch-${output.batchKey}`}
+                to={batchRootTxid ? `/tx/${batchRootTxid}` : `#batch-${output.batchKey}`}
                 className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full border bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/25 transition-colors duration-150"
                 aria-label={`View batch ${parseInt(output.batchKey) + 1} details`}
+                title={batchRootTxid ? `View batch root tx: ${batchRootTxid}` : undefined}
               >
                 Batch #{parseInt(output.batchKey) + 1}
                 <ArrowRight className="h-3 w-3" aria-hidden="true" />
               </Link>
+            )}
+            {isConnector && (
+              <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full border bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30">
+                Connector
+              </span>
             )}
             {output.isAnchor && (
               <span className="text-xs text-muted-foreground">Anchor</span>
@@ -471,6 +486,17 @@ function OutputCard({
             {forfeitAddress && (
               <div className="text-xs font-mono text-muted-foreground break-all">
                 {forfeitAddress}
+              </div>
+            )}
+            {forfeitVtxo?.settledBy && (
+              <div className="text-xs text-muted-foreground">
+                Settled in{' '}
+                <Link
+                  to={`/commitment-tx/${forfeitVtxo.settledBy}`}
+                  className="text-primary hover:text-primary/80 font-mono"
+                >
+                  {truncateHash(forfeitVtxo.settledBy, 8, 8)}
+                </Link>
               </div>
             )}
           </div>
@@ -933,6 +959,139 @@ export function TransactionDetail({
   }, [type, arkadeData?.hex, commitmentData?.hex, serverInfo, vtxoData, commitmentData?.metadata, txid]);
 
   // -------------------------------------------------------------------------
+  // Fetch VTXO tree data for each batch (commitment txs only)
+  // -------------------------------------------------------------------------
+
+  const batchVouts = type === 'commitment' && commitmentData?.metadata?.batches
+    ? Object.keys(commitmentData.metadata.batches).map(key => parseInt(key))
+    : [];
+
+  const batchTreeQueries = useQueries({
+    queries: batchVouts.map(vout => ({
+      queryKey: ['vtxo-tree', txid, vout],
+      queryFn: () => fetchAllPages(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (opts: any) => indexerClient.getVtxoTree({ txid, vout }, opts),
+        'vtxoTree',
+      ),
+      enabled: type === 'commitment' && !!txid,
+    })),
+  });
+
+  const batchRootTxids = new Map<number, string>();
+  batchTreeQueries.forEach((query, index) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((query.data as any)?.vtxoTree && (query.data as any).vtxoTree.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tree = (query.data as any).vtxoTree;
+      const allChildTxids = new Set<string>();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tree.forEach((node: any) => {
+        if (node.children) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          Object.values(node.children).forEach((childTxid: any) => {
+            allChildTxids.add(childTxid);
+          });
+        }
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rootNode = tree.find((node: any) => !allChildTxids.has(node.txid));
+      if (rootNode) {
+        batchRootTxids.set(batchVouts[index], rootNode.txid);
+      }
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // Find root connector transaction and determine connector outputs
+  // -------------------------------------------------------------------------
+
+  const rootConnectorTxid = type === 'commitment' && commitmentData?.connectors?.length
+    ? (() => {
+        const connectors = commitmentData.connectors;
+        const allChildTxids = new Set<string>();
+        connectors.forEach((conn) => {
+          if (conn.children) {
+            Object.values(conn.children).forEach((childTxid) => {
+              allChildTxids.add(childTxid);
+            });
+          }
+        });
+        const rootConnector = connectors.find((conn) => !allChildTxids.has(conn.txid));
+        return rootConnector?.txid;
+      })()
+    : null;
+
+  const rootConnectorQueries = useQueries({
+    queries: [{
+      queryKey: ['virtual-tx', rootConnectorTxid || 'none'],
+      queryFn: async () => {
+        if (!rootConnectorTxid) return null;
+        const result = await indexerClient.getVirtualTxs([rootConnectorTxid]);
+        return result.txs[0];
+      },
+      enabled: !!rootConnectorTxid,
+    }],
+  });
+
+  const connectorOutputIndices = useMemo(() => {
+    const indices = new Set<number>();
+    const rootConnectorData = rootConnectorQueries[0]?.data;
+    if (rootConnectorData && typeof rootConnectorData === 'string') {
+      try {
+        const isHexData = /^[0-9a-fA-F]+$/.test(rootConnectorData);
+        let rootConnectorParsedTx: btc.Transaction | null = null;
+
+        if (isHexData) {
+          const txBytes = hex.decode(rootConnectorData);
+          rootConnectorParsedTx = btc.Transaction.fromRaw(txBytes);
+        } else {
+          const psbtBytes = Uint8Array.from(atob(rootConnectorData), c => c.charCodeAt(0));
+          rootConnectorParsedTx = btc.Transaction.fromPSBT(psbtBytes);
+        }
+
+        if (rootConnectorParsedTx) {
+          for (let i = 0; i < rootConnectorParsedTx.inputsLength; i++) {
+            const input = rootConnectorParsedTx.getInput(i);
+            if (input?.txid) {
+              const inputTxid = toHex(input.txid);
+              if (inputTxid === txid) {
+                indices.add(input.index ?? 0);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse root connector transaction:', e);
+      }
+    }
+    return indices;
+  }, [rootConnectorQueries, txid]);
+
+  // -------------------------------------------------------------------------
+  // Fetch forfeit VTXO data (for forfeit transactions)
+  // -------------------------------------------------------------------------
+
+  const [forfeitVtxo, setForfeitVtxo] = useState<VirtualCoin | null>(null);
+
+  useEffect(() => {
+    if (subtype !== 'forfeit' || !parsedTx || parsedTx.inputsLength === 0) return;
+
+    const input = parsedTx.getInput(0);
+    if (!input?.txid || input?.index === undefined) return;
+
+    const inputTxid = toHex(input.txid);
+    indexerClient
+      .getVtxos({ outpoints: [{ txid: inputTxid, vout: input.index }] })
+      .then((result) => {
+        if (result.vtxos?.[0]) setForfeitVtxo(result.vtxos[0]);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch forfeit VTXO:', err);
+      });
+  }, [subtype, parsedTx]);
+
+  // -------------------------------------------------------------------------
   // Derive title from subtype
   // -------------------------------------------------------------------------
 
@@ -1235,6 +1394,9 @@ export function TransactionDetail({
                   subtype={subtype}
                   forfeitAddress={forfeitAddress}
                   assetPacket={assetPacket}
+                  isConnector={connectorOutputIndices.has(output.index)}
+                  batchRootTxid={batchRootTxids.get(output.index)}
+                  forfeitVtxo={forfeitVtxo}
                 />
               ))}
             </div>

@@ -1,71 +1,79 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { indexerClient } from '@/lib/api/indexer';
 import { fetchAllPages } from '@/lib/api/fetchAllPages';
 import { useRecentSearches } from '@/hooks/use-recent-searches';
 import { TransactionDetail } from '@/components/shared/transaction-detail';
 import { BatchList } from '@/components/shared/batch-list';
 import { PageTransition } from '@/components/shared/page-transition';
-import type { CommitmentTx, Tx } from '@arkade-os/sdk';
-
-type LoadState = 'loading' | 'loaded' | 'error';
 
 export function CommitmentTxPage() {
   const { txid } = useParams<{ txid: string }>();
   const { addRecentSearch } = useRecentSearches();
-
-  const [state, setState] = useState<LoadState>('loading');
-  const [metadata, setMetadata] = useState<CommitmentTx | null>(null);
-  const [hex, setHex] = useState('');
-  const [forfeitTxids, setForfeitTxids] = useState<string[]>([]);
-  const [connectors, setConnectors] = useState<Tx[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const addedToRecentRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!txid) return;
-    let cancelled = false;
+    document.title = txid ? `Round ${txid.slice(0, 8)}... | Arkade Explorer` : 'Arkade Explorer';
+    return () => { document.title = 'Arkade Explorer'; };
+  }, [txid]);
 
-    async function loadCommitmentTx() {
-      setState('loading');
-      setError(null);
+  // Fetch commitment tx metadata
+  const { data: metadata, isLoading: isLoadingMeta, error: metaError } = useQuery({
+    queryKey: ['commitment-tx', txid],
+    queryFn: () => indexerClient.getCommitmentTx(txid!),
+    enabled: !!txid,
+    retry: false,
+  });
 
-      try {
-        const [commitmentTx, virtualTxResult, forfeitResult, connectorsResult] = await Promise.all([
-          indexerClient.getCommitmentTx(txid!),
-          indexerClient.getVirtualTxs([txid!]).catch(() => ({ txs: [] })),
-          fetchAllPages(
-            (opts) => indexerClient.getCommitmentTxForfeitTxs(txid!, opts),
-            'txids',
-          ).catch(() => ({ txids: [] })),
-          fetchAllPages(
-            (opts) => indexerClient.getCommitmentTxConnectors(txid!, opts),
-            'connectors',
-          ).catch(() => ({ connectors: [] })),
-        ]);
+  // Fetch virtual tx hex
+  const { data: virtualTxData } = useQuery({
+    queryKey: ['virtual-tx', txid],
+    queryFn: () => indexerClient.getVirtualTxs([txid!]),
+    enabled: !!txid,
+    retry: false,
+  });
 
-        if (cancelled) return;
+  // Fetch forfeit transaction IDs
+  const { data: forfeitData } = useQuery({
+    queryKey: ['commitment-tx-forfeits', txid],
+    queryFn: () => fetchAllPages(
+      (opts) => indexerClient.getCommitmentTxForfeitTxs(txid!, opts),
+      'txids',
+    ),
+    enabled: !!txid && !!metadata,
+  });
 
-        setMetadata(commitmentTx);
-        setHex(virtualTxResult.txs?.[0] || '');
-        setForfeitTxids(forfeitResult.txids || []);
-        setConnectors(connectorsResult.connectors || []);
-        setState('loaded');
-        addRecentSearch(txid!, 'commitment-tx');
-      } catch (err) {
-        if (cancelled) return;
-        console.error('Failed to load commitment tx:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load commitment transaction');
-        setState('error');
-      }
+  // Fetch connector transactions
+  const { data: connectorsData } = useQuery({
+    queryKey: ['commitment-tx-connectors', txid],
+    queryFn: () => fetchAllPages(
+      (opts) => indexerClient.getCommitmentTxConnectors(txid!, opts),
+      'connectors',
+    ),
+    enabled: !!txid && !!metadata,
+  });
+
+  // Add to recent searches
+  useLayoutEffect(() => {
+    if (txid && metadata && addedToRecentRef.current !== txid) {
+      addedToRecentRef.current = txid;
+      setTimeout(() => addRecentSearch(txid, 'commitment-tx'), 0);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [txid, metadata]);
 
-    loadCommitmentTx();
-    return () => {
-      cancelled = true;
-    };
-  }, [txid, addRecentSearch]);
+  if (!txid) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-6 shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_hsl(var(--border)/0.2)]">
+        <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-center">
+          <p className="text-sm text-red-600 dark:text-red-400 font-medium">No transaction ID provided</p>
+        </div>
+      </div>
+    );
+  }
 
-  if (state === 'loading') {
+  if (isLoadingMeta) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
@@ -83,7 +91,7 @@ export function CommitmentTxPage() {
     );
   }
 
-  if (state === 'error') {
+  if (metaError) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
@@ -94,7 +102,7 @@ export function CommitmentTxPage() {
         <div className="rounded-xl border border-border bg-card p-6 shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_hsl(var(--border)/0.2)]">
           <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-center">
             <p className="text-sm text-red-600 dark:text-red-400 font-medium mb-1">Failed to load commitment transaction</p>
-            <p className="text-xs text-muted-foreground break-all">{error}</p>
+            <p className="text-xs text-muted-foreground break-all">{metaError instanceof Error ? metaError.message : 'Unknown error'}</p>
             <p className="text-xs text-muted-foreground font-mono mt-2 break-all">{txid}</p>
           </div>
         </div>
@@ -102,7 +110,13 @@ export function CommitmentTxPage() {
     );
   }
 
-  const batchEntries = metadata?.batches
+  if (!metadata) return null;
+
+  const txHex = virtualTxData?.txs?.[0] || '';
+  const forfeitTxids = forfeitData?.txids || [];
+  const connectors = connectorsData?.connectors || [];
+
+  const batchEntries = metadata.batches
     ? Object.entries(metadata.batches).map(([outpoint, info]) => ({
         outpoint,
         info,
@@ -115,9 +129,9 @@ export function CommitmentTxPage() {
         <TransactionDetail
           type="commitment"
           commitmentData={{
-            txid: txid!,
-            metadata: metadata!,
-            hex,
+            txid,
+            metadata,
+            hex: txHex,
             forfeitTxids,
             connectors,
           }}
