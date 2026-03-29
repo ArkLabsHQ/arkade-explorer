@@ -227,30 +227,27 @@ export function SearchCommandPaletteOverlay({
     <AnimatePresence>
       {open && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop + dialog container — single layer so clicks anywhere outside the card close the modal */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-50 bg-background/60 backdrop-blur-sm"
-            onClick={() => onOpenChange(false)}
-          />
-
-          {/* Command dialog */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: -8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: -8 }}
-            transition={{ duration: 0.2, ease: [0.165, 0.84, 0.44, 1] }}
-            className="fixed inset-0 z-50 flex justify-center px-4"
+            className="fixed inset-0 z-50 bg-background/60 backdrop-blur-sm flex justify-center items-start px-4"
             style={{ paddingTop: '20vh' }}
             onClick={() => onOpenChange(false)}
           >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: -8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: -8 }}
+              transition={{ duration: 0.2, ease: [0.165, 0.84, 0.44, 1] }}
+              className="w-full max-w-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
             <Command
-              className="h-fit w-full max-w-lg rounded-xl border border-border bg-card shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2),0_8px_16px_hsl(var(--border)/0.15)] overflow-hidden"
+              className="rounded-xl border border-border bg-card shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2),0_8px_16px_hsl(var(--border)/0.15)] overflow-hidden"
               shouldFilter={false}
-              onClick={(e: React.MouseEvent) => e.stopPropagation()}
             >
               {/* Input */}
               <div className="flex items-center border-b border-border px-3">
@@ -501,6 +498,7 @@ export function SearchCommandPaletteOverlay({
                 </div>
               </div>
             </Command>
+            </motion.div>
           </motion.div>
         </>
       )}
@@ -586,30 +584,27 @@ function SearchCommandPalette({ className }: { className?: string }) {
       <AnimatePresence>
         {open && (
           <>
-            {/* Backdrop */}
+            {/* Backdrop + dialog container */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="fixed inset-0 z-50 bg-background/60 backdrop-blur-sm"
-              onClick={() => setOpen(false)}
-            />
-
-            {/* Command dialog */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: -8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: -8 }}
-              transition={{ duration: 0.2, ease: [0.165, 0.84, 0.44, 1] }}
-              className="fixed inset-0 z-50 flex justify-center px-4"
+              className="fixed inset-0 z-50 bg-background/60 backdrop-blur-sm flex justify-center items-start px-4"
               style={{ paddingTop: '20vh' }}
               onClick={() => setOpen(false)}
             >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: -8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: -8 }}
+                transition={{ duration: 0.2, ease: [0.165, 0.84, 0.44, 1] }}
+                className="w-full max-w-lg"
+                onClick={(e) => e.stopPropagation()}
+              >
               <Command
-                className="h-fit w-full max-w-lg rounded-xl border border-border bg-card shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2),0_8px_16px_hsl(var(--border)/0.15)] overflow-hidden"
+                className="rounded-xl border border-border bg-card shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2),0_8px_16px_hsl(var(--border)/0.15)] overflow-hidden"
                 shouldFilter={false}
-                onClick={(e: React.MouseEvent) => e.stopPropagation()}
               >
                 {/* Input */}
                 <div className="flex items-center border-b border-border px-3">
@@ -867,6 +862,7 @@ function SearchCommandPalette({ className }: { className?: string }) {
                   </div>
                 </div>
               </Command>
+              </motion.div>
             </motion.div>
           </>
         )}
