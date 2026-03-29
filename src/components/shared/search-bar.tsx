@@ -243,11 +243,14 @@ export function SearchCommandPaletteOverlay({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -8 }}
             transition={{ duration: 0.2, ease: [0.165, 0.84, 0.44, 1] }}
-            className="fixed left-1/2 top-[20vh] z-50 w-full max-w-lg -translate-x-1/2 px-4"
+            className="fixed inset-0 z-50 flex justify-center px-4"
+            style={{ paddingTop: '20vh' }}
+            onClick={() => onOpenChange(false)}
           >
             <Command
-              className="rounded-xl border border-border bg-card shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2),0_8px_16px_hsl(var(--border)/0.15)] overflow-hidden"
+              className="h-fit w-full max-w-lg rounded-xl border border-border bg-card shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2),0_8px_16px_hsl(var(--border)/0.15)] overflow-hidden"
               shouldFilter={false}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
             >
               {/* Input */}
               <div className="flex items-center border-b border-border px-3">
@@ -599,11 +602,14 @@ function SearchCommandPalette({ className }: { className?: string }) {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: -8 }}
               transition={{ duration: 0.2, ease: [0.165, 0.84, 0.44, 1] }}
-              className="fixed left-1/2 top-[20vh] z-50 w-full max-w-lg -translate-x-1/2"
+              className="fixed inset-0 z-50 flex justify-center px-4"
+              style={{ paddingTop: '20vh' }}
+              onClick={() => setOpen(false)}
             >
               <Command
-                className="rounded-xl border border-border bg-card shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2),0_8px_16px_hsl(var(--border)/0.15)] overflow-hidden"
+                className="h-fit w-full max-w-lg rounded-xl border border-border bg-card shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2),0_8px_16px_hsl(var(--border)/0.15)] overflow-hidden"
                 shouldFilter={false}
+                onClick={(e: React.MouseEvent) => e.stopPropagation()}
               >
                 {/* Input */}
                 <div className="flex items-center border-b border-border px-3">
