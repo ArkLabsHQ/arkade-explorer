@@ -83,3 +83,7 @@
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
 }
+
+[cmdk-input]:focus-visible {
+  outline: none;
+}
