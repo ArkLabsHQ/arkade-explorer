@@ -58,6 +58,8 @@ function addressToScriptHex(address) {
   }
   // Inline ArkAddress.decode() to avoid importing the full SDK (which pulls in
   // @bitcoinerlab/descriptors-core and breaks the Wrangler/esbuild bundle).
+  // Canonical implementation: @arkade-os/sdk → src/script/address.ts
+  // Format: 1 byte version + 32 bytes server pubkey + 32 bytes VTXO taproot key
   const decoded = bech32m.decodeUnsafe(address, 1023);
   if (!decoded) throw new Error('Invalid address');
   const data = new Uint8Array(bech32m.fromWords(decoded.words));

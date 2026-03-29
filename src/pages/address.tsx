@@ -213,48 +213,54 @@ export function AddressPage() {
     <div className="space-y-6">
       <Breadcrumb />
 
-      <div className="rounded-xl border border-border bg-card p-6 shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_hsl(var(--border)/0.2)]">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="font-heading text-xl font-bold text-foreground">
-            Address details
-          </h1>
-          <button
-            onClick={handleTogglePin}
-            className={cn(
-              'flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-colors duration-150',
-              pinned
-                ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
-                : 'text-muted-foreground border-border hover:text-foreground hover:border-foreground/20',
-            )}
-            title={pinned ? 'Unpin address' : 'Pin address'}
-            aria-label={pinned ? 'Unpin this address' : 'Pin this address'}
-            aria-pressed={pinned}
-          >
-            {pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
-            {pinned ? 'Unpin' : 'Pin'}
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1 block">
-              Address
-            </label>
-            <CopyableValue value={address!} />
+      <div className={cn(
+        !isLoading && !error && allVtxos.length > 0
+          ? 'flex flex-col md:flex-row gap-4 md:items-stretch'
+          : '',
+      )}>
+        <div className="rounded-xl border border-border bg-card p-6 shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_hsl(var(--border)/0.2)] flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="font-heading text-xl font-bold text-foreground">
+              Address details
+            </h1>
+            <button
+              onClick={handleTogglePin}
+              className={cn(
+                'flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-colors duration-150',
+                pinned
+                  ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
+                  : 'text-muted-foreground border-border hover:text-foreground hover:border-foreground/20',
+              )}
+              title={pinned ? 'Unpin address' : 'Pin address'}
+              aria-label={pinned ? 'Unpin this address' : 'Pin this address'}
+              aria-pressed={pinned}
+            >
+              {pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+              {pinned ? 'Unpin' : 'Pin'}
+            </button>
           </div>
 
-          <div>
-            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1 block">
-              Script hex
-            </label>
-            <CopyableValue value={scriptHex} truncate />
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1 block">
+                Address
+              </label>
+              <CopyableValue value={address!} />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1 block">
+                Script hex
+              </label>
+              <CopyableValue value={scriptHex} truncate />
+            </div>
           </div>
         </div>
+
+        {!isLoading && !error && allVtxos.length > 0 && (
+          <AddressStats vtxos={allVtxos} className="flex-1 min-w-0" />
+        )}
       </div>
-
-      {!isLoading && !error && allVtxos.length > 0 && (
-        <AddressStats vtxos={allVtxos} />
-      )}
 
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">

@@ -2,7 +2,7 @@
   color-scheme: dark;
 
   /* Purple — lightened for dark-bg contrast (light theme keeps 35%) */
-  --primary: 256 72% 60%;
+  --primary: 256 72% 50%;
   --primary-foreground: 0 0% 100%;
 
   /* Backgrounds */
