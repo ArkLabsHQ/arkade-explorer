@@ -253,10 +253,11 @@ export function SearchCommandPaletteOverlay({
               <div className="flex items-center border-b border-border px-3">
                 <Search className="h-4 w-4 text-muted-foreground shrink-0" />
                 <Command.Input
+                  autoFocus
                   value={query}
                   onValueChange={setQuery}
                   placeholder="Search txid, address, or outpoint..."
-                  className="flex-1 h-12 px-3 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                  className="flex-1 h-12 px-3 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:outline-none"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
@@ -278,7 +279,7 @@ export function SearchCommandPaletteOverlay({
                 <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
                   {query.trim()
                     ? 'Press Enter to search'
-                    : 'Type to search or select a recent search'}
+                    : 'Select a recent or pinned search'}
                 </Command.Empty>
 
                 {/* Direct search action */}
@@ -608,10 +609,11 @@ function SearchCommandPalette({ className }: { className?: string }) {
                 <div className="flex items-center border-b border-border px-3">
                   <Search className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Command.Input
+                    autoFocus
                     value={query}
                     onValueChange={setQuery}
                     placeholder="Search txid, address, or outpoint..."
-                    className="flex-1 h-12 px-3 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                    className="flex-1 h-12 px-3 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:outline-none"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
