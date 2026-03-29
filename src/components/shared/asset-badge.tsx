@@ -22,8 +22,8 @@ export function AssetBadge({ assetId, className = '' }: AssetBadgeProps) {
       <Link
         to={`/asset/${assetId}`}
         className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-bold uppercase
-          bg-primary/10 border border-primary/30 text-primary
-          rounded-md hover:bg-primary/20 transition-colors duration-150"
+          bg-accent border border-border text-accent-foreground
+          rounded-md hover:bg-accent/80 transition-colors duration-150"
         title={assetId}
       >
         {label}

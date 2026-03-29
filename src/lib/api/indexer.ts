@@ -1,6 +1,6 @@
 import { RestIndexerProvider, RestArkProvider } from '@arkade-os/sdk';
 
-const INDEXER_URL = import.meta.env.VITE_INDEXER_URL || 'https://arkade.computer';
+export const INDEXER_URL = import.meta.env.VITE_INDEXER_URL || 'https://arkade.computer';
 const ARK_URL = import.meta.env.VITE_ARK_URL || INDEXER_URL;
 
 // ---------------------------------------------------------------------------
