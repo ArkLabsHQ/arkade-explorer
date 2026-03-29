@@ -48,7 +48,7 @@ export function AddressStats({ vtxos, className }: AddressStatsProps) {
     return (
       <div className={className ?? 'max-w-lg'}>
         <div className="rounded-xl border border-border bg-card p-5 shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2)] flex flex-col overflow-hidden">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-primary mb-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground mb-3">
             Balances
           </h3>
 
@@ -69,12 +69,12 @@ export function AddressStats({ vtxos, className }: AddressStatsProps) {
                 {/* BTC row */}
                 <tr className="border-b border-border">
                   <td className="py-1.5">
-                    <span className="text-primary font-bold uppercase">BTC</span>
+                    <span className="text-foreground font-bold uppercase">BTC</span>
                   </td>
                   <td className="text-right py-1.5">
                     <MoneyDisplay
                       sats={totalBalance}
-                      className="text-primary font-bold font-mono"
+                      className="text-foreground font-bold font-mono"
                     />
                   </td>
                   <td className="text-right py-1.5 pl-3">
@@ -104,7 +104,7 @@ export function AddressStats({ vtxos, className }: AddressStatsProps) {
                           amount={balances.active}
                           assetId={assetId}
                           hideUnit
-                          valueClassName="text-primary font-bold font-mono"
+                          valueClassName="text-foreground font-bold font-mono"
                         />
                       </td>
                       <td className="text-right py-1.5 pl-3">
@@ -126,7 +126,7 @@ export function AddressStats({ vtxos, className }: AddressStatsProps) {
           <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border text-xs">
             <span className="text-muted-foreground uppercase">
               VTXOs:{' '}
-              <span className="text-primary font-bold font-mono">
+              <span className="text-foreground font-bold font-mono">
                 {activeVtxos.length}
               </span>{' '}
               active
@@ -158,7 +158,7 @@ export function AddressStats({ vtxos, className }: AddressStatsProps) {
           </div>
           <MoneyDisplay
             sats={totalBalance}
-            className="text-primary text-xl font-bold font-mono block"
+            className="text-foreground text-xl font-bold font-mono block"
           />
         </div>
       </div>
@@ -170,7 +170,7 @@ export function AddressStats({ vtxos, className }: AddressStatsProps) {
           </div>
           <MoneyDisplay
             sats={totalReceived}
-            className="text-primary text-xl font-bold font-mono block"
+            className="text-foreground text-xl font-bold font-mono block"
           />
         </div>
       </div>
@@ -180,7 +180,7 @@ export function AddressStats({ vtxos, className }: AddressStatsProps) {
           <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Active VTXOs
           </div>
-          <div className="text-primary text-xl font-bold font-mono">
+          <div className="text-foreground text-xl font-bold font-mono">
             {activeVtxos.length}
           </div>
           <div className="text-xs text-muted-foreground">
