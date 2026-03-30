@@ -422,14 +422,25 @@ function OutputCard({
       >
         {/* Header row */}
         <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span className="text-xs text-muted-foreground font-medium">
               Output #{output.index}
             </span>
+            {output.isAnchor && (
+              <span className="text-xs text-muted-foreground">Anchor</span>
+            )}
+            {output.isArkExtension && (
+              <span className="text-xs text-muted-foreground">OP_RETURN</span>
+            )}
+            {output.isForfeit && (
+              <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">
+                Forfeit
+              </span>
+            )}
             {output.isBatch && output.batchInfo && (
               <Link
                 to={batchRootTxid ? `/tx/${batchRootTxid}` : `#batch-${output.batchKey}`}
-                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full border bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/25 transition-colors duration-150"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-semibold rounded-full border bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/25 transition-colors duration-150"
                 aria-label={`View batch ${parseInt(output.batchKey) + 1} details`}
                 title={batchRootTxid ? `View batch root tx: ${batchRootTxid}` : undefined}
               >
@@ -438,37 +449,23 @@ function OutputCard({
               </Link>
             )}
             {isConnector && (
-              <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full border bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30">
+              <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-semibold rounded-full border bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30">
                 Connector
               </span>
             )}
-            {output.isAnchor && (
-              <span className="text-xs text-muted-foreground">Anchor</span>
-            )}
-            {output.isArkExtension && (
-              <span className="text-xs text-muted-foreground">
-                OP_RETURN
-              </span>
-            )}
-            {output.isForfeit && (
-              <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">
-                Forfeit
-              </span>
-            )}
           </div>
-          <div className="flex items-center gap-2">
-            {vtxo && !output.isAnchor && (
-              <>
-                <BadgeStatus status={deriveVtxoStatus(vtxo)} />
-                {isRecoverable(vtxo) && <BadgeRecoverable />}
-              </>
-            )}
-            <MoneyDisplay
-              sats={Number(output.amount)}
-              className="text-xs font-semibold text-foreground"
-            />
-          </div>
+          <MoneyDisplay
+            sats={Number(output.amount)}
+            className="text-xs font-semibold text-foreground"
+          />
         </div>
+        {/* Status badges */}
+        {vtxo && !output.isAnchor && (
+          <div className="flex items-center gap-1.5 mb-1">
+            <BadgeStatus status={deriveVtxoStatus(vtxo)} />
+            {isRecoverable(vtxo) && <BadgeRecoverable />}
+          </div>
+        )}
 
         {/* Batch VTXO count */}
         {output.isBatch && output.batchInfo && (
