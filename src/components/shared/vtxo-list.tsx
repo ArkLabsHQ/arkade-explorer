@@ -6,6 +6,7 @@ import { hex } from '@scure/base';
 import type { VirtualCoin } from '@arkade-os/sdk';
 import { MoneyDisplay } from '@/components/shared/money-display';
 import { AssetAmountDisplay } from '@/components/shared/asset-amount-display';
+import { BadgeStatus, BadgeRecoverable, deriveVtxoStatus, isRecoverable } from '@/components/shared/badge-status';
 import { CopyButton } from '@/components/shared/copy-button';
 import { truncateHash, copyToClipboard, formatTimestamp } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -16,20 +17,6 @@ type ListStyle = 'table' | 'cards' | 'dense-rows';
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function getVtxoSpentStatus(vtxo: VirtualCoin): {
-  label: string;
-  variant: 'success' | 'muted';
-} {
-  if (vtxo.isSpent || vtxo.spentBy) {
-    return { label: 'Spent', variant: 'muted' };
-  }
-  return { label: 'Unspent', variant: 'success' };
-}
-
-function isVtxoRecoverable(vtxo: VirtualCoin): boolean {
-  return vtxo.virtualStatus?.state === 'swept';
-}
 
 function formatExpiry(vtxo: VirtualCoin): string {
   const expiry = vtxo.virtualStatus.batchExpiry;
@@ -89,35 +76,11 @@ function deriveAddress(
   return null;
 }
 
-const statusVariantClasses: Record<string, string> = {
-  default: 'bg-secondary text-secondary-foreground',
-  success: 'bg-primary/10 text-primary',
-  warning: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
-  destructive: 'bg-destructive/10 text-destructive',
-  muted: 'bg-muted text-muted-foreground',
-};
-
-function StatusBadge({ status, recoverable }: { status: { label: string; variant: string }; recoverable?: boolean }) {
+function StatusBadges({ vtxo }: { vtxo: VirtualCoin }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span
-        className={cn(
-          'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
-          statusVariantClasses[status.variant],
-        )}
-      >
-        {status.label}
-      </span>
-      {recoverable && (
-        <span
-          className={cn(
-            'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
-            statusVariantClasses['warning'],
-          )}
-        >
-          Recoverable
-        </span>
-      )}
+      <BadgeStatus status={deriveVtxoStatus(vtxo)} />
+      {isRecoverable(vtxo) && <BadgeRecoverable />}
     </span>
   );
 }
@@ -325,21 +288,12 @@ function VtxoTable({
           </thead>
           <tbody>
             {vtxos.map((vtxo) => {
-              const status = getVtxoSpentStatus(vtxo);
               const outpointStr = `${vtxo.txid}:${vtxo.vout}`;
-              const hasDetails =
-                !!vtxo.createdAt ||
-                !!vtxo.spentBy ||
-                !!vtxo.settledBy ||
-                (vtxo.assets && vtxo.assets.length > 0);
 
               return (
                 <VtxoTableRow
                   key={outpointStr}
                   vtxo={vtxo}
-                  status={status}
-                  outpointStr={outpointStr}
-                  hasDetails={!!hasDetails}
                   showScript={showScript}
                   signerPubkey={signerPubkey}
                   network={network}
@@ -356,16 +310,12 @@ function VtxoTable({
 
 function VtxoTableRow({
   vtxo,
-  status,
   showScript,
   signerPubkey,
   network,
   onCopyOutpoint,
 }: {
   vtxo: VirtualCoin;
-  status: { label: string; variant: string };
-  outpointStr: string;
-  hasDetails: boolean;
   showScript?: boolean;
   signerPubkey?: string;
   network?: string;
@@ -419,7 +369,7 @@ function VtxoTableRow({
           />
         </td>
         <td className="px-4 py-3 text-center">
-          <StatusBadge status={status} recoverable={isVtxoRecoverable(vtxo)} />
+          <StatusBadges vtxo={vtxo} />
         </td>
         <td className="px-4 py-3 text-right">
           <span className="text-xs text-muted-foreground font-mono">
@@ -472,14 +422,12 @@ function VtxoCards({
   return (
     <div className={cn('grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3', className)}>
       {vtxos.map((vtxo) => {
-        const status = getVtxoSpentStatus(vtxo);
         const outpointStr = `${vtxo.txid}:${vtxo.vout}`;
 
         return (
           <VtxoCard
             key={outpointStr}
             vtxo={vtxo}
-            status={status}
             outpointStr={outpointStr}
             showScript={showScript}
             signerPubkey={signerPubkey}
@@ -493,14 +441,12 @@ function VtxoCards({
 
 function VtxoCard({
   vtxo,
-  status,
   outpointStr,
   showScript,
   signerPubkey,
   network,
 }: {
   vtxo: VirtualCoin;
-  status: { label: string; variant: string };
   outpointStr: string;
   showScript?: boolean;
   signerPubkey?: string;
@@ -561,7 +507,7 @@ function VtxoCard({
 
       {/* Footer: status + expiry */}
       <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-border">
-        <StatusBadge status={status} recoverable={isVtxoRecoverable(vtxo)} />
+        <StatusBadges vtxo={vtxo} />
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
           <span className="font-mono">{formatExpiry(vtxo)}</span>
@@ -627,7 +573,6 @@ function VtxoDenseRow({
   signerPubkey?: string;
   network?: string;
 }) {
-  const status = getVtxoSpentStatus(vtxo);
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -681,7 +626,7 @@ function VtxoDenseRow({
         />
 
         {/* Status */}
-        <StatusBadge status={status} recoverable={isVtxoRecoverable(vtxo)} />
+        <StatusBadges vtxo={vtxo} />
 
         {/* Expiry */}
         <span className="text-xs text-muted-foreground font-mono shrink-0 w-16 text-right">
