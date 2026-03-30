@@ -17,24 +17,18 @@ type ListStyle = 'table' | 'cards' | 'dense-rows';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getVtxoStatus(vtxo: VirtualCoin): {
+function getVtxoSpentStatus(vtxo: VirtualCoin): {
   label: string;
-  variant: 'default' | 'success' | 'warning' | 'destructive' | 'muted';
+  variant: 'success' | 'muted';
 } {
   if (vtxo.isSpent || vtxo.spentBy) {
     return { label: 'Spent', variant: 'muted' };
   }
+  return { label: 'Unspent', variant: 'success' };
+}
 
-  switch (vtxo.virtualStatus.state) {
-    case 'preconfirmed':
-      return { label: 'Preconfirmed', variant: 'warning' };
-    case 'settled':
-      return { label: 'Settled', variant: 'success' };
-    case 'swept':
-      return { label: 'Swept', variant: 'destructive' };
-    default:
-      return { label: vtxo.virtualStatus.state, variant: 'default' };
-  }
+function isVtxoRecoverable(vtxo: VirtualCoin): boolean {
+  return vtxo.virtualStatus?.state === 'swept';
 }
 
 function formatExpiry(vtxo: VirtualCoin): string {
@@ -103,15 +97,27 @@ const statusVariantClasses: Record<string, string> = {
   muted: 'bg-muted text-muted-foreground',
 };
 
-function StatusBadge({ status }: { status: { label: string; variant: string } }) {
+function StatusBadge({ status, recoverable }: { status: { label: string; variant: string }; recoverable?: boolean }) {
   return (
-    <span
-      className={cn(
-        'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
-        statusVariantClasses[status.variant],
+    <span className="inline-flex items-center gap-1.5">
+      <span
+        className={cn(
+          'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+          statusVariantClasses[status.variant],
+        )}
+      >
+        {status.label}
+      </span>
+      {recoverable && (
+        <span
+          className={cn(
+            'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+            statusVariantClasses['warning'],
+          )}
+        >
+          Recoverable
+        </span>
       )}
-    >
-      {status.label}
     </span>
   );
 }
@@ -319,7 +325,7 @@ function VtxoTable({
           </thead>
           <tbody>
             {vtxos.map((vtxo) => {
-              const status = getVtxoStatus(vtxo);
+              const status = getVtxoSpentStatus(vtxo);
               const outpointStr = `${vtxo.txid}:${vtxo.vout}`;
               const hasDetails =
                 !!vtxo.createdAt ||
@@ -413,7 +419,7 @@ function VtxoTableRow({
           />
         </td>
         <td className="px-4 py-3 text-center">
-          <StatusBadge status={status} />
+          <StatusBadge status={status} recoverable={isVtxoRecoverable(vtxo)} />
         </td>
         <td className="px-4 py-3 text-right">
           <span className="text-xs text-muted-foreground font-mono">
@@ -466,7 +472,7 @@ function VtxoCards({
   return (
     <div className={cn('grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3', className)}>
       {vtxos.map((vtxo) => {
-        const status = getVtxoStatus(vtxo);
+        const status = getVtxoSpentStatus(vtxo);
         const outpointStr = `${vtxo.txid}:${vtxo.vout}`;
 
         return (
@@ -555,7 +561,7 @@ function VtxoCard({
 
       {/* Footer: status + expiry */}
       <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-border">
-        <StatusBadge status={status} />
+        <StatusBadge status={status} recoverable={isVtxoRecoverable(vtxo)} />
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
           <span className="font-mono">{formatExpiry(vtxo)}</span>
@@ -621,7 +627,7 @@ function VtxoDenseRow({
   signerPubkey?: string;
   network?: string;
 }) {
-  const status = getVtxoStatus(vtxo);
+  const status = getVtxoSpentStatus(vtxo);
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -675,7 +681,7 @@ function VtxoDenseRow({
         />
 
         {/* Status */}
-        <StatusBadge status={status} />
+        <StatusBadge status={status} recoverable={isVtxoRecoverable(vtxo)} />
 
         {/* Expiry */}
         <span className="text-xs text-muted-foreground font-mono shrink-0 w-16 text-right">

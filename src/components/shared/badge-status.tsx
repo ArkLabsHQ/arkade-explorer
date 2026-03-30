@@ -1,45 +1,62 @@
-type VtxoStatus = 'spendable' | 'spent' | 'swept' | 'preconfirmed' | 'settled' | 'expired';
+type SpentStatus = 'spendable' | 'spent';
 
-interface BadgeStatusProps {
-  status: VtxoStatus;
-  className?: string;
-}
-
-const STATUS_STYLES: Record<VtxoStatus, string> = {
+const SPENT_STYLES: Record<SpentStatus, string> = {
   spendable: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
   spent: 'bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30',
-  swept: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30',
-  preconfirmed: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
-  settled: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30',
-  expired: 'bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border-zinc-500/30',
 };
 
-export function BadgeStatus({ status, className = '' }: BadgeStatusProps) {
+export function BadgeStatus({
+  status,
+  className = '',
+}: {
+  status: SpentStatus;
+  className?: string;
+}) {
+  const label = status === 'spendable' ? 'Unspent' : 'Spent';
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full border ${STATUS_STYLES[status]} ${className}`}
+      className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full border ${SPENT_STYLES[status]} ${className}`}
     >
-      {status}
+      {label}
+    </span>
+  );
+}
+
+const RECOVERABLE_STYLE =
+  'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30';
+
+export function BadgeRecoverable({ className = '' }: { className?: string }) {
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full border ${RECOVERABLE_STYLE} ${className}`}
+    >
+      Recoverable
     </span>
   );
 }
 
 /**
- * Derive a display status from VTXO fields.
+ * Derive spent/unspent status from VTXO fields.
+ * Swept VTXOs can still be spent or unspent independently.
  */
 export function deriveVtxoStatus(vtxo: {
   isSpent?: boolean;
-  isSwept?: boolean;
-  isPreconfirmed?: boolean;
+  spentBy?: string;
   virtualStatus?: { state: string };
-}): VtxoStatus {
-  if (vtxo.isSwept) return 'swept';
+}): SpentStatus {
   if (vtxo.isSpent) return 'spent';
-  if (vtxo.virtualStatus?.state === 'swept') return 'swept';
+  if (vtxo.spentBy && vtxo.spentBy !== '') return 'spent';
   if (vtxo.virtualStatus?.state === 'spent') return 'spent';
-  // Settled and preconfirmed VTXOs are still unspent/spendable
-  if (vtxo.isPreconfirmed) return 'spendable';
-  if (vtxo.virtualStatus?.state === 'settled') return 'spendable';
-  if (vtxo.virtualStatus?.state === 'preconfirmed') return 'spendable';
   return 'spendable';
+}
+
+/**
+ * Whether this VTXO is in a recoverable state (swept or expired).
+ */
+export function isRecoverable(vtxo: {
+  isSwept?: boolean;
+  virtualStatus?: { state: string };
+}): boolean {
+  if (vtxo.isSwept) return true;
+  return vtxo.virtualStatus?.state === 'swept';
 }

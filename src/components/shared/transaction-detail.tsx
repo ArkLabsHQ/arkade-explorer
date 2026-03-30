@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight, FileText, ArrowLeft, ArrowRight, Pin, PinOff
 import { CopyButton } from '@/components/shared/copy-button';
 import { InfoRow } from '@/components/shared/info-row';
 import { MoneyDisplay } from '@/components/shared/money-display';
-import { BadgeStatus, deriveVtxoStatus } from '@/components/shared/badge-status';
+import { BadgeStatus, BadgeRecoverable, deriveVtxoStatus, isRecoverable } from '@/components/shared/badge-status';
 import { truncateHash, formatTimestamp } from '@/lib/utils';
 import { constructArkAddress } from '@/lib/arkAddress';
 import { indexerClient } from '@/lib/api/indexer';
@@ -458,7 +458,10 @@ function OutputCard({
           </div>
           <div className="flex items-center gap-2">
             {vtxo && !output.isAnchor && (
-              <BadgeStatus status={deriveVtxoStatus(vtxo)} />
+              <>
+                <BadgeStatus status={deriveVtxoStatus(vtxo)} />
+                {isRecoverable(vtxo) && <BadgeRecoverable />}
+              </>
             )}
             <MoneyDisplay
               sats={Number(output.amount)}

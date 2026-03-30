@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronRight, Layers, Leaf, TreePine } from 'lucide-react';
 import { MoneyDisplay } from '@/components/shared/money-display';
-import { BadgeStatus, deriveVtxoStatus } from '@/components/shared/badge-status';
+import { BadgeStatus, BadgeRecoverable, deriveVtxoStatus, isRecoverable } from '@/components/shared/badge-status';
 import { CopyButton } from '@/components/shared/copy-button';
 import { VtxoList } from '@/components/shared/vtxo-list';
 import { truncateHash, formatTimestamp } from '@/lib/utils';
@@ -109,9 +109,8 @@ function LeafVtxoRow({ leaf }: { leaf: LeafVtxo }) {
   const outpointStr = `${leaf.outpoint.txid}:${leaf.outpoint.vout}`;
   const status = deriveVtxoStatus({
     isSpent: leaf.isSpent,
-    isSwept: leaf.isSwept,
-    isPreconfirmed: leaf.isPreconfirmed,
   });
+  const recoverable = isRecoverable({ isSwept: leaf.isSwept });
 
   return (
     <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-secondary/50 transition-colors duration-150">
@@ -127,6 +126,7 @@ function LeafVtxoRow({ leaf }: { leaf: LeafVtxo }) {
         <MoneyDisplay sats={parseInt(leaf.amount)} className="text-xs text-foreground shrink-0" />
       )}
       <BadgeStatus status={status} />
+      {recoverable && <BadgeRecoverable />}
     </div>
   );
 }
