@@ -10,7 +10,11 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+
 *.local
+CLAUDE.md
+CLAUDE.local.md
+claude.md
 
 # Editor directories and files
 .vscode/*
@@ -30,3 +34,4 @@ docs/plans
 .env
 .env.local
 .env.production
+tsconfig.tsbuildinfo

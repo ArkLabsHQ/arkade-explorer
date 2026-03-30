@@ -1,10 +1,6 @@
 import type { PaginationOptions, PageResponse } from '@arkade-os/sdk';
-import { PAGINATION } from '../constants';
+import { PAGINATION } from '@/lib/constants';
 
-/**
- * Generic helper that fetches all pages from a paginated SDK call
- * and merges the array results under `mergeKey`.
- */
 export async function fetchAllPages<T extends Record<string, unknown>>(
   fn: (opts: PaginationOptions) => Promise<T & { page?: PageResponse }>,
   mergeKey: keyof T & string,
@@ -28,7 +24,6 @@ export async function fetchAllPages<T extends Record<string, unknown>>(
       }
     }
 
-    // Stop when there are no more pages
     if (!response.page) break;
     const items = response[mergeKey];
     if (Array.isArray(items) && items.length < pageSize) break;

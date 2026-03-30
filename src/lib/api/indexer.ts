@@ -1,6 +1,6 @@
 import { RestIndexerProvider, RestArkProvider } from '@arkade-os/sdk';
 
-const INDEXER_URL = import.meta.env.VITE_INDEXER_URL || 'https://arkade.computer';
+export const INDEXER_URL = import.meta.env.VITE_INDEXER_URL || 'https://arkade.computer';
 const ARK_URL = import.meta.env.VITE_ARK_URL || INDEXER_URL;
 
 // ---------------------------------------------------------------------------
@@ -39,7 +39,6 @@ export const arkClient = new RestArkProvider(ARK_URL);
 
 /** Validate that an image URL is safe to render in an <img> tag. */
 export function isSafeImageUrl(url: string): boolean {
-  // Allow base64-encoded images (data:image/png;base64,... etc.)
   if (url.startsWith('data:image/')) return true;
   try {
     const parsed = new URL(url);
@@ -76,8 +75,5 @@ export type {
   Asset,
 } from '@arkade-os/sdk';
 
-// Alias BatchInfo as Batch for backward compatibility
 export type { BatchInfo as Batch } from '@arkade-os/sdk';
-
-// Alias VirtualCoin as Vtxo — VirtualCoin now includes assets natively
 export type { VirtualCoin as Vtxo } from '@arkade-os/sdk';

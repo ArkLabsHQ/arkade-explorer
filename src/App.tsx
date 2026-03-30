@@ -1,54 +1,26 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Layout } from './components/Layout/Layout';
-import { HomePage } from './pages/HomePage';
-import { TransactionPage } from './pages/TransactionPage';
-import { AddressPage } from './pages/AddressPage';
-import { CommitmentTxPage } from './pages/CommitmentTxPage';
-import { AssetPage } from './pages/AssetPage';
-import { ServerInfoProvider } from './contexts/ServerInfoContext';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { ActivityStreamProvider } from './contexts/ActivityStreamContext';
-import { MoneyDisplayProvider } from './contexts/MoneyDisplayContext';
-import { AssetIconApprovalProvider } from './contexts/AssetIconApprovalContext';
-import { NotFoundPage } from './components/NotFound/NotFoundPage';
+import { Routes, Route } from 'react-router-dom';
+import { AppProviders } from '@/providers/app-providers';
+import { DynamicLayout } from '@/components/dynamic-layout';
+import { HomePage } from '@/pages/home';
+import { TransactionPage } from '@/pages/tx';
+import { CommitmentTxPage } from '@/pages/commitment-tx';
+import { AddressPage } from '@/pages/address';
+import { AssetPage } from '@/pages/asset';
+import { NotFoundPage } from '@/pages/not-found';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
-
-function App() {
+export function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AssetIconApprovalProvider>
-        <ThemeProvider>
-          <MoneyDisplayProvider>
-            <ServerInfoProvider>
-              <ActivityStreamProvider>
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/" element={<Layout />}>
-                      <Route index element={<HomePage />} />
-                      <Route path="tx/:txid" element={<TransactionPage />} />
-                      <Route path="address/:address" element={<AddressPage />} />
-                      <Route path="commitment-tx/:txid" element={<CommitmentTxPage />} />
-                      <Route path="asset/:assetId" element={<AssetPage />} />
-                      <Route path="*" element={<NotFoundPage />} />
-                    </Route>
-                  </Routes>
-                </BrowserRouter>
-              </ActivityStreamProvider>
-            </ServerInfoProvider>
-          </MoneyDisplayProvider>
-        </ThemeProvider>
-      </AssetIconApprovalProvider>
-    </QueryClientProvider>
+    <AppProviders>
+      <DynamicLayout>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/tx/:txid" element={<TransactionPage />} />
+          <Route path="/commitment-tx/:txid" element={<CommitmentTxPage />} />
+          <Route path="/address/:address" element={<AddressPage />} />
+          <Route path="/asset/:assetId" element={<AssetPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </DynamicLayout>
+    </AppProviders>
   );
 }
-
-export default App;

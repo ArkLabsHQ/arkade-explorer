@@ -1,55 +1,55 @@
-export const APPROVED_ICONS_KEY = 'approvedAssetIcons'
+export const APPROVED_ICONS_KEY = 'approvedAssetIcons';
 
 export class AssetIconApprovalManager {
-  private approvedIds: Set<string>
-  private verifiedIds: Set<string>
-  private storageKey: string
+  private approvedIds: Set<string>;
+  private verifiedIds: Set<string>;
+  private storageKey: string;
 
   constructor(storageKey = APPROVED_ICONS_KEY) {
-    this.storageKey = storageKey
-    this.approvedIds = this.load()
-    this.verifiedIds = new Set()
+    this.storageKey = storageKey;
+    this.approvedIds = this.load();
+    this.verifiedIds = new Set();
   }
 
   approve(assetId: string): void {
-    this.approvedIds.add(assetId)
-    this.save()
+    this.approvedIds.add(assetId);
+    this.save();
   }
 
   revoke(assetId: string): void {
-    this.approvedIds.delete(assetId)
-    this.save()
+    this.approvedIds.delete(assetId);
+    this.save();
   }
 
   isApproved(assetId: string): boolean {
-    return this.approvedIds.has(assetId) || this.verifiedIds.has(assetId)
+    return this.approvedIds.has(assetId) || this.verifiedIds.has(assetId);
   }
 
   setVerifiedAssets(ids: string[]): void {
-    this.verifiedIds = new Set(ids)
+    this.verifiedIds = new Set(ids);
   }
 
   isVerified(assetId: string): boolean {
-    return this.verifiedIds.has(assetId)
+    return this.verifiedIds.has(assetId);
   }
 
   private load(): Set<string> {
     try {
-      const raw = localStorage.getItem(this.storageKey)
-      if (!raw) return new Set()
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed)) return new Set(parsed)
-      return new Set()
+      const raw = localStorage.getItem(this.storageKey);
+      if (!raw) return new Set();
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return new Set(parsed);
+      return new Set();
     } catch {
-      return new Set()
+      return new Set();
     }
   }
 
   private save(): void {
     try {
-      localStorage.setItem(this.storageKey, JSON.stringify([...this.approvedIds]))
+      localStorage.setItem(this.storageKey, JSON.stringify([...this.approvedIds]));
     } catch {
-      // localStorage quota exceeded — in-memory state remains correct
+      // localStorage quota exceeded
     }
   }
 }
