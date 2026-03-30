@@ -1,30 +1,34 @@
 # Arkade Explorer
 
-A modern blockchain explorer for the Arkade Protocol with a retro Space Invaders theme.
+A modern blockchain explorer for the Ark protocol, built with React and TypeScript.
 
 ## Features
 
-- **Transaction Views**: Browse commitment and Arkade transactions
-- **Address Explorer**: View all VTXOs associated with an address or script
-- **Real-time Data**: Powered by the Arkade Indexer API
-- **Retro UI**: Space Invaders-inspired design with purple, orange, and black color scheme
-- **Responsive**: Built with TailwindCSS for mobile and desktop
+- **Transaction Views**: Browse virtual and commitment transactions with decoded inputs/outputs
+- **Address Explorer**: View VTXOs, balances, and assets associated with an Ark address
+- **Asset Browser**: Inspect individual asset details and metadata
+- **Batch & Tree Visualization**: Explore batched VTXOs and connector trees
+- **Real-time Activity**: Live stream of recent Ark transactions
+- **Theming**: Light (Dawn) and Dark (Midnight) themes
+- **Responsive**: Fully responsive layout for mobile and desktop
 
 ## Tech Stack
 
-- **React 18** with TypeScript
-- **Vite** for fast development and HMR
-- **React Router** for navigation
+- **React 19** with TypeScript
+- **Vite** for development and builds
+- **React Router** for client-side routing
 - **TanStack Query** for data fetching and caching
-- **TailwindCSS** for styling
+- **Tailwind CSS v4** for styling
+- **Radix UI** primitives (dialog, select)
 - **Lucide React** for icons
-- **Arkade TS SDK** for API integration
+- **@arkade-os/sdk** for Ark indexer API integration
+- **@scure/btc-signer** for transaction decoding
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 18+ and npm (or pnpm)
 
 ### Installation
 
@@ -34,7 +38,7 @@ npm install
 
 ### Configuration
 
-Create a `.env` file (or use `.env.example`):
+Copy `.env.example` to `.env` and adjust as needed:
 
 ```env
 VITE_INDEXER_URL=https://indexer.arkadeos.com
@@ -43,10 +47,12 @@ VITE_VERIFIED_ASSETS_URL=https://arklabshq.github.io/asset-registry/mutinynet.js
 
 ### Environment Variables
 
-| Variable | Description | Required | Example |
+| Variable | Description | Required | Default |
 |---|---|---|---|
-| `VITE_INDEXER_URL` | Arkade indexer API URL | Yes | `https://indexer.arkadeos.com` |
-| `VITE_VERIFIED_ASSETS_URL` | URL to fetch verified asset IDs (JSON array of strings). When set, only verified or user-approved assets show icons. | No | `https://arklabshq.github.io/asset-registry/mutinynet.json` |
+| `VITE_INDEXER_URL` | Ark indexer API URL | No | `https://arkade.computer` |
+| `VITE_ARK_URL` | Ark server URL (falls back to indexer URL) | No | same as `VITE_INDEXER_URL` |
+| `VITE_ARKADE_URL` | Arkade website link | No | `https://arkade.money` |
+| `VITE_VERIFIED_ASSETS_URL` | URL to fetch verified asset IDs (JSON array). When set, only verified or user-approved assets show icons. | No | — |
 
 ### Development
 
@@ -54,7 +60,7 @@ VITE_VERIFIED_ASSETS_URL=https://arklabshq.github.io/asset-registry/mutinynet.js
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173` with hot reload enabled.
+The app will be available at `http://localhost:5173` with hot reload.
 
 ### Build
 
@@ -90,32 +96,36 @@ docker run -p 8080:80 arkade-explorer
 ```
 src/
 ├── components/
-│   ├── Address/        # Address-specific components
-│   ├── Layout/         # Layout components (Header, Footer)
-│   ├── Transaction/    # Transaction display components
-│   └── UI/            # Reusable UI components
+│   ├── nav/               # Top nav bar and footer
+│   ├── shared/            # Reusable components (search, badges, lists, etc.)
+│   └── dynamic-layout.tsx # Layout wrapper with nav + footer
+├── hooks/                 # Custom React hooks
 ├── lib/
-│   ├── api/           # API client configuration
-│   └── utils.ts       # Utility functions
-├── pages/             # Page components
-│   ├── HomePage.tsx
-│   ├── TransactionPage.tsx
-│   ├── CommitmentTxPage.tsx
-│   └── AddressPage.tsx
-└── App.tsx            # Main app with routing
+│   ├── api/               # Indexer API client
+│   ├── arkAddress.ts      # Ark address construction from scripts
+│   ├── decode.ts          # Transaction decoding utilities
+│   ├── formatters.ts      # Number/date formatting
+│   └── utils.ts           # General utilities
+├── pages/
+│   ├── home.tsx           # Home page with search + activity stream
+│   ├── tx.tsx             # Virtual transaction detail
+│   ├── commitment-tx.tsx  # Commitment (on-chain) transaction detail
+│   ├── address.tsx        # Address VTXOs and balances
+│   └── asset.tsx          # Asset detail page
+├── providers/             # React context providers
+├── themes/                # Dawn (light) and Midnight (dark) CSS themes
+└── App.tsx                # Route definitions
 ```
 
 ## Routes
 
-- `/` - Home page with search
-- `/tx/:txid` - Transaction view (auto-redirects to commitment-tx if applicable)
-- `/commitment-tx/:txid` - Commitment transaction details
-- `/address/:address` - Address/script VTXO list
-
-## Learn More
-
-- [Arkade Protocol Documentation](https://docs.arkadeos.com/)
-- [Arkade GitHub](https://github.com/arkade-os)
+| Path | Description |
+|---|---|
+| `/` | Home — search and recent activity |
+| `/tx/:txid` | Virtual transaction detail |
+| `/commitment-tx/:txid` | Commitment transaction detail |
+| `/address/:address` | Address VTXOs, balances, and assets |
+| `/asset/:assetId` | Asset detail |
 
 ## License
 
