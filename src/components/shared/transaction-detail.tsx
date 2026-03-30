@@ -353,6 +353,7 @@ function OutputCard({
   isConnector,
   batchRootTxid,
   forfeitVtxo,
+  checkpointVtxo,
 }: {
   output: ParsedOutput;
   txid: string;
@@ -363,18 +364,27 @@ function OutputCard({
   isConnector?: boolean;
   batchRootTxid?: string;
   forfeitVtxo?: VirtualCoin | null;
+  checkpointVtxo?: VirtualCoin | null;
 }) {
-  const vtxo = output.vtxo;
+  // For checkpoint/forfeit txs, use the fetched VTXO from the input instead of
+  // per-output vtxo lookup (checkpoint/forfeit outputs aren't individual VTXOs)
+  const effectiveVtxo =
+    (checkpointVtxo && !output.isAnchor) ? checkpointVtxo :
+    (forfeitVtxo && output.isForfeit) ? forfeitVtxo :
+    output.vtxo;
+  const vtxo = effectiveVtxo;
   const isSpent =
     vtxo?.isSpent === true || (vtxo?.spentBy && vtxo.spentBy !== '');
   const spendingTxid =
-    vtxo?.spentBy && vtxo.spentBy !== ''
-      ? vtxo.spentBy
-      : vtxo?.settledBy && vtxo.settledBy !== ''
-        ? vtxo.settledBy
-        : vtxo?.arkTxId && vtxo.arkTxId !== ''
-          ? vtxo.arkTxId
-          : null;
+    (checkpointVtxo && !output.isAnchor && checkpointVtxo.arkTxId)
+      ? checkpointVtxo.arkTxId
+      : vtxo?.spentBy && vtxo.spentBy !== ''
+        ? vtxo.spentBy
+        : vtxo?.settledBy && vtxo.settledBy !== ''
+          ? vtxo.settledBy
+          : vtxo?.arkTxId && vtxo.arkTxId !== ''
+            ? vtxo.arkTxId
+            : null;
 
   // Border accent for special outputs
   const borderAccent = output.isBatch
@@ -1092,6 +1102,29 @@ export function TransactionDetail({
   }, [subtype, parsedTx]);
 
   // -------------------------------------------------------------------------
+  // Fetch checkpoint VTXO data (for checkpoint transactions)
+  // -------------------------------------------------------------------------
+
+  const [checkpointVtxo, setCheckpointVtxo] = useState<VirtualCoin | null>(null);
+
+  useEffect(() => {
+    if (subtype !== 'checkpoint' || !parsedTx || parsedTx.inputsLength === 0) return;
+
+    const input = parsedTx.getInput(0);
+    if (!input?.txid || input?.index === undefined) return;
+
+    const inputTxid = toHex(input.txid);
+    indexerClient
+      .getVtxos({ outpoints: [{ txid: inputTxid, vout: input.index }] })
+      .then((result) => {
+        if (result.vtxos?.[0]) setCheckpointVtxo(result.vtxos[0]);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch checkpoint VTXO:', err);
+      });
+  }, [subtype, parsedTx]);
+
+  // -------------------------------------------------------------------------
   // Derive title from subtype
   // -------------------------------------------------------------------------
 
@@ -1310,11 +1343,11 @@ export function TransactionDetail({
         {/* Raw hex viewer (moved after inputs/outputs) */}
         {type === 'arkade' && arkadeData?.hex && !parsedTx && (
           <div className="space-y-6">
-            <HexViewer hex={arkadeData.hex} label="Virtual transaction hex" />
+            <HexViewer hex={arkadeData.hex} label="Raw virtual transaction" />
           </div>
         )}
         {type === 'commitment' && commitmentData?.hex && !parsedTx && (
-          <HexViewer hex={commitmentData.hex} label="Raw transaction hex" />
+          <HexViewer hex={commitmentData.hex} label="Raw transaction" />
         )}
       </div>
 
@@ -1397,6 +1430,7 @@ export function TransactionDetail({
                   isConnector={connectorOutputIndices.has(output.index)}
                   batchRootTxid={batchRootTxids.get(output.index)}
                   forfeitVtxo={forfeitVtxo}
+                  checkpointVtxo={checkpointVtxo}
                 />
               ))}
             </div>
@@ -1411,7 +1445,7 @@ export function TransactionDetail({
 
       {/* Raw hex (collapsible, shown when parsed tx exists) */}
       {parsedTx && (
-        <RawHexSection
+        <RawDataSection
           type={type}
           arkadeHex={arkadeData?.hex}
           commitmentHex={commitmentData?.hex}
@@ -1425,7 +1459,7 @@ export function TransactionDetail({
 // Raw hex collapsible
 // ---------------------------------------------------------------------------
 
-function RawHexSection({
+function RawDataSection({
   type,
   arkadeHex,
   commitmentHex,
@@ -1435,30 +1469,38 @@ function RawHexSection({
   commitmentHex?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const hexStr = type === 'arkade' ? arkadeHex : commitmentHex;
-  if (!hexStr) return null;
+  const rawData = type === 'arkade' ? arkadeHex : commitmentHex;
+  if (!rawData) return null;
 
   const label =
-    type === 'arkade' ? 'Virtual transaction hex' : 'Raw transaction hex';
+    type === 'arkade' ? 'Raw virtual transaction' : 'Raw transaction';
 
   return (
     <div className={`rounded-xl border border-border bg-card p-5 ${CARD_SHADOW}`}>
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 w-full active:scale-[0.97]"
-        aria-label={expanded ? 'Hide raw hex' : 'Show raw hex'}
-        aria-expanded={expanded}
-      >
-        {expanded ? (
-          <ChevronDown className="h-4 w-4" aria-hidden="true" />
-        ) : (
-          <ChevronRight className="h-4 w-4" aria-hidden="true" />
-        )}
-        <span className="font-medium">{label}</span>
-      </button>
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 active:scale-[0.97]"
+          aria-label={expanded ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+          aria-expanded={expanded}
+        >
+          {expanded ? (
+            <ChevronDown className="h-4 w-4" aria-hidden="true" />
+          ) : (
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
+          )}
+          <span className="font-medium">{label}</span>
+          {!expanded && (
+            <span className="text-xs text-muted-foreground">({rawData.length} chars)</span>
+          )}
+        </button>
+        <CopyButton text={rawData} />
+      </div>
       {expanded && (
-        <div className="mt-4">
-          <HexViewer hex={hexStr} label={label} />
+        <div className="mt-3 rounded-lg bg-secondary/50 border border-border p-3 overflow-x-auto">
+          <code className="text-xs font-mono text-foreground break-all leading-relaxed">
+            {rawData}
+          </code>
         </div>
       )}
     </div>

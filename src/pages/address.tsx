@@ -30,10 +30,12 @@ function CopyableValue({ value, truncate }: { value: string; truncate?: boolean 
 
   return (
     <div className="flex items-center gap-2 min-w-0">
-      <span className="text-foreground font-mono text-xs break-all">
+      <span className="text-foreground font-mono text-xs break-all" title={value}>
         {truncate && value.length > 20
           ? `${value.slice(0, 12)}...${value.slice(-12)}`
-          : value}
+          : value.length > 60
+            ? `${value.slice(0, 24)}...${value.slice(-24)}`
+            : value}
       </span>
       <button
         onClick={handleCopy}
@@ -215,7 +217,7 @@ export function AddressPage() {
 
       <div className={cn(
         !isLoading && !error && allVtxos.length > 0
-          ? 'flex flex-col md:flex-row gap-4 md:items-stretch'
+          ? 'flex flex-col lg:flex-row gap-4 lg:items-stretch'
           : '',
       )}>
         <div className="rounded-xl border border-border bg-card p-6 shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_hsl(var(--border)/0.2)] flex-1 min-w-0">
