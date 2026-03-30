@@ -190,6 +190,11 @@ export function AddressPage() {
     [filteredVtxos],
   );
 
+  const hasAssets = useMemo(
+    () => allVtxos.some((v) => v.assets && v.assets.length > 0),
+    [allVtxos],
+  );
+
   const pinned = address ? isPinned(address) : false;
 
   const handleTogglePin = useCallback(() => {
@@ -216,11 +221,14 @@ export function AddressPage() {
       <Breadcrumb />
 
       <div className={cn(
-        !isLoading && !error && allVtxos.length > 0
+        !isLoading && !error && allVtxos.length > 0 && hasAssets
           ? 'flex flex-col lg:flex-row gap-4 lg:items-stretch'
-          : '',
+          : 'space-y-4',
       )}>
-        <div className="rounded-xl border border-border bg-card p-6 shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_hsl(var(--border)/0.2)] flex-1 min-w-0">
+        <div className={cn(
+          'rounded-xl border border-border bg-card p-6 shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_hsl(var(--border)/0.2)]',
+          hasAssets && 'lg:w-1/3 lg:min-w-[320px]',
+        )}>
           <div className="flex items-center justify-between mb-4">
             <h1 className="font-heading text-xl font-bold text-foreground">
               Address details
@@ -260,7 +268,7 @@ export function AddressPage() {
         </div>
 
         {!isLoading && !error && allVtxos.length > 0 && (
-          <AddressStats vtxos={allVtxos} className="flex-1 min-w-0" />
+          <AddressStats vtxos={allVtxos} className={hasAssets ? 'flex-1 min-w-0' : undefined} />
         )}
       </div>
 

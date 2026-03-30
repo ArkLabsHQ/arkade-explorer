@@ -35,10 +35,11 @@ export function deriveVtxoStatus(vtxo: {
 }): VtxoStatus {
   if (vtxo.isSwept) return 'swept';
   if (vtxo.isSpent) return 'spent';
-  if (vtxo.isPreconfirmed) return 'preconfirmed';
-  if (vtxo.virtualStatus?.state === 'settled') return 'settled';
   if (vtxo.virtualStatus?.state === 'swept') return 'swept';
   if (vtxo.virtualStatus?.state === 'spent') return 'spent';
-  if (vtxo.virtualStatus?.state === 'preconfirmed') return 'preconfirmed';
+  // Settled and preconfirmed VTXOs are still unspent/spendable
+  if (vtxo.isPreconfirmed) return 'spendable';
+  if (vtxo.virtualStatus?.state === 'settled') return 'spendable';
+  if (vtxo.virtualStatus?.state === 'preconfirmed') return 'spendable';
   return 'spendable';
 }
