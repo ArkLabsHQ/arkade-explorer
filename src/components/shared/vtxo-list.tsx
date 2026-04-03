@@ -363,10 +363,21 @@ function VtxoTableRow({
           </div>
         </td>
         <td className="px-4 py-3 text-right">
-          <MoneyDisplay
-            sats={vtxo.value}
-            className="text-foreground font-mono text-xs"
-          />
+          <div className="flex flex-col items-end gap-0.5">
+            <MoneyDisplay
+              sats={vtxo.value}
+              className="text-foreground font-mono text-xs"
+            />
+            {vtxo.assets && vtxo.assets.length > 0 && vtxo.assets.map((asset: { assetId: string; amount: number }, idx: number) => (
+              <AssetAmountDisplay
+                key={idx}
+                amount={asset.amount}
+                assetId={asset.assetId}
+                valueClassName="text-foreground font-bold font-mono text-xs"
+                unitClassName="text-foreground font-mono text-xs"
+              />
+            ))}
+          </div>
         </td>
         <td className="px-4 py-3 text-center">
           <StatusBadges vtxo={vtxo} />
@@ -620,10 +631,21 @@ function VtxoDenseRow({
         <div className="flex-1" />
 
         {/* Amount */}
-        <MoneyDisplay
-          sats={vtxo.value}
-          className="text-foreground font-mono text-xs shrink-0"
-        />
+        <div className="flex items-center gap-2 shrink-0">
+          <MoneyDisplay
+            sats={vtxo.value}
+            className="text-foreground font-mono text-xs"
+          />
+          {vtxo.assets && vtxo.assets.length > 0 && vtxo.assets.map((asset: { assetId: string; amount: number }, idx: number) => (
+            <AssetAmountDisplay
+              key={idx}
+              amount={asset.amount}
+              assetId={asset.assetId}
+              valueClassName="text-foreground font-bold font-mono text-xs"
+              unitClassName="text-foreground font-mono text-xs"
+            />
+          ))}
+        </div>
 
         {/* Status */}
         <StatusBadges vtxo={vtxo} />

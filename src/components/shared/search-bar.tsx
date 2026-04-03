@@ -37,8 +37,9 @@ function useSearch() {
         addRecentSearch(q, 'transaction');
         routerNavigate(`/tx/${q}`);
       } else if (isValidOutpoint(q)) {
+        const outpointTxid = q.split(':')[0];
         addRecentSearch(q, 'transaction');
-        routerNavigate(`/tx/${q}`);
+        routerNavigate(`/tx/${outpointTxid}`);
       } else if (q.startsWith('tark1') || q.startsWith('ark1')) {
         addRecentSearch(q, 'address');
         routerNavigate(`/address/${q}`);

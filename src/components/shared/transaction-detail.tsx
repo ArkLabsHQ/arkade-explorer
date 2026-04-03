@@ -5,6 +5,8 @@ import { ChevronDown, ChevronRight, FileText, ArrowLeft, ArrowRight, Pin, PinOff
 import { CopyButton } from '@/components/shared/copy-button';
 import { InfoRow } from '@/components/shared/info-row';
 import { MoneyDisplay } from '@/components/shared/money-display';
+import { AssetAmountDisplay } from '@/components/shared/asset-amount-display';
+import { AssetBadge } from '@/components/shared/asset-badge';
 import { BadgeStatus, BadgeRecoverable, deriveVtxoStatus, isRecoverable } from '@/components/shared/badge-status';
 import { truncateHash, formatTimestamp } from '@/lib/utils';
 import { constructArkAddress } from '@/lib/arkAddress';
@@ -36,9 +38,19 @@ function isArkExtension(script: Uint8Array): boolean {
   }
 }
 
-/** Parse asset packet from an ARK extension OP_RETURN script */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseAssetPacket(script: Uint8Array): any {
+/** Known ARK packet extension type IDs */
+const EXTENSION_NAMES: Record<number, string> = {
+  0: 'Asset',
+};
+
+interface ParsedPacket {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  assetPacket: any;
+  extensions: Array<{ type: number; name: string }>;
+}
+
+/** Parse ARK packet from an OP_RETURN script, returning all detected extensions */
+function parseArkPacket(script: Uint8Array): ParsedPacket | null {
   try {
     const decoded = btc.Script.decode(script);
     if (decoded.length < 2 || decoded[0] !== 'RETURN') return null;
@@ -52,6 +64,9 @@ function parseAssetPacket(script: Uint8Array): any {
       offset += p.length;
     }
     if (buf.length < 3 || buf[0] !== 0x41 || buf[1] !== 0x52 || buf[2] !== 0x4b) return null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let assetPacket: any = null;
+    const extensions: Array<{ type: number; name: string }> = [];
     let pos = 3;
     while (pos < buf.length) {
       const packetType = buf[pos++];
@@ -65,11 +80,13 @@ function parseAssetPacket(script: Uint8Array): any {
       }
       const data = buf.slice(pos, pos + len);
       pos += len;
+      extensions.push({ type: packetType, name: EXTENSION_NAMES[packetType] || `Extension #${packetType}` });
       if (packetType === 0) {
-        return Packet.fromBytes(data);
+        assetPacket = Packet.fromBytes(data);
       }
     }
-    return null;
+    if (extensions.length === 0) return null;
+    return { assetPacket, extensions };
   } catch {
     return null;
   }
@@ -286,7 +303,31 @@ function ConnectorList({ connectors }: { connectors: Array<{ txid: string; child
 // Input card
 // ---------------------------------------------------------------------------
 
-function InputCard({ input }: { input: ParsedInput }) {
+function InputCard({
+  input,
+  assetPacket,
+  txid,
+}: {
+  input: ParsedInput;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  assetPacket?: any;
+  txid?: string;
+}) {
+  // Derive asset information from packet for this input
+  const inputAssets: Array<{ assetId: string; amount: number }> = [];
+  if (assetPacket) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    assetPacket.groups?.forEach((g: any, gi: number) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const inp = g.inputs?.find((i: any) => i.vin === input.index);
+      if (!inp) return;
+      const aid =
+        g.assetId?.toString() ||
+        (g.isIssuance?.() && txid ? txid + gi.toString(16).padStart(4, '0') : null);
+      if (aid) inputAssets.push({ assetId: aid, amount: Number(inp.amount) });
+    });
+  }
+
   return (
     <div className="flex items-center gap-2">
       <div className="w-7 flex items-center justify-center shrink-0">
@@ -314,6 +355,20 @@ function InputCard({ input }: { input: ParsedInput }) {
             />
           )}
         </div>
+        {/* Asset amounts */}
+        {inputAssets.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 mb-1">
+            {inputAssets.map((a, ai) => (
+              <AssetAmountDisplay
+                key={ai}
+                amount={a.amount}
+                assetId={a.assetId}
+                valueClassName="text-xs font-semibold text-foreground"
+                unitClassName="text-xs"
+              />
+            ))}
+          </div>
+        )}
         {input.arkAddress ? (
           <Link
             to={`/address/${input.arkAddress}`}
@@ -448,6 +503,11 @@ function OutputCard({
                 <ArrowRight className="h-3 w-3" aria-hidden="true" />
               </Link>
             )}
+            {outputAssets.length > 0 && (
+              <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-semibold rounded-full border bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30">
+                Asset
+              </span>
+            )}
             {isConnector && (
               <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-semibold rounded-full border bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30">
                 Connector
@@ -477,12 +537,15 @@ function OutputCard({
 
         {/* Asset amounts */}
         {outputAssets.length > 0 && (
-          <div className="flex flex-col items-end gap-0.5 mb-1">
+          <div className="flex flex-wrap items-center gap-1.5 mb-1">
             {outputAssets.map((a, ai) => (
-              <span key={ai} className="text-xs font-mono text-muted-foreground">
-                {a.amount.toLocaleString()} units &middot;{' '}
-                {truncateHash(a.assetId, 8, 8)}
-              </span>
+              <AssetAmountDisplay
+                key={ai}
+                amount={a.amount}
+                assetId={a.assetId}
+                valueClassName="text-xs font-semibold text-foreground"
+                unitClassName="text-xs"
+              />
             ))}
           </div>
         )}
@@ -524,7 +587,7 @@ function OutputCard({
           </div>
         ) : output.isArkExtension ? (
           <div className="text-xs font-mono text-muted-foreground break-all">
-            Asset packet &middot; {output.scriptHex.substring(0, 40)}...
+            Packet &middot; {output.scriptHex.substring(0, 40)}...
           </div>
         ) : output.isAnchor ? (
           <div className="text-xs font-mono text-muted-foreground break-all">
@@ -564,20 +627,33 @@ function OutputCard({
 // Asset packet section
 // ---------------------------------------------------------------------------
 
-function AssetPacketSection({
+function PacketSection({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   assetPacket,
   txid,
+  extensions,
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   assetPacket: any;
   txid: string;
+  extensions: Array<{ type: number; name: string }>;
 }) {
-  if (!assetPacket || !assetPacket.groups || assetPacket.groups.length === 0) return null;
+  const hasAssetGroups = assetPacket?.groups?.length > 0;
+  if (!hasAssetGroups && extensions.length === 0) return null;
 
   return (
     <div className={`rounded-xl border border-border bg-card p-6 ${CARD_SHADOW}`}>
-      <h2 className="text-sm font-semibold text-foreground mb-4">Asset packet</h2>
+      <div className="flex items-center gap-2 mb-4">
+        <h2 className="text-sm font-semibold text-foreground">Packet</h2>
+        {extensions.map((ext, i) => (
+          <span
+            key={i}
+            className="inline-flex items-center px-1.5 py-0.5 text-xs font-semibold rounded-full border bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30"
+          >
+            {ext.name}
+          </span>
+        ))}
+      </div>
       <div className="space-y-3">
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         {assetPacket.groups.map((group: any, gi: number) => {
@@ -592,9 +668,7 @@ function AssetPacketSection({
               className={`rounded-lg border border-border bg-secondary/30 p-3 space-y-2 ${CARD_SHADOW}`}
             >
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-mono text-primary break-all">
-                  {truncateHash(assetIdStr, 12, 12)}
-                </span>
+                <AssetBadge assetId={assetIdStr} />
                 <CopyButton text={assetIdStr} />
                 {isIssuance && (
                   <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full border bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
@@ -613,13 +687,15 @@ function AssetPacketSection({
                     {group.inputs.map((inp: any, ii: number) => (
                       <div
                         key={ii}
-                        className="text-xs font-mono text-muted-foreground"
+                        className="text-xs font-mono text-muted-foreground flex items-center gap-1"
                       >
-                        vin:{inp.vin} &rarr;{' '}
-                        <span className="text-foreground font-semibold">
-                          {inp.amount.toString()}
-                        </span>{' '}
-                        units
+                        <span>vin:{inp.vin} &rarr;</span>{' '}
+                        <AssetAmountDisplay
+                          amount={Number(inp.amount)}
+                          assetId={assetIdStr}
+                          valueClassName="text-foreground font-semibold text-xs"
+                          unitClassName="text-xs"
+                        />
                       </div>
                     ))}
                   </div>
@@ -636,13 +712,15 @@ function AssetPacketSection({
                     {group.outputs.map((out: any, oi: number) => (
                       <div
                         key={oi}
-                        className="text-xs font-mono text-muted-foreground"
+                        className="text-xs font-mono text-muted-foreground flex items-center gap-1"
                       >
-                        vout:{out.vout} &rarr;{' '}
-                        <span className="text-foreground font-semibold">
-                          {out.amount.toString()}
-                        </span>{' '}
-                        units
+                        <span>vout:{out.vout} &rarr;</span>{' '}
+                        <AssetAmountDisplay
+                          amount={Number(out.amount)}
+                          assetId={assetIdStr}
+                          valueClassName="text-foreground font-semibold text-xs"
+                          unitClassName="text-xs"
+                        />
                       </div>
                     ))}
                   </div>
@@ -690,14 +768,14 @@ export function TransactionDetail({
     inputs,
     outputs,
     assetPacket,
+    packetExtensions,
     forfeitAddress,
   } = useMemo(() => {
     let parsed: btc.Transaction | null = null;
     let detectedSubtype: TxSubtype = 'generic';
     let forfeitScriptHex = '';
     let derivedForfeitAddress = '';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let detectedAssetPacket: any = null;
+    let detectedPacket: ParsedPacket | null = null;
 
     // --- Parse Arkade transactions from PSBT (base64) ---
     if (type === 'arkade' && arkadeData?.hex) {
@@ -728,6 +806,7 @@ export function TransactionDetail({
         inputs: [] as ParsedInput[],
         outputs: [] as ParsedOutput[],
         assetPacket: null,
+        packetExtensions: [] as Array<{ type: number; name: string }>,
         forfeitAddress: '',
       };
     }
@@ -844,7 +923,7 @@ export function TransactionDetail({
     for (let i = 0; i < parsed.outputsLength; i++) {
       const output = parsed.getOutput(i);
       if (output?.script && isArkExtension(output.script)) {
-        detectedAssetPacket = parseAssetPacket(output.script);
+        detectedPacket = parseArkPacket(output.script);
         break;
       }
     }
@@ -963,7 +1042,8 @@ export function TransactionDetail({
       subtype: detectedSubtype,
       inputs: parsedInputs,
       outputs: parsedOutputs,
-      assetPacket: detectedAssetPacket,
+      assetPacket: detectedPacket?.assetPacket ?? null,
+      packetExtensions: detectedPacket?.extensions ?? [],
       forfeitAddress: derivedForfeitAddress,
     };
   }, [type, arkadeData?.hex, commitmentData?.hex, serverInfo, vtxoData, commitmentData?.metadata, txid]);
@@ -1365,7 +1445,7 @@ export function TransactionDetail({
             </h2>
             <div className="space-y-2">
               {inputs.map((input) => (
-                <InputCard key={`input-${input.index}`} input={input} />
+                <InputCard key={`input-${input.index}`} input={input} assetPacket={assetPacket} txid={txid} />
               ))}
 
               {/* Forfeit transactions as additional inputs (commitment txs) */}
@@ -1438,9 +1518,9 @@ export function TransactionDetail({
         </div>
       )}
 
-      {/* Asset packet details */}
-      {assetPacket && (
-        <AssetPacketSection assetPacket={assetPacket} txid={txid} />
+      {/* Packet details */}
+      {(assetPacket || packetExtensions.length > 0) && (
+        <PacketSection assetPacket={assetPacket} txid={txid} extensions={packetExtensions} />
       )}
 
       {/* Raw hex (collapsible, shown when parsed tx exists) */}
