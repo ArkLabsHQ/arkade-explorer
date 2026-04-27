@@ -1010,16 +1010,16 @@ export function TransactionDetail({
         output?.script &&
         serverInfo?.network
       ) {
-        // For commitment tx change outputs (non-batch), derive a Bitcoin bc1p/tb1p address
-        if (type === 'commitment' && !isBatch && output.script.length === 34 && output.script[0] === 0x51 && output.script[1] === 0x20) {
+        if (type === 'commitment' && !isBatch) {
           try {
             const net = serverInfo.network === 'bitcoin' ? btc.NETWORK : btc.TEST_NETWORK;
-            const pubkey = output.script.slice(2);
-            arkAddress = btc.Address(net).encode({ type: 'tr', pubkey });
-          } catch (e) {
-            console.error('Failed to derive Bitcoin address for change output:', e);
+            const decoded = btc.OutScript.decode(output.script);
+            arkAddress = btc.Address(net).encode(decoded);
+          } catch {
+            // Not a standard Bitcoin script — fall through to ark address
           }
-        } else if (serverInfo?.signerPubkey) {
+        }
+        if (!arkAddress && serverInfo?.signerPubkey) {
           try {
             const addr = constructArkAddress(
               output.script,
