@@ -43,6 +43,9 @@ function useSearch() {
       } else if (q.startsWith('tark1') || q.startsWith('ark1')) {
         addRecentSearch(q, 'address');
         routerNavigate(`/address/${q}`);
+      } else if (/^[0-9a-fA-F]+$/.test(q) && q.length > 64) {
+        addRecentSearch(q, 'asset');
+        routerNavigate(`/asset/${q}`);
       } else {
         addRecentSearch(q, 'transaction');
         routerNavigate(`/tx/${q}`);
