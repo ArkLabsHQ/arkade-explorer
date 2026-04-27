@@ -990,29 +990,6 @@ export function TransactionDetail({
         (v: any) => (v.outpoint?.vout ?? v.vout) === i,
       );
 
-      // Try to construct Ark address
-      let arkAddress = '';
-      if (
-        !isAnchor &&
-        !isForfeitOutput &&
-        detectedSubtype !== 'checkpoint' &&
-        detectedSubtype !== 'connector-tree' &&
-        output?.script &&
-        serverInfo?.signerPubkey &&
-        serverInfo?.network
-      ) {
-        try {
-          const addr = constructArkAddress(
-            output.script,
-            serverInfo.signerPubkey,
-            serverInfo.network,
-          );
-          if (addr) arkAddress = addr;
-        } catch (e) {
-          console.error('Failed to construct Ark address:', e);
-        }
-      }
-
       // Check if this output is a batch
       const batchKey = i.toString();
       const batchInfo =
@@ -1021,6 +998,40 @@ export function TransactionDetail({
           : null;
       const isBatch =
         !!batchInfo && parseInt((batchInfo as any).totalOutputAmount || '0') > 0;
+
+      // Try to construct address for this output
+      let arkAddress = '';
+      if (
+        !isAnchor &&
+        !isForfeitOutput &&
+        !isExt &&
+        detectedSubtype !== 'checkpoint' &&
+        detectedSubtype !== 'connector-tree' &&
+        output?.script &&
+        serverInfo?.network
+      ) {
+        // For commitment tx change outputs (non-batch), derive a Bitcoin bc1p/tb1p address
+        if (type === 'commitment' && !isBatch && output.script.length === 34 && output.script[0] === 0x51 && output.script[1] === 0x20) {
+          try {
+            const net = serverInfo.network === 'bitcoin' ? btc.NETWORK : btc.TEST_NETWORK;
+            const pubkey = output.script.slice(2);
+            arkAddress = btc.Address(net).encode({ type: 'tr', pubkey });
+          } catch (e) {
+            console.error('Failed to derive Bitcoin address for change output:', e);
+          }
+        } else if (serverInfo?.signerPubkey) {
+          try {
+            const addr = constructArkAddress(
+              output.script,
+              serverInfo.signerPubkey,
+              serverInfo.network,
+            );
+            if (addr) arkAddress = addr;
+          } catch (e) {
+            console.error('Failed to construct Ark address:', e);
+          }
+        }
+      }
 
       parsedOutputs.push({
         index: i,
