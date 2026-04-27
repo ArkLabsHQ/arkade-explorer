@@ -523,7 +523,7 @@ function OutputCard({
         {vtxo && !output.isAnchor && (
           <div className="flex items-center gap-1.5 mb-1">
             <BadgeStatus status={deriveVtxoStatus(vtxo)} />
-            {isRecoverable(vtxo) && <BadgeRecoverable />}
+            {isRecoverable(vtxo) && deriveVtxoStatus(vtxo) !== 'spent' && <BadgeRecoverable />}
           </div>
         )}
 

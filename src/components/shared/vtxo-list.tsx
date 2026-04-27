@@ -80,7 +80,7 @@ function StatusBadges({ vtxo }: { vtxo: VirtualCoin }) {
   return (
     <span className="inline-flex items-center gap-1.5">
       <BadgeStatus status={deriveVtxoStatus(vtxo)} />
-      {isRecoverable(vtxo) && <BadgeRecoverable />}
+      {isRecoverable(vtxo) && deriveVtxoStatus(vtxo) !== 'spent' && <BadgeRecoverable />}
     </span>
   );
 }
