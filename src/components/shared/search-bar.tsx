@@ -4,7 +4,7 @@ import { Command } from 'cmdk';
 import { Search, Clock, ArrowRight, X, Pin, PinOff, Pencil, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRecentSearches } from '@/hooks/use-recent-searches';
-import { isValidTxid, isValidOutpoint } from '@/lib/validation';
+import { isValidTxid, isValidOutpoint, isValidAssetId } from '@/lib/validation';
 import { truncateHash } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
@@ -43,7 +43,7 @@ function useSearch() {
       } else if (q.startsWith('tark1') || q.startsWith('ark1')) {
         addRecentSearch(q, 'address');
         routerNavigate(`/address/${q}`);
-      } else if (/^[0-9a-fA-F]+$/.test(q) && q.length > 64) {
+      } else if (isValidAssetId(q)) {
         addRecentSearch(q, 'asset');
         routerNavigate(`/asset/${q}`);
       } else {
@@ -81,7 +81,7 @@ function SearchHeader({ className, placeholder }: { className?: string; placehol
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder={placeholder ?? 'Search txid, address, or outpoint...'}
+        placeholder={placeholder ?? 'Search txid, address, asset, or outpoint...'}
         aria-label="Search by transaction ID, address, or outpoint"
         className="w-full h-9 pl-9 pr-3 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-shadow duration-200"
       />
@@ -125,7 +125,7 @@ function SearchHero({ className, placeholder }: { className?: string; placeholde
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={placeholder ?? 'Search by txid, address, or outpoint...'}
+          placeholder={placeholder ?? 'Search by txid, address, asset, or outpoint...'}
           aria-label="Search by transaction ID, address, or outpoint"
           className="w-full h-12 sm:h-14 pl-12 pr-4 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-ring/40 shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2)] transition-shadow duration-200"
         />
@@ -260,7 +260,7 @@ export function SearchCommandPaletteOverlay({
                   autoFocus
                   value={query}
                   onValueChange={setQuery}
-                  placeholder="Search txid, address, or outpoint..."
+                  placeholder="Search txid, address, asset, or outpoint..."
                   className="flex-1 h-12 px-3 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:outline-none"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -617,7 +617,7 @@ function SearchCommandPalette({ className }: { className?: string }) {
                     autoFocus
                     value={query}
                     onValueChange={setQuery}
-                    placeholder="Search txid, address, or outpoint..."
+                    placeholder="Search txid, address, asset, or outpoint..."
                     className="flex-1 h-12 px-3 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:outline-none"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
