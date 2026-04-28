@@ -13,3 +13,7 @@ export function isValidOutpoint(outpoint: string): boolean {
   const vout = parseInt(voutStr, 10);
   return isValidTxid(txid) && !isNaN(vout) && vout >= 0;
 }
+
+export function isValidAssetId(id: string): boolean {
+  return /^[0-9a-fA-F]{68}$/.test(id);
+}
