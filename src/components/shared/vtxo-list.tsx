@@ -77,10 +77,11 @@ function deriveAddress(
 }
 
 function StatusBadges({ vtxo }: { vtxo: VirtualCoin }) {
+  const status = deriveVtxoStatus(vtxo);
   return (
     <span className="inline-flex items-center gap-1.5">
-      <BadgeStatus status={deriveVtxoStatus(vtxo)} />
-      {isRecoverable(vtxo) && deriveVtxoStatus(vtxo) !== 'spent' && <BadgeRecoverable />}
+      <BadgeStatus status={status} />
+      {isRecoverable(vtxo) && status !== 'spent' && <BadgeRecoverable />}
     </span>
   );
 }

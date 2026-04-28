@@ -428,6 +428,7 @@ function OutputCard({
     (forfeitVtxo && output.isForfeit) ? forfeitVtxo :
     output.vtxo;
   const vtxo = effectiveVtxo;
+  const vtxoStatus = vtxo ? deriveVtxoStatus(vtxo) : undefined;
   const isSpent =
     vtxo?.isSpent === true || (vtxo?.spentBy && vtxo.spentBy !== '');
   const spendingTxid =
@@ -522,8 +523,8 @@ function OutputCard({
         {/* Status badges */}
         {vtxo && !output.isAnchor && (
           <div className="flex items-center gap-1.5 mb-1">
-            <BadgeStatus status={deriveVtxoStatus(vtxo)} />
-            {isRecoverable(vtxo) && deriveVtxoStatus(vtxo) !== 'spent' && <BadgeRecoverable />}
+            <BadgeStatus status={vtxoStatus!} />
+            {isRecoverable(vtxo) && vtxoStatus !== 'spent' && <BadgeRecoverable />}
           </div>
         )}
 
