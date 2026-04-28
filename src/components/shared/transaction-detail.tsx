@@ -396,10 +396,10 @@ function InputCard({
           <Link
             to={`/commitment-tx/${settlementTxId}`}
             className="inline-flex items-center gap-1 mt-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors duration-200"
-            aria-label={`View settlement round ${truncateHash(settlementTxId, 6, 6)}`}
+            aria-label={`View commitment tx ${truncateHash(settlementTxId, 6, 6)}`}
           >
             <ExternalLink className="h-3 w-3" aria-hidden="true" />
-            <span>Round {truncateHash(settlementTxId, 8, 8)}</span>
+            <span>Commitment tx {truncateHash(settlementTxId, 8, 8)}</span>
           </Link>
         )}
       </div>
