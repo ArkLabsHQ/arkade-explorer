@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueries } from '@tanstack/react-query';
-import { ChevronDown, ChevronRight, FileText, ArrowLeft, ArrowRight, Pin, PinOff } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileText, ArrowLeft, ArrowRight, Pin, PinOff, ExternalLink } from 'lucide-react';
 import { CopyButton } from '@/components/shared/copy-button';
 import { InfoRow } from '@/components/shared/info-row';
 import { MoneyDisplay } from '@/components/shared/money-display';
@@ -307,11 +307,13 @@ function InputCard({
   input,
   assetPacket,
   txid,
+  settlementTxId,
 }: {
   input: ParsedInput;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   assetPacket?: any;
   txid?: string;
+  settlementTxId?: string;
 }) {
   // Derive asset information from packet for this input
   const inputAssets: Array<{ assetId: string; amount: number }> = [];
@@ -390,6 +392,16 @@ function InputCard({
             {input.scriptHex.substring(0, 40)}...
           </div>
         ) : null}
+        {settlementTxId && (
+          <Link
+            to={`/commitment-tx/${settlementTxId}`}
+            className="inline-flex items-center gap-1 mt-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors duration-200"
+            aria-label={`View settlement round ${truncateHash(settlementTxId, 6, 6)}`}
+          >
+            <ExternalLink className="h-3 w-3" aria-hidden="true" />
+            <span>Round {truncateHash(settlementTxId, 8, 8)}</span>
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -607,9 +619,9 @@ function OutputCard({
         ) : null}
       </div>
 
-      {/* Spending arrow */}
+      {/* Spending / ark tx arrow */}
       <div className="w-7 flex items-center justify-center shrink-0">
-        {isSpent && spendingTxid && (
+        {isSpent && spendingTxid ? (
           <Link
             to={`/tx/${spendingTxid}`}
             className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 transition-colors duration-200 active:scale-[0.97]"
@@ -617,7 +629,16 @@ function OutputCard({
           >
             <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
-        )}
+        ) : output.isBatch && batchRootTxid ? (
+          <Link
+            to={`/tx/${batchRootTxid}`}
+            className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white hover:bg-blue-500 transition-colors duration-200 active:scale-[0.97]"
+            aria-label={`View ark transaction ${truncateHash(batchRootTxid, 6, 6)}`}
+            title="View ark transaction"
+          >
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </Link>
+        ) : null}
       </div>
     </div>
   );
@@ -1205,6 +1226,39 @@ export function TransactionDetail({
   }, [subtype, parsedTx]);
 
   // -------------------------------------------------------------------------
+  // Fetch VTXOs for commitment tx inputs (to get settlementTxId links)
+  // -------------------------------------------------------------------------
+
+  const [inputVtxoMap, setInputVtxoMap] = useState<Map<string, VirtualCoin>>(new Map());
+
+  useEffect(() => {
+    if (type !== 'commitment' || !parsedTx || parsedTx.inputsLength === 0) return;
+
+    const outpoints: Array<{ txid: string; vout: number }> = [];
+    for (let i = 0; i < parsedTx.inputsLength; i++) {
+      const input = parsedTx.getInput(i);
+      if (input?.txid) {
+        outpoints.push({ txid: toHex(input.txid), vout: input.index ?? 0 });
+      }
+    }
+    if (outpoints.length === 0) return;
+
+    indexerClient
+      .getVtxos({ outpoints })
+      .then((result) => {
+        const map = new Map<string, VirtualCoin>();
+        for (const vtxo of result.vtxos || []) {
+          const key = `${vtxo.txid}:${vtxo.vout}`;
+          map.set(key, vtxo);
+        }
+        setInputVtxoMap(map);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch input VTXOs:', err);
+      });
+  }, [type, parsedTx]);
+
+  // -------------------------------------------------------------------------
   // Derive title from subtype
   // -------------------------------------------------------------------------
 
@@ -1444,9 +1498,19 @@ export function TransactionDetail({
               )
             </h2>
             <div className="space-y-2">
-              {inputs.map((input) => (
-                <InputCard key={`input-${input.index}`} input={input} assetPacket={assetPacket} txid={txid} />
-              ))}
+              {inputs.map((input) => {
+                const inputKey = `${input.txid}:${input.vout}`;
+                const inputVtxo = inputVtxoMap.get(inputKey);
+                return (
+                  <InputCard
+                    key={`input-${input.index}`}
+                    input={input}
+                    assetPacket={assetPacket}
+                    txid={txid}
+                    settlementTxId={inputVtxo?.settledBy || undefined}
+                  />
+                );
+              })}
 
               {/* Forfeit transactions as additional inputs (commitment txs) */}
               {type === 'commitment' &&
