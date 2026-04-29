@@ -126,7 +126,7 @@ function LeafVtxoRow({ leaf }: { leaf: LeafVtxo }) {
         <MoneyDisplay sats={parseInt(leaf.amount)} className="text-xs text-foreground shrink-0" />
       )}
       <BadgeStatus status={status} />
-      {recoverable && <BadgeRecoverable />}
+      {recoverable && status !== 'spent' && <BadgeRecoverable />}
     </div>
   );
 }
