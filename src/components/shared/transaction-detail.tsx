@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueries } from '@tanstack/react-query';
-import { ChevronDown, ChevronRight, FileText, ArrowLeft, ArrowRight, Pin, PinOff } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileText, ArrowLeft, ArrowRight, Pin, PinOff, ExternalLink } from 'lucide-react';
 import { CopyButton } from '@/components/shared/copy-button';
 import { InfoRow } from '@/components/shared/info-row';
 import { MoneyDisplay } from '@/components/shared/money-display';
@@ -97,6 +97,13 @@ function toHex(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
+}
+
+function getMempoolUrl(network: string | undefined, txid: string): string {
+  if (network === 'bitcoin') return `https://mempool.space/tx/${txid}`;
+  if (network === 'signet') return `https://mempool.space/signet/tx/${txid}`;
+  if (network === 'testnet') return `https://mempool.space/testnet/tx/${txid}`;
+  return `https://mutinynet.com/tx/${txid}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -307,11 +314,15 @@ function InputCard({
   input,
   assetPacket,
   txid,
+  settlementTxId,
+  mempoolUrl,
 }: {
   input: ParsedInput;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   assetPacket?: any;
   txid?: string;
+  settlementTxId?: string;
+  mempoolUrl?: string;
 }) {
   // Derive asset information from packet for this input
   const inputAssets: Array<{ assetId: string; amount: number }> = [];
@@ -331,7 +342,17 @@ function InputCard({
   return (
     <div className="flex items-center gap-2">
       <div className="w-7 flex items-center justify-center shrink-0">
-        {input.txid && (
+        {input.txid && (mempoolUrl ? (
+          <a
+            href={mempoolUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 transition-colors duration-200 active:scale-[0.97]"
+            aria-label={`View on mempool.space ${truncateHash(input.txid, 6, 6)}`}
+          >
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </a>
+        ) : (
           <Link
             to={`/tx/${input.txid}`}
             className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 transition-colors duration-200 active:scale-[0.97]"
@@ -339,7 +360,7 @@ function InputCard({
           >
             <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
-        )}
+        ))}
       </div>
       <div
         className={`flex-1 min-w-0 rounded-lg border border-border bg-card p-3 ${CARD_SHADOW}`}
@@ -390,6 +411,16 @@ function InputCard({
             {input.scriptHex.substring(0, 40)}...
           </div>
         ) : null}
+        {settlementTxId && (
+          <Link
+            to={`/commitment-tx/${settlementTxId}`}
+            className="inline-flex items-center gap-1 mt-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors duration-200"
+            aria-label={`View commitment tx ${truncateHash(settlementTxId, 6, 6)}`}
+          >
+            <ExternalLink className="h-3 w-3" aria-hidden="true" />
+            <span>Commitment tx {truncateHash(settlementTxId, 8, 8)}</span>
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -430,16 +461,17 @@ function OutputCard({
   const vtxo = effectiveVtxo;
   const isSpent =
     vtxo?.isSpent === true || (vtxo?.spentBy && vtxo.spentBy !== '');
-  const spendingTxid =
-    (checkpointVtxo && !output.isAnchor && checkpointVtxo.arkTxId)
-      ? checkpointVtxo.arkTxId
-      : vtxo?.spentBy && vtxo.spentBy !== ''
-        ? vtxo.spentBy
-        : vtxo?.settledBy && vtxo.settledBy !== ''
-          ? vtxo.settledBy
-          : vtxo?.arkTxId && vtxo.arkTxId !== ''
-            ? vtxo.arkTxId
-            : null;
+  let spendingTxid: string | null = null;
+  let spendingIsCommitment = false;
+  if (checkpointVtxo && !output.isAnchor && checkpointVtxo.arkTxId) {
+    spendingTxid = checkpointVtxo.arkTxId;
+  } else if (vtxo?.spentBy && vtxo.spentBy !== '') {
+    spendingTxid = vtxo.spentBy;
+  } else if (vtxo?.settledBy && vtxo.settledBy !== '') {
+    spendingTxid = vtxo.settledBy;
+    spendingIsCommitment = true;
+  }
+  if (spendingTxid === txid) spendingTxid = null;
 
   // Border accent for special outputs
   const borderAccent = output.isBatch
@@ -575,14 +607,20 @@ function OutputCard({
           </div>
         ) : output.arkAddress ? (
           <div className="flex items-center gap-1.5">
-            <Link
-              to={`/address/${output.arkAddress}`}
-              className="text-xs font-mono text-primary hover:text-primary/80 transition-colors duration-200 flex items-center gap-1"
-              aria-label={`View address ${truncateHash(output.arkAddress, 8, 8)}`}
-            >
-              <span>{truncateHash(output.arkAddress, 12, 12)}</span>
-              <ArrowRight className="h-3 w-3" aria-hidden="true" />
-            </Link>
+            {output.arkAddress.startsWith('ark1') || output.arkAddress.startsWith('tark1') ? (
+              <Link
+                to={`/address/${output.arkAddress}`}
+                className="text-xs font-mono text-primary hover:text-primary/80 transition-colors duration-200 flex items-center gap-1"
+                aria-label={`View address ${truncateHash(output.arkAddress, 8, 8)}`}
+              >
+                <span>{truncateHash(output.arkAddress, 12, 12)}</span>
+                <ArrowRight className="h-3 w-3" aria-hidden="true" />
+              </Link>
+            ) : (
+              <span className="text-xs font-mono text-muted-foreground break-all">
+                {truncateHash(output.arkAddress, 12, 12)}
+              </span>
+            )}
             <CopyButton text={output.arkAddress} />
           </div>
         ) : output.isArkExtension ? (
@@ -607,17 +645,26 @@ function OutputCard({
         ) : null}
       </div>
 
-      {/* Spending arrow */}
+      {/* Spending / ark tx arrow */}
       <div className="w-7 flex items-center justify-center shrink-0">
-        {isSpent && spendingTxid && (
+        {isSpent && spendingTxid ? (
           <Link
-            to={`/tx/${spendingTxid}`}
+            to={spendingIsCommitment ? `/commitment-tx/${spendingTxid}` : `/tx/${spendingTxid}`}
             className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 transition-colors duration-200 active:scale-[0.97]"
-            aria-label={`View spending transaction ${truncateHash(spendingTxid, 6, 6)}`}
+            aria-label={`View ${spendingIsCommitment ? 'commitment' : 'spending'} transaction ${truncateHash(spendingTxid, 6, 6)}`}
           >
             <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
-        )}
+        ) : output.isBatch && batchRootTxid ? (
+          <Link
+            to={`/tx/${batchRootTxid}`}
+            className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white hover:bg-blue-500 transition-colors duration-200 active:scale-[0.97]"
+            aria-label={`View ark transaction ${truncateHash(batchRootTxid, 6, 6)}`}
+            title="View ark transaction"
+          >
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </Link>
+        ) : null}
       </div>
     </div>
   );
@@ -990,26 +1037,39 @@ export function TransactionDetail({
         (v: any) => (v.outpoint?.vout ?? v.vout) === i,
       );
 
-      // Try to construct Ark address
+      // Derive display address
       let arkAddress = '';
       if (
         !isAnchor &&
+        !isExt &&
         !isForfeitOutput &&
-        detectedSubtype !== 'checkpoint' &&
-        detectedSubtype !== 'connector-tree' &&
         output?.script &&
-        serverInfo?.signerPubkey &&
         serverInfo?.network
       ) {
-        try {
-          const addr = constructArkAddress(
-            output.script,
-            serverInfo.signerPubkey,
-            serverInfo.network,
-          );
-          if (addr) arkAddress = addr;
-        } catch (e) {
-          console.error('Failed to construct Ark address:', e);
+        if (
+          type === 'commitment' ||
+          detectedSubtype === 'checkpoint' ||
+          detectedSubtype === 'connector-tree'
+        ) {
+          try {
+            const net =
+              serverInfo.network === 'bitcoin' ? btc.NETWORK : btc.TEST_NETWORK;
+            const decoded = btc.OutScript.decode(output.script);
+            arkAddress = btc.Address(net).encode(decoded);
+          } catch {
+            // non-standard script, leave blank
+          }
+        } else if (serverInfo?.signerPubkey) {
+          try {
+            const addr = constructArkAddress(
+              output.script,
+              serverInfo.signerPubkey,
+              serverInfo.network,
+            );
+            if (addr) arkAddress = addr;
+          } catch {
+            // fallback: leave blank
+          }
         }
       }
 
@@ -1205,6 +1265,39 @@ export function TransactionDetail({
   }, [subtype, parsedTx]);
 
   // -------------------------------------------------------------------------
+  // Fetch VTXOs for commitment tx inputs (to get settlementTxId links)
+  // -------------------------------------------------------------------------
+
+  const [inputVtxoMap, setInputVtxoMap] = useState<Map<string, VirtualCoin>>(new Map());
+
+  useEffect(() => {
+    if (type !== 'commitment' || !parsedTx || parsedTx.inputsLength === 0) return;
+
+    const outpoints: Array<{ txid: string; vout: number }> = [];
+    for (let i = 0; i < parsedTx.inputsLength; i++) {
+      const input = parsedTx.getInput(i);
+      if (input?.txid) {
+        outpoints.push({ txid: toHex(input.txid), vout: input.index ?? 0 });
+      }
+    }
+    if (outpoints.length === 0) return;
+
+    indexerClient
+      .getVtxos({ outpoints })
+      .then((result) => {
+        const map = new Map<string, VirtualCoin>();
+        for (const vtxo of result.vtxos || []) {
+          const key = `${vtxo.txid}:${vtxo.vout}`;
+          map.set(key, vtxo);
+        }
+        setInputVtxoMap(map);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch input VTXOs:', err);
+      });
+  }, [type, parsedTx]);
+
+  // -------------------------------------------------------------------------
   // Derive title from subtype
   // -------------------------------------------------------------------------
 
@@ -1317,6 +1410,18 @@ export function TransactionDetail({
                 <Pin className="h-4 w-4" aria-hidden="true" />
               )}
             </button>
+            {type === 'commitment' && (
+              <a
+                href={getMempoolUrl(serverInfo?.network, txid)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors duration-150 active:scale-[0.95]"
+                aria-label="View on mempool.space"
+                title="View on mempool.space"
+              >
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              </a>
+            )}
           </div>
         )}
 
@@ -1444,9 +1549,23 @@ export function TransactionDetail({
               )
             </h2>
             <div className="space-y-2">
-              {inputs.map((input) => (
-                <InputCard key={`input-${input.index}`} input={input} assetPacket={assetPacket} txid={txid} />
-              ))}
+              {inputs.map((input) => {
+                const inputKey = `${input.txid}:${input.vout}`;
+                const inputVtxo = inputVtxoMap.get(inputKey);
+                const inputMempoolUrl = type === 'commitment' && input.txid
+                  ? getMempoolUrl(serverInfo?.network, input.txid)
+                  : undefined;
+                return (
+                  <InputCard
+                    key={`input-${input.index}`}
+                    input={input}
+                    assetPacket={assetPacket}
+                    txid={txid}
+                    settlementTxId={inputVtxo?.settledBy || undefined}
+                    mempoolUrl={inputMempoolUrl}
+                  />
+                );
+              })}
 
               {/* Forfeit transactions as additional inputs (commitment txs) */}
               {type === 'commitment' &&

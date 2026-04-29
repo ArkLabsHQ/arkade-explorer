@@ -4,13 +4,9 @@ import { Search } from 'lucide-react';
 import { EXTERNAL_LINKS } from '@/lib/constants';
 import { ArkadeLogo } from '@/components/shared/arkade-logo';
 import { SearchCommandPaletteOverlay } from '@/components/shared/search-bar';
-import { useRecentSearches } from '@/hooks/use-recent-searches';
-
 export function TopNav() {
   const [isMac, setIsMac] = useState(true);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const { recentSearches, pinnedSearches } = useRecentSearches();
-  const hasItems = recentSearches.length > 0 || pinnedSearches.length > 0;
 
   useEffect(() => {
     setIsMac(navigator.platform?.toLowerCase().includes('mac') ?? true);
@@ -35,16 +31,14 @@ export function TopNav() {
           <ArkadeLogo size="md" />
         </Link>
 
-        {/* Mobile search icon — only opens palette if there are saved searches */}
-        {hasItems && (
-          <button
-            onClick={() => setCommandPaletteOpen(true)}
-            className="sm:hidden p-2 -mr-1 text-muted-foreground hover:text-foreground transition-colors duration-200"
-            aria-label="Open search"
-          >
-            <Search className="h-5 w-5" aria-hidden="true" />
-          </button>
-        )}
+        {/* Mobile search icon */}
+        <button
+          onClick={() => setCommandPaletteOpen(true)}
+          className="sm:hidden p-2 -mr-1 text-muted-foreground hover:text-foreground transition-colors duration-200"
+          aria-label="Open search"
+        >
+          <Search className="h-5 w-5" aria-hidden="true" />
+        </button>
 
         {/* Mobile command palette overlay */}
         <SearchCommandPaletteOverlay
@@ -53,7 +47,7 @@ export function TopNav() {
         />
 
         <button
-          onClick={() => { if (hasItems) setCommandPaletteOpen(true); }}
+          onClick={() => setCommandPaletteOpen(true)}
           className="hidden sm:flex items-center flex-1 max-w-lg mx-6 h-9 px-3 rounded-lg bg-secondary border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors duration-200 cursor-text"
           aria-label="Open search (Cmd+K)"
         >
