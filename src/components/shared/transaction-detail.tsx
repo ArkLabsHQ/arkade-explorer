@@ -99,6 +99,13 @@ function toHex(bytes: Uint8Array): string {
     .join('');
 }
 
+function getMempoolUrl(network: string | undefined, txid: string): string {
+  if (network === 'bitcoin') return `https://mempool.space/tx/${txid}`;
+  if (network === 'signet') return `https://mempool.space/signet/tx/${txid}`;
+  if (network === 'testnet') return `https://mempool.space/testnet/tx/${txid}`;
+  return `https://mutinynet.com/tx/${txid}`;
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -308,12 +315,14 @@ function InputCard({
   assetPacket,
   txid,
   settlementTxId,
+  mempoolUrl,
 }: {
   input: ParsedInput;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   assetPacket?: any;
   txid?: string;
   settlementTxId?: string;
+  mempoolUrl?: string;
 }) {
   // Derive asset information from packet for this input
   const inputAssets: Array<{ assetId: string; amount: number }> = [];
@@ -333,7 +342,17 @@ function InputCard({
   return (
     <div className="flex items-center gap-2">
       <div className="w-7 flex items-center justify-center shrink-0">
-        {input.txid && (
+        {input.txid && (mempoolUrl ? (
+          <a
+            href={mempoolUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 transition-colors duration-200 active:scale-[0.97]"
+            aria-label={`View on mempool.space ${truncateHash(input.txid, 6, 6)}`}
+          >
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </a>
+        ) : (
           <Link
             to={`/tx/${input.txid}`}
             className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 transition-colors duration-200 active:scale-[0.97]"
@@ -341,7 +360,7 @@ function InputCard({
           >
             <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
-        )}
+        ))}
       </div>
       <div
         className={`flex-1 min-w-0 rounded-lg border border-border bg-card p-3 ${CARD_SHADOW}`}
@@ -587,14 +606,20 @@ function OutputCard({
           </div>
         ) : output.arkAddress ? (
           <div className="flex items-center gap-1.5">
-            <Link
-              to={`/address/${output.arkAddress}`}
-              className="text-xs font-mono text-primary hover:text-primary/80 transition-colors duration-200 flex items-center gap-1"
-              aria-label={`View address ${truncateHash(output.arkAddress, 8, 8)}`}
-            >
-              <span>{truncateHash(output.arkAddress, 12, 12)}</span>
-              <ArrowRight className="h-3 w-3" aria-hidden="true" />
-            </Link>
+            {output.arkAddress.startsWith('ark1') || output.arkAddress.startsWith('tark1') ? (
+              <Link
+                to={`/address/${output.arkAddress}`}
+                className="text-xs font-mono text-primary hover:text-primary/80 transition-colors duration-200 flex items-center gap-1"
+                aria-label={`View address ${truncateHash(output.arkAddress, 8, 8)}`}
+              >
+                <span>{truncateHash(output.arkAddress, 12, 12)}</span>
+                <ArrowRight className="h-3 w-3" aria-hidden="true" />
+              </Link>
+            ) : (
+              <span className="text-xs font-mono text-muted-foreground break-all">
+                {truncateHash(output.arkAddress, 12, 12)}
+              </span>
+            )}
             <CopyButton text={output.arkAddress} />
           </div>
         ) : output.isArkExtension ? (
@@ -1011,26 +1036,39 @@ export function TransactionDetail({
         (v: any) => (v.outpoint?.vout ?? v.vout) === i,
       );
 
-      // Try to construct Ark address
+      // Derive display address
       let arkAddress = '';
       if (
         !isAnchor &&
+        !isExt &&
         !isForfeitOutput &&
-        detectedSubtype !== 'checkpoint' &&
-        detectedSubtype !== 'connector-tree' &&
         output?.script &&
-        serverInfo?.signerPubkey &&
         serverInfo?.network
       ) {
-        try {
-          const addr = constructArkAddress(
-            output.script,
-            serverInfo.signerPubkey,
-            serverInfo.network,
-          );
-          if (addr) arkAddress = addr;
-        } catch (e) {
-          console.error('Failed to construct Ark address:', e);
+        if (
+          type === 'commitment' ||
+          detectedSubtype === 'checkpoint' ||
+          detectedSubtype === 'connector-tree'
+        ) {
+          try {
+            const net =
+              serverInfo.network === 'bitcoin' ? btc.NETWORK : btc.TEST_NETWORK;
+            const decoded = btc.OutScript.decode(output.script);
+            arkAddress = btc.Address(net).encode(decoded);
+          } catch {
+            // non-standard script, leave blank
+          }
+        } else if (serverInfo?.signerPubkey) {
+          try {
+            const addr = constructArkAddress(
+              output.script,
+              serverInfo.signerPubkey,
+              serverInfo.network,
+            );
+            if (addr) arkAddress = addr;
+          } catch {
+            // fallback: leave blank
+          }
         }
       }
 
@@ -1371,6 +1409,18 @@ export function TransactionDetail({
                 <Pin className="h-4 w-4" aria-hidden="true" />
               )}
             </button>
+            {type === 'commitment' && (
+              <a
+                href={getMempoolUrl(serverInfo?.network, txid)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors duration-150 active:scale-[0.95]"
+                aria-label="View on mempool.space"
+                title="View on mempool.space"
+              >
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              </a>
+            )}
           </div>
         )}
 
@@ -1501,6 +1551,9 @@ export function TransactionDetail({
               {inputs.map((input) => {
                 const inputKey = `${input.txid}:${input.vout}`;
                 const inputVtxo = inputVtxoMap.get(inputKey);
+                const inputMempoolUrl = type === 'commitment' && input.txid
+                  ? getMempoolUrl(serverInfo?.network, input.txid)
+                  : undefined;
                 return (
                   <InputCard
                     key={`input-${input.index}`}
@@ -1508,6 +1561,7 @@ export function TransactionDetail({
                     assetPacket={assetPacket}
                     txid={txid}
                     settlementTxId={inputVtxo?.settledBy || undefined}
+                    mempoolUrl={inputMempoolUrl}
                   />
                 );
               })}
