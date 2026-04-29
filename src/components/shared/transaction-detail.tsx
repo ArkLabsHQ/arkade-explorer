@@ -470,9 +470,8 @@ function OutputCard({
   } else if (vtxo?.settledBy && vtxo.settledBy !== '') {
     spendingTxid = vtxo.settledBy;
     spendingIsCommitment = true;
-  } else if (vtxo?.arkTxId && vtxo.arkTxId !== '') {
-    spendingTxid = vtxo.arkTxId;
   }
+  if (spendingTxid === txid) spendingTxid = null;
 
   // Border accent for special outputs
   const borderAccent = output.isBatch
