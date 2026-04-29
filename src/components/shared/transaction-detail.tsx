@@ -461,16 +461,18 @@ function OutputCard({
   const vtxo = effectiveVtxo;
   const isSpent =
     vtxo?.isSpent === true || (vtxo?.spentBy && vtxo.spentBy !== '');
-  const spendingTxid =
-    (checkpointVtxo && !output.isAnchor && checkpointVtxo.arkTxId)
-      ? checkpointVtxo.arkTxId
-      : vtxo?.spentBy && vtxo.spentBy !== ''
-        ? vtxo.spentBy
-        : vtxo?.settledBy && vtxo.settledBy !== ''
-          ? vtxo.settledBy
-          : vtxo?.arkTxId && vtxo.arkTxId !== ''
-            ? vtxo.arkTxId
-            : null;
+  let spendingTxid: string | null = null;
+  let spendingIsCommitment = false;
+  if (checkpointVtxo && !output.isAnchor && checkpointVtxo.arkTxId) {
+    spendingTxid = checkpointVtxo.arkTxId;
+  } else if (vtxo?.spentBy && vtxo.spentBy !== '') {
+    spendingTxid = vtxo.spentBy;
+  } else if (vtxo?.settledBy && vtxo.settledBy !== '') {
+    spendingTxid = vtxo.settledBy;
+    spendingIsCommitment = true;
+  } else if (vtxo?.arkTxId && vtxo.arkTxId !== '') {
+    spendingTxid = vtxo.arkTxId;
+  }
 
   // Border accent for special outputs
   const borderAccent = output.isBatch
@@ -648,9 +650,9 @@ function OutputCard({
       <div className="w-7 flex items-center justify-center shrink-0">
         {isSpent && spendingTxid ? (
           <Link
-            to={`/tx/${spendingTxid}`}
+            to={spendingIsCommitment ? `/commitment-tx/${spendingTxid}` : `/tx/${spendingTxid}`}
             className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 transition-colors duration-200 active:scale-[0.97]"
-            aria-label={`View spending transaction ${truncateHash(spendingTxid, 6, 6)}`}
+            aria-label={`View ${spendingIsCommitment ? 'commitment' : 'spending'} transaction ${truncateHash(spendingTxid, 6, 6)}`}
           >
             <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
