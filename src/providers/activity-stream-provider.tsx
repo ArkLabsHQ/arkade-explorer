@@ -3,7 +3,7 @@ import { arkClient } from '@/lib/api/indexer';
 
 interface ActivityItem {
   id: string;
-  type: 'round' | 'vtxo' | 'transaction';
+  type: 'batch' | 'vtxo' | 'transaction';
   txid?: string;
   address?: string;
   timestamp: number;
@@ -68,10 +68,10 @@ function parseEvent(event: any): ActivityItem | null {
 
     return {
       id,
-      type: 'round',
+      type: 'batch',
       txid: event.commitmentTx.txid,
       timestamp,
-      description: `Commitment TX: ${spentCount} spent, ${spendableCount} created`,
+      description: `Batch commitment transaction: ${spentCount} spent, ${spendableCount} created`,
     };
   }
 
@@ -85,7 +85,7 @@ function parseEvent(event: any): ActivityItem | null {
       type: 'transaction',
       txid: event.arkTx.txid,
       timestamp,
-      description: `Ark TX: ${spentCount} spent, ${spendableCount} created`,
+      description: `Arkade transaction: ${spentCount} spent, ${spendableCount} created`,
     };
   }
 
@@ -93,10 +93,10 @@ function parseEvent(event: any): ActivityItem | null {
   if (event.round) {
     return {
       id,
-      type: 'round',
+      type: 'batch',
       txid: event.round.txid,
       timestamp,
-      description: `New Batch ${event.round.id || 'started'}`,
+      description: `New batch ${event.round.id || 'started'}`,
     };
   }
 

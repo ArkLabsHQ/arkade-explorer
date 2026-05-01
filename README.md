@@ -5,10 +5,10 @@ A modern blockchain explorer for the Ark protocol, built with React and TypeScri
 ## Features
 
 - **Transaction Views**: Browse virtual and commitment transactions with decoded inputs/outputs
-- **Address Explorer**: View VTXOs, balances, and assets associated with an Ark address
+- **Address Explorer**: View VTXOs, balances, and assets associated with an Arkade address
 - **Asset Browser**: Inspect individual asset details and metadata
 - **Batch & Tree Visualization**: Explore batched VTXOs and connector trees
-- **Real-time Activity**: Live stream of recent Ark transactions
+- **Real-time Activity**: Live stream of recent Arkade transactions
 - **Theming**: Light (Dawn) and Dark (Midnight) themes
 - **Responsive**: Fully responsive layout for mobile and desktop
 
@@ -102,7 +102,7 @@ src/
 ├── hooks/                 # Custom React hooks
 ├── lib/
 │   ├── api/               # Indexer API client
-│   ├── arkAddress.ts      # Ark address construction from scripts
+│   ├── arkAddress.ts      # Arkade address construction from scripts
 │   ├── decode.ts          # Transaction decoding utilities
 │   ├── formatters.ts      # Number/date formatting
 │   └── utils.ts           # General utilities
