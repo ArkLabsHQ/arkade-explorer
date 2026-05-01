@@ -88,20 +88,20 @@ async function indexerFetch(indexerUrl, path) {
 // ---------------------------------------------------------------------------
 
 async function getPageMeta(pagePath, indexerUrl) {
-  // Transaction
+  // Arkade transaction (offchain)
   const txMatch = pagePath.match(/^\/tx\/([0-9a-fA-F]+)$/);
   if (txMatch) {
     return {
       type: 'tx',
       label: 'Transaction',
       id: txMatch[1],
-      title: `Tx ${truncate(txMatch[1])} | Arkade Explorer`,
+      title: `Transaction ${truncate(txMatch[1])} | Arkade Explorer`,
       description: `View Arkade transaction ${txMatch[1]}`,
       stats: [],
     };
   }
 
-  // Round / commitment tx
+  // Batch commitment transaction (onchain)
   const commitMatch = pagePath.match(/^\/commitment-tx\/([0-9a-fA-F]+)$/);
   if (commitMatch) {
     const data = await indexerFetch(indexerUrl, `/v1/indexer/commitmentTx/${commitMatch[1]}`);
@@ -113,11 +113,11 @@ async function getPageMeta(pagePath, indexerUrl) {
     }
     const extra = stats.map(s => `${s.label}: ${s.value}`).join(' | ');
     return {
-      type: 'round',
-      label: 'Round',
+      type: 'batch',
+      label: 'Batch Commitment Transaction',
       id: commitMatch[1],
-      title: `Round ${truncate(commitMatch[1])} | Arkade Explorer`,
-      description: extra ? `Round ${truncate(commitMatch[1])} | ${extra}` : `View Arkade round transaction ${commitMatch[1]}`,
+      title: `Batch Commitment Transaction ${truncate(commitMatch[1])} | Arkade Explorer`,
+      description: extra ? `Arkade batch commitment transaction ${truncate(commitMatch[1])} | ${extra}` : `View Arkade batch commitment transaction ${commitMatch[1]}`,
       stats,
     };
   }

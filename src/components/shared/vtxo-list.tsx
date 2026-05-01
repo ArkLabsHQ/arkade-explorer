@@ -37,7 +37,7 @@ function formatExpiry(vtxo: VirtualCoin): string {
   return `${minutes}m`;
 }
 
-/** Attempt to derive an Ark address from the VTXO's script or PSBT. */
+/** Attempt to derive an Arkade address from the VTXO's script or PSBT. */
 function deriveAddress(
   vtxo: VirtualCoin,
   signerPubkey: string | undefined,

@@ -3,13 +3,13 @@ import { hex } from '@scure/base';
 
 export function constructArkAddress(
   scriptPubkey: Uint8Array,
-  aspPubkeyHex: string,
-  network: string = 'liquidtestnet'
+  operatorPubkeyHex: string,
+  network: string = 'bitcoin'
 ): string | null {
   try {
-    let aspPubkey = hex.decode(aspPubkeyHex);
-    if (aspPubkey.length === 33) {
-      aspPubkey = aspPubkey.slice(1);
+    let operatorPubkey = hex.decode(operatorPubkeyHex);
+    if (operatorPubkey.length === 33) {
+      operatorPubkey = operatorPubkey.slice(1);
     }
 
     let witnessProgram: Uint8Array | null = null;
@@ -26,10 +26,10 @@ export function constructArkAddress(
 
     if (!witnessProgram) return null;
 
-    const arkAddress = new ArkAddress(aspPubkey, witnessProgram, network === 'bitcoin' ? 'ark' : 'tark');
+    const arkAddress = new ArkAddress(operatorPubkey, witnessProgram, network === 'bitcoin' ? 'ark' : 'tark');
     return arkAddress.encode();
   } catch (e) {
-    console.error('Failed to construct Ark address:', e);
+    console.error('Failed to construct Arkade address:', e);
     return null;
   }
 }
@@ -38,7 +38,7 @@ export function decodeArkAddress(arkAddressStr: string): ArkAddress | null {
   try {
     return ArkAddress.decode(arkAddressStr);
   } catch (e) {
-    console.error('Failed to decode Ark address:', e);
+    console.error('Failed to decode Arkade address:', e);
     return null;
   }
 }

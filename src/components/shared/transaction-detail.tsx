@@ -187,13 +187,13 @@ function TxTypeBadge({ label, variant }: { label: string; variant: 'blue' | 'pur
 function subtypeBadge(subtype: TxSubtype) {
   switch (subtype) {
     case 'forfeit':
-      return <TxTypeBadge label="Forfeit tx" variant="orange" />;
+      return <TxTypeBadge label="Forfeit transaction" variant="orange" />;
     case 'checkpoint':
-      return <TxTypeBadge label="Checkpoint tx" variant="emerald" />;
+      return <TxTypeBadge label="Checkpoint transaction" variant="emerald" />;
     case 'batch-tree':
-      return <TxTypeBadge label="Batch tree tx" variant="amber" />;
+      return <TxTypeBadge label="Batch tree transaction" variant="amber" />;
     case 'connector-tree':
-      return <TxTypeBadge label="Connector tree tx" variant="purple" />;
+      return <TxTypeBadge label="Connector tree transaction" variant="purple" />;
     default:
       return null;
   }
@@ -646,7 +646,7 @@ function OutputCard({
         ) : null}
       </div>
 
-      {/* Spending / ark tx arrow */}
+      {/* Spending / Arkade tx arrow */}
       <div className="w-7 flex items-center justify-center shrink-0">
         {isSpent && spendingTxid ? (
           <Link
@@ -660,8 +660,8 @@ function OutputCard({
           <Link
             to={`/tx/${batchRootTxid}`}
             className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white hover:bg-blue-500 transition-colors duration-200 active:scale-[0.97]"
-            aria-label={`View ark transaction ${truncateHash(batchRootTxid, 6, 6)}`}
-            title="View ark transaction"
+            aria-label={`View Arkade transaction ${truncateHash(batchRootTxid, 6, 6)}`}
+            title="View Arkade transaction"
           >
             <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
@@ -990,7 +990,7 @@ export function TransactionDetail({
         if (input.witnessUtxo.script) {
           inputScriptHex = hex.encode(input.witnessUtxo.script);
         }
-        // Show Ark addresses only for batch tree transactions
+        // Show Arkade addresses only for batch tree transactions
         if (
           detectedSubtype === 'batch-tree' &&
           input.witnessUtxo.script &&
@@ -1005,7 +1005,7 @@ export function TransactionDetail({
             );
             if (addr) inputArkAddress = addr;
           } catch (e) {
-            console.error('Failed to construct Ark address for input:', e);
+            console.error('Failed to construct Arkade address for input:', e);
           }
         }
       }

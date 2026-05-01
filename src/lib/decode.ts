@@ -14,11 +14,11 @@ export function addressToScriptHex(address: string): string {
   return hex.encode(ArkAddress.decode(address).pkScript);
 }
 
-export function scriptHexToAddress(scriptHex: string, aspPubkeyHex?: string, network?: string): string {
+export function scriptHexToAddress(scriptHex: string, operatorPubkeyHex?: string, network?: string): string {
   try {
     const scriptBytes = hex.decode(scriptHex);
-    if (aspPubkeyHex) {
-      const arkAddress = constructArkAddress(scriptBytes, aspPubkeyHex, network);
+    if (operatorPubkeyHex) {
+      const arkAddress = constructArkAddress(scriptBytes, operatorPubkeyHex, network);
       if (arkAddress) return arkAddress;
     }
     const address = btc.Address(btc.NETWORK).encode({
