@@ -33,7 +33,7 @@ A modern blockchain explorer for the Ark protocol, built with React and TypeScri
 ### Installation
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### Configuration
@@ -57,7 +57,7 @@ VITE_VERIFIED_ASSETS_URL=https://arklabshq.github.io/asset-registry/mutinynet.js
 ### Development
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 The app will be available at `http://localhost:5173` with hot reload.
@@ -65,13 +65,13 @@ The app will be available at `http://localhost:5173` with hot reload.
 ### Build
 
 ```bash
-npm run build
+pnpm build
 ```
 
 ### Preview Production Build
 
 ```bash
-npm run preview
+pnpm preview
 ```
 
 ### Docker
