@@ -11,7 +11,7 @@ VITE_INDEXER_URL=https://indexer.arkadeos.com
 ## Build for Production
 
 ```bash
-npm run build
+pnpm build
 ```
 
 This will create an optimized production build in the `dist` directory.
@@ -19,27 +19,27 @@ This will create an optimized production build in the `dist` directory.
 ## Preview Production Build Locally
 
 ```bash
-npm run preview
+pnpm preview
 ```
 
 ## Deployment Options
 
 ### Vercel
 
-1. Install Vercel CLI: `npm i -g vercel`
+1. Install Vercel CLI: `pnpm add -g vercel`
 2. Run: `vercel`
 3. Follow the prompts
 
 ### Netlify
 
-1. Install Netlify CLI: `npm i -g netlify-cli`
+1. Install Netlify CLI: `pnpm add -g netlify-cli`
 2. Run: `netlify deploy --prod`
-3. Set build command: `npm run build`
+3. Set build command: `pnpm build`
 4. Set publish directory: `dist`
 
 ### Static Hosting (GitHub Pages, etc.)
 
-1. Build the project: `npm run build`
+1. Build the project: `pnpm build`
 2. Upload the contents of the `dist` directory to your hosting provider
 
 ## Environment-Specific Configuration

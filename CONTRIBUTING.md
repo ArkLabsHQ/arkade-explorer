@@ -12,7 +12,7 @@ Thank you for your interest in contributing to Arkade Explorer!
 
 2. **Install dependencies**
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. **Set up environment variables**
@@ -22,7 +22,7 @@ Thank you for your interest in contributing to Arkade Explorer!
 
 4. **Start development server**
    ```bash
-   npm run dev
+   pnpm dev
    ```
 
 ## Project Structure
@@ -70,8 +70,8 @@ src/
 
 Before submitting a PR:
 
-1. Ensure the app builds without errors: `npm run build`
-2. Check for TypeScript errors: `npm run lint`
+1. Ensure the app builds without errors: `pnpm build`
+2. Check for TypeScript errors: `pnpm lint`
 3. Test your changes in the browser
 
 ## Pull Request Process
