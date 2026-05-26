@@ -14,7 +14,7 @@ export function CommitmentTxPage() {
   const addedToRecentRef = useRef<string | null>(null);
 
   useEffect(() => {
-    document.title = txid ? `Round ${txid.slice(0, 8)}... | Arkade Explorer` : 'Arkade Explorer';
+    document.title = txid ? `Commitment transaction ${txid.slice(0, 8)}... | Arkade Explorer` : 'Arkade Explorer';
     return () => { document.title = 'Arkade Explorer'; };
   }, [txid]);
 
