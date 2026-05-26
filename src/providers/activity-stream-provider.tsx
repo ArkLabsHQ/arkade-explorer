@@ -89,7 +89,7 @@ function parseEvent(event: any): ActivityItem | null {
     };
   }
 
-  // Parse round/batch events
+  // Parse batch events
   if (event.round) {
     return {
       id,

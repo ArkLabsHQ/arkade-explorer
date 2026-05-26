@@ -233,7 +233,7 @@ function buildOgImageSvg(meta) {
     ${statsBlock}
     <line x1="80" y1="520" x2="1120" y2="520" stroke="#2d2640" stroke-width="1"/>
     <text x="80" y="570" font-size="28" fill="#6b7280" font-family="sans-serif">arkade.sh</text>
-    <text x="1120" y="570" font-size="28" fill="#4b5563" font-family="sans-serif" text-anchor="end">Ark Protocol Explorer</text>
+    <text x="1120" y="570" font-size="28" fill="#4b5563" font-family="sans-serif" text-anchor="end">Arkade Explorer</text>
   </svg>`;
 }
 

@@ -1,6 +1,6 @@
 # Arkade Explorer
 
-A modern blockchain explorer for the Ark protocol, built with React and TypeScript.
+A modern blockchain explorer for the Arkade protocol, built with React and TypeScript.
 
 ## Features
 
@@ -21,7 +21,7 @@ A modern blockchain explorer for the Ark protocol, built with React and TypeScri
 - **Tailwind CSS v4** for styling
 - **Radix UI** primitives (dialog, select)
 - **Lucide React** for icons
-- **@arkade-os/sdk** for Ark indexer API integration
+- **@arkade-os/sdk** for Arkade indexer API integration
 - **@scure/btc-signer** for transaction decoding
 
 ## Getting Started
@@ -49,8 +49,8 @@ VITE_VERIFIED_ASSETS_URL=https://arklabshq.github.io/asset-registry/mutinynet.js
 
 | Variable | Description | Required | Default |
 |---|---|---|---|
-| `VITE_INDEXER_URL` | Ark indexer API URL | No | `https://arkade.computer` |
-| `VITE_ARK_URL` | Ark server URL (falls back to indexer URL) | No | same as `VITE_INDEXER_URL` |
+| `VITE_INDEXER_URL` | Arkade indexer API URL | No | `https://arkade.computer` |
+| `VITE_ARK_URL` | Arkade operator URL (falls back to indexer URL) | No | same as `VITE_INDEXER_URL` |
 | `VITE_ARKADE_URL` | Arkade website link | No | `https://arkade.money` |
 | `VITE_VERIFIED_ASSETS_URL` | URL to fetch verified asset IDs (JSON array). When set, only verified or user-approved assets show icons. | No | — |
 
