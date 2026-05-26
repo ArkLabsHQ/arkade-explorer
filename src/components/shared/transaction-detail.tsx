@@ -704,7 +704,7 @@ function PacketSection({
       </div>
       <div className="space-y-3">
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        {assetPacket.groups.map((group: any, gi: number) => {
+        {hasAssetGroups && assetPacket.groups.map((group: any, gi: number) => {
           const isIssuance = group.isIssuance?.();
           const assetIdStr =
             group.assetId?.toString() ||
