@@ -261,7 +261,7 @@ export function AddressPage() {
         </div>
 
         {!isLoading && !error && allVtxos.length > 0 && (
-          <AddressStats vtxos={allVtxos} className={hasAssets ? 'flex-1 min-w-0' : undefined} />
+          <AddressStats vtxos={allVtxos} isDraining={isDraining} className={hasAssets ? 'flex-1 min-w-0' : undefined} />
         )}
       </div>
 

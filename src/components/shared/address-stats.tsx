@@ -1,126 +1,74 @@
+import { useRef } from 'react';
 import type { VirtualCoin } from '@arkade-os/sdk';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { MoneyDisplay } from '@/components/shared/money-display';
 import { AssetBadge } from '@/components/shared/asset-badge';
 import { AssetAmountDisplay } from '@/components/shared/asset-amount-display';
+import {
+  isVtxoActive,
+  sumActiveVtxoValue,
+  sumVtxoValue,
+  aggregateAssetBalances,
+} from '@/lib/vtxo-aggregation';
 
 interface AddressStatsProps {
   vtxos: VirtualCoin[];
   className?: string;
+  isDraining?: boolean;
 }
 
-export function AddressStats({ vtxos, className }: AddressStatsProps) {
-  const isVtxoActive = (v: VirtualCoin) =>
-    !(v.spentBy && v.spentBy !== '') && !v.isSpent;
-
+export function AddressStats({ vtxos, className, isDraining }: AddressStatsProps) {
   const activeVtxos = vtxos.filter(isVtxoActive);
-  const spentVtxos = vtxos.filter((v) => !isVtxoActive(v));
+  const spentCount = vtxos.length - activeVtxos.length;
 
-  const totalBalance = activeVtxos.reduce(
-    (sum, v) => sum + Number(v.value),
-    0,
-  );
-  const totalReceived = vtxos.reduce(
-    (sum, v) => sum + Number(v.value),
-    0,
-  );
+  const totalBalance = sumActiveVtxoValue(vtxos);
+  const totalReceived = sumVtxoValue(vtxos);
 
-  // Aggregate asset balances per asset ID
-  const assetBalances = new Map<string, { active: number; total: number }>();
-  vtxos.forEach((v) => {
-    const isActive = isVtxoActive(v);
-    v.assets?.forEach((asset) => {
-      const existing = assetBalances.get(asset.assetId) || {
-        active: 0,
-        total: 0,
-      };
-      existing.total += asset.amount;
-      if (isActive) existing.active += asset.amount;
-      assetBalances.set(asset.assetId, existing);
-    });
-  });
-
-  const hasAssets = assetBalances.size > 0;
+  const assetBalances = aggregateAssetBalances(vtxos);
+  const assetEntries = Array.from(assetBalances.entries());
+  const hasAssets = assetEntries.length > 0;
 
   // -----------------------------------------------------------------------
-  // Layout: scrollable asset balance table (when assets exist)
+  // Layout: scrollable asset balance list (when assets exist)
   // -----------------------------------------------------------------------
   if (hasAssets) {
     return (
       <div className={className ?? 'max-w-lg'}>
         <div className="rounded-xl border border-border bg-card p-5 shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2)] flex flex-col overflow-hidden">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground mb-3">
-            Balances
-          </h3>
-
-          <div className="overflow-y-auto overflow-x-hidden min-h-0 flex-1">
-            <table className="w-full text-sm">
-              <thead>
-                <tr>
-                  <th className="text-left" />
-                  <th className="text-right pb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Balance
-                  </th>
-                  <th className="text-right pb-2 pl-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Received
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {/* BTC row */}
-                <tr className="border-b border-border">
-                  <td className="py-1.5">
-                    <span className="text-foreground font-bold uppercase">BTC</span>
-                  </td>
-                  <td className="text-right py-1.5">
-                    <MoneyDisplay
-                      sats={totalBalance}
-                      className="text-foreground font-bold font-mono"
-                    />
-                  </td>
-                  <td className="text-right py-1.5 pl-3">
-                    <MoneyDisplay
-                      sats={totalReceived}
-                      className="text-muted-foreground font-mono"
-                    />
-                  </td>
-                </tr>
-
-                {/* Asset rows */}
-                {Array.from(assetBalances.entries()).map(
-                  ([assetId, balances], idx) => (
-                    <tr
-                      key={assetId}
-                      className={
-                        idx < assetBalances.size - 1
-                          ? 'border-b border-border'
-                          : ''
-                      }
-                    >
-                      <td className="py-1.5">
-                        <AssetBadge assetId={assetId} />
-                      </td>
-                      <td className="text-right py-1.5">
-                        <AssetAmountDisplay
-                          amount={balances.active}
-                          assetId={assetId}
-                          hideUnit
-                          valueClassName="text-foreground font-bold font-mono"
-                        />
-                      </td>
-                      <td className="text-right py-1.5 pl-3">
-                        <AssetAmountDisplay
-                          amount={balances.total}
-                          assetId={assetId}
-                          hideUnit
-                          valueClassName="text-muted-foreground font-mono"
-                        />
-                      </td>
-                    </tr>
-                  ),
-                )}
-              </tbody>
-            </table>
+          <div className="flex items-center gap-2 mb-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground">
+              Balances
+            </h3>
+            {isDraining && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                <span className="h-1 w-1 rounded-full bg-primary animate-pulse" />
+                updating…
+              </span>
+            )}
           </div>
+
+          {/* Column header */}
+          <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 pb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <span />
+            <span className="text-right">Balance</span>
+            <span className="text-right pl-3">Received</span>
+          </div>
+
+          {/* Pinned BTC row */}
+          <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 items-center border-b border-border py-1.5">
+            <span className="text-foreground font-bold uppercase">BTC</span>
+            <MoneyDisplay
+              sats={totalBalance}
+              className="text-foreground font-bold font-mono text-right"
+            />
+            <MoneyDisplay
+              sats={totalReceived}
+              className="text-muted-foreground font-mono text-right pl-3"
+            />
+          </div>
+
+          {/* Virtualized asset rows */}
+          <AssetRowsVirtualized assetEntries={assetEntries} />
 
           {/* VTXO summary footer */}
           <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border text-xs">
@@ -133,7 +81,7 @@ export function AddressStats({ vtxos, className }: AddressStatsProps) {
             </span>
             <span className="text-muted-foreground uppercase">
               <span className="text-muted-foreground font-bold font-mono">
-                {spentVtxos.length}
+                {spentCount}
               </span>{' '}
               spent
             </span>
@@ -195,12 +143,71 @@ export function AddressStats({ vtxos, className }: AddressStatsProps) {
             Spent VTXOs
           </div>
           <div className="text-muted-foreground text-xl font-bold font-mono">
-            {spentVtxos.length}
+            {spentCount}
           </div>
           <div className="text-xs text-muted-foreground">
             of {vtxos.length}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function AssetRowsVirtualized({
+  assetEntries,
+}: {
+  assetEntries: [string, { active: number; total: number }][];
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: assetEntries.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 34,
+    overscan: 10,
+    getItemKey: (index) => assetEntries[index][0],
+  });
+
+  return (
+    <div
+      ref={scrollRef}
+      className="overflow-y-auto overflow-x-hidden min-h-0 flex-1 max-h-[60vh]"
+    >
+      <div
+        style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative', width: '100%' }}
+      >
+        {virtualizer.getVirtualItems().map((item) => {
+          const [assetId, balances] = assetEntries[item.index];
+          return (
+            <div
+              key={item.key}
+              data-index={item.index}
+              ref={virtualizer.measureElement}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${item.start}px)`,
+              }}
+              className="grid grid-cols-[1fr_auto_auto] gap-x-3 items-center border-b border-border py-1.5"
+            >
+              <AssetBadge assetId={assetId} />
+              <AssetAmountDisplay
+                amount={balances.active}
+                assetId={assetId}
+                hideUnit
+                valueClassName="text-foreground font-bold font-mono text-right"
+              />
+              <AssetAmountDisplay
+                amount={balances.total}
+                assetId={assetId}
+                hideUnit
+                valueClassName="text-muted-foreground font-mono text-right pl-3"
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );
