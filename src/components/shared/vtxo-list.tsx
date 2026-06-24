@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef, useLayoutEffect } from 'react';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { Link } from 'react-router-dom';
 import { Copy, ExternalLink, Clock, ChevronDown, ChevronRight } from 'lucide-react';
 import * as btc from '@scure/btc-signer';
@@ -551,23 +552,58 @@ function VtxoDenseRows({
   signerPubkey?: string;
   network?: string;
 }) {
+  const parentRef = useRef<HTMLDivElement>(null);
+  const parentOffsetRef = useRef(0);
+
+  useLayoutEffect(() => {
+    parentOffsetRef.current = parentRef.current?.offsetTop ?? 0;
+  }, []);
+
+  const virtualizer = useWindowVirtualizer({
+    count: vtxos.length,
+    estimateSize: () => 40,
+    overscan: 12,
+    scrollMargin: parentOffsetRef.current,
+    getItemKey: (index) => `${vtxos[index].txid}:${vtxos[index].vout}`,
+  });
+
   return (
     <div
+      ref={parentRef}
       className={cn(
         'rounded-xl border border-border bg-card overflow-hidden shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2)]',
         className,
       )}
     >
-      {vtxos.map((vtxo, index) => (
-        <VtxoDenseRow
-          key={`${vtxo.txid}:${vtxo.vout}`}
-          vtxo={vtxo}
-          index={index}
-          showScript={showScript}
-          signerPubkey={signerPubkey}
-          network={network}
-        />
-      ))}
+      <div
+        style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative', width: '100%' }}
+      >
+        {virtualizer.getVirtualItems().map((item) => {
+          const vtxo = vtxos[item.index];
+          return (
+            <div
+              key={item.key}
+              data-index={item.index}
+              ref={virtualizer.measureElement}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${item.start - virtualizer.options.scrollMargin}px)`,
+              }}
+            >
+              <VtxoDenseRow
+                vtxo={vtxo}
+                index={item.index}
+                showScript={showScript}
+                signerPubkey={signerPubkey}
+                network={network}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
