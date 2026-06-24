@@ -8,6 +8,7 @@ import { indexerClient } from '@/lib/api/indexer';
 import { addressToScriptHex } from '@/lib/decode';
 import { PAGINATION } from '@/lib/constants';
 import { sumVtxoValue, hasMorePages } from '@/lib/vtxo-aggregation';
+import { debounce } from '@/lib/debounce';
 import { copyToClipboard, cn } from '@/lib/utils';
 import { useRecentSearches } from '@/hooks/use-recent-searches';
 import { MoneyDisplay } from '@/components/shared/money-display';
@@ -124,6 +125,10 @@ export function AddressPage() {
     const abortController = new AbortController();
     subscriptionRef.current = abortController;
 
+    const debouncedRefetch = debounce(() => {
+      if (!abortController.signal.aborted) refetch();
+    }, 1500);
+
     async function subscribe() {
       try {
         const subscriptionId = await indexerClient.subscribeForScripts([scriptHex!]);
@@ -134,7 +139,7 @@ export function AddressPage() {
 
         for await (const _event of subscription) {
           if (abortController.signal.aborted) break;
-          refetch();
+          debouncedRefetch();
         }
       } catch (err) {
         if (!abortController.signal.aborted) {
@@ -146,6 +151,7 @@ export function AddressPage() {
     subscribe();
 
     return () => {
+      debouncedRefetch.cancel();
       abortController.abort();
       subscriptionRef.current = null;
     };
