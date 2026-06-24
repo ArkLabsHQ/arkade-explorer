@@ -7,6 +7,8 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { indexerClient } from '@/lib/api/indexer';
 import { addressToScriptHex } from '@/lib/decode';
 import { PAGINATION } from '@/lib/constants';
+import { sumVtxoValue, hasMorePages } from '@/lib/vtxo-aggregation';
+import { debounce } from '@/lib/debounce';
 import { copyToClipboard, cn } from '@/lib/utils';
 import { useRecentSearches } from '@/hooks/use-recent-searches';
 import { MoneyDisplay } from '@/components/shared/money-display';
@@ -71,7 +73,6 @@ export function AddressPage() {
   const [vtxoFilter, setVtxoFilter] = useState<VtxoFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const { addRecentSearch, isPinned, pinSearch, unpinSearch } = useRecentSearches();
-  const loadMoreRef = useRef<HTMLDivElement>(null);
   const subscriptionRef = useRef<AbortController | null>(null);
 
   const scriptHex = useMemo(() => {
@@ -103,7 +104,7 @@ export function AddressPage() {
       const opts: Parameters<typeof indexerClient.getVtxos>[0] = {
         scripts: [scriptHex],
         pageIndex: pageParam,
-        pageSize: PAGINATION.DEFAULT_PAGE_SIZE,
+        pageSize: PAGINATION.MAX_PAGE_SIZE,
       };
 
       if (vtxoFilter === 'spendable') opts.spendableOnly = true;
@@ -112,13 +113,8 @@ export function AddressPage() {
 
       return indexerClient.getVtxos(opts);
     },
-    getNextPageParam: (lastPage) => {
-      if (!lastPage.page) return undefined;
-      const { next, current, total } = lastPage.page;
-      if (next <= current) return undefined;
-      if (total > 0 && current >= total - 1) return undefined;
-      return next;
-    },
+    getNextPageParam: (lastPage) =>
+      hasMorePages(lastPage.page) ? lastPage.page!.next : undefined,
     initialPageParam: 0,
     enabled: !!scriptHex,
   });
@@ -128,6 +124,10 @@ export function AddressPage() {
 
     const abortController = new AbortController();
     subscriptionRef.current = abortController;
+
+    const debouncedRefetch = debounce(() => {
+      if (!abortController.signal.aborted) refetch();
+    }, 1500);
 
     async function subscribe() {
       try {
@@ -139,7 +139,7 @@ export function AddressPage() {
 
         for await (const _event of subscription) {
           if (abortController.signal.aborted) break;
-          refetch();
+          debouncedRefetch();
         }
       } catch (err) {
         if (!abortController.signal.aborted) {
@@ -151,27 +151,18 @@ export function AddressPage() {
     subscribe();
 
     return () => {
+      debouncedRefetch.cancel();
       abortController.abort();
       subscriptionRef.current = null;
     };
   }, [scriptHex, refetch]);
 
+  // Auto-drain every page so balances reflect the complete dataset.
   useEffect(() => {
-    const sentinel = loadMoreRef.current;
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { threshold: 0.1 },
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, data?.pages.length]);
 
   const allVtxos = useMemo(
     () => data?.pages.flatMap((page) => page.vtxos) ?? [],
@@ -186,9 +177,11 @@ export function AddressPage() {
   }, [allVtxos, statusFilter]);
 
   const filteredBalance = useMemo(
-    () => filteredVtxos.reduce((sum, vtxo) => sum + vtxo.value, 0),
+    () => sumVtxoValue(filteredVtxos),
     [filteredVtxos],
   );
+
+  const isDraining = hasNextPage || isFetchingNextPage;
 
   const hasAssets = useMemo(
     () => allVtxos.some((v) => v.assets && v.assets.length > 0),
@@ -268,7 +261,7 @@ export function AddressPage() {
         </div>
 
         {!isLoading && !error && allVtxos.length > 0 && (
-          <AddressStats vtxos={allVtxos} className={hasAssets ? 'flex-1 min-w-0' : undefined} />
+          <AddressStats vtxos={allVtxos} isDraining={isDraining} className={hasAssets ? 'flex-1 min-w-0' : undefined} />
         )}
       </div>
 
@@ -316,6 +309,12 @@ export function AddressPage() {
         <span className="text-xs text-muted-foreground">
           ({filteredVtxos.length} VTXO{filteredVtxos.length !== 1 ? 's' : ''})
         </span>
+        {isDraining && (
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+            Loading all VTXOs…
+          </span>
+        )}
       </div>
 
       {isLoading ? (
@@ -324,10 +323,9 @@ export function AddressPage() {
         <ErrorMessage message={error instanceof Error ? error.message : 'Failed to fetch VTXOs'} />
       ) : (
         <>
-          <VtxoList vtxos={filteredVtxos} />
-          <div ref={loadMoreRef} className="h-1" />
+          <VtxoList vtxos={filteredVtxos} variant="dense-rows" />
           {isFetchingNextPage && <LoadingSpinner />}
-          {!hasNextPage && filteredVtxos.length > 0 && (
+          {!isDraining && filteredVtxos.length > 0 && (
             <p className="text-center text-xs text-muted-foreground py-4">All VTXOs loaded</p>
           )}
         </>

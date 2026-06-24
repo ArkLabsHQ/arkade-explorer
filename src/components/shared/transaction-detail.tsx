@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { Link } from 'react-router-dom';
 import { useQueries } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight, FileText, ArrowLeft, ArrowRight, Pin, PinOff, ExternalLink } from 'lucide-react';
@@ -12,6 +13,7 @@ import { truncateHash, formatTimestamp } from '@/lib/utils';
 import { constructArkAddress } from '@/lib/arkAddress';
 import { indexerClient } from '@/lib/api/indexer';
 import { fetchAllPages } from '@/lib/api/fetchAllPages';
+import { capList } from '@/lib/cap-list';
 import { useServerInfo } from '@/providers/server-info-provider';
 import { useRecentSearches } from '@/hooks/use-recent-searches';
 import * as btc from '@scure/btc-signer';
@@ -675,6 +677,8 @@ function OutputCard({
 // Asset packet section
 // ---------------------------------------------------------------------------
 
+const PACKET_ROW_CAP = 50;
+
 function PacketSection({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   assetPacket,
@@ -702,82 +706,145 @@ function PacketSection({
           </span>
         ))}
       </div>
-      <div className="space-y-3">
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        {hasAssetGroups && assetPacket.groups.map((group: any, gi: number) => {
-          const isIssuance = group.isIssuance?.();
-          const assetIdStr =
-            group.assetId?.toString() ||
-            (isIssuance ? txid + gi.toString(16).padStart(4, '0') : 'Unknown');
+      <PacketGroups assetPacket={assetPacket} txid={txid} hasAssetGroups={hasAssetGroups} />
+    </div>
+  );
+}
 
-          return (
-            <div
-              key={gi}
-              className={`rounded-lg border border-border bg-secondary/30 p-3 space-y-2 ${CARD_SHADOW}`}
-            >
-              <div className="flex items-center gap-2 flex-wrap">
-                <AssetBadge assetId={assetIdStr} />
-                <CopyButton text={assetIdStr} />
-                {isIssuance && (
-                  <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full border bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
-                    Issuance
-                  </span>
-                )}
-              </div>
+function PacketGroups({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  assetPacket,
+  txid,
+  hasAssetGroups,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  assetPacket: any;
+  txid: string;
+  hasAssetGroups: boolean;
+}) {
+  const parentRef = useRef<HTMLDivElement>(null);
+  const parentOffsetRef = useRef(0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const groups: any[] = hasAssetGroups ? assetPacket.groups : [];
 
-              {group.inputs?.length > 0 && (
-                <div>
-                  <span className="text-xs text-muted-foreground font-medium">
-                    Inputs
-                  </span>
-                  <div className="ml-2 space-y-0.5 mt-0.5">
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {group.inputs.map((inp: any, ii: number) => (
-                      <div
-                        key={ii}
-                        className="text-xs font-mono text-muted-foreground flex items-center gap-1"
-                      >
-                        <span>vin:{inp.vin} &rarr;</span>{' '}
-                        <AssetAmountDisplay
-                          amount={Number(inp.amount)}
-                          assetId={assetIdStr}
-                          valueClassName="text-foreground font-semibold text-xs"
-                          unitClassName="text-xs"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+  useLayoutEffect(() => {
+    parentOffsetRef.current = parentRef.current?.offsetTop ?? 0;
+  }, []);
 
-              {group.outputs?.length > 0 && (
-                <div>
-                  <span className="text-xs text-muted-foreground font-medium">
-                    Outputs
-                  </span>
-                  <div className="ml-2 space-y-0.5 mt-0.5">
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {group.outputs.map((out: any, oi: number) => (
-                      <div
-                        key={oi}
-                        className="text-xs font-mono text-muted-foreground flex items-center gap-1"
-                      >
-                        <span>vout:{out.vout} &rarr;</span>{' '}
-                        <AssetAmountDisplay
-                          amount={Number(out.amount)}
-                          assetId={assetIdStr}
-                          valueClassName="text-foreground font-semibold text-xs"
-                          unitClassName="text-xs"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+  const virtualizer = useWindowVirtualizer({
+    count: groups.length,
+    estimateSize: () => 140,
+    overscan: 6,
+    scrollMargin: parentOffsetRef.current,
+  });
+
+  if (!hasAssetGroups) return null;
+
+  return (
+    <div ref={parentRef}>
+      <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative', width: '100%' }}>
+        {virtualizer.getVirtualItems().map((item) => (
+          <div
+            key={item.key}
+            data-index={item.index}
+            ref={virtualizer.measureElement}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              paddingBottom: '0.75rem',
+              transform: `translateY(${item.start - virtualizer.options.scrollMargin}px)`,
+            }}
+          >
+            <PacketGroup group={groups[item.index]} txid={txid} gi={item.index} />
+          </div>
+        ))}
       </div>
+    </div>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function PacketGroup({ group, txid, gi }: { group: any; txid: string; gi: number }) {
+  const [showAllInputs, setShowAllInputs] = useState(false);
+  const [showAllOutputs, setShowAllOutputs] = useState(false);
+
+  const isIssuance = group.isIssuance?.();
+  const assetIdStr =
+    group.assetId?.toString() ||
+    (isIssuance ? txid + gi.toString(16).padStart(4, '0') : 'Unknown');
+
+  const inputs = capList(group.inputs ?? [], PACKET_ROW_CAP, showAllInputs);
+  const outputs = capList(group.outputs ?? [], PACKET_ROW_CAP, showAllOutputs);
+
+  return (
+    <div className={`rounded-lg border border-border bg-secondary/30 p-3 space-y-2 ${CARD_SHADOW}`}>
+      <div className="flex items-center gap-2 flex-wrap">
+        <AssetBadge assetId={assetIdStr} />
+        <CopyButton text={assetIdStr} />
+        {isIssuance && (
+          <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full border bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+            Issuance
+          </span>
+        )}
+      </div>
+
+      {inputs.visible.length > 0 && (
+        <div>
+          <span className="text-xs text-muted-foreground font-medium">Inputs</span>
+          <div className="ml-2 space-y-0.5 mt-0.5">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {inputs.visible.map((inp: any, ii: number) => (
+              <div key={ii} className="text-xs font-mono text-muted-foreground flex items-center gap-1">
+                <span>vin:{inp.vin} &rarr;</span>{' '}
+                <AssetAmountDisplay
+                  amount={Number(inp.amount)}
+                  assetId={assetIdStr}
+                  valueClassName="text-foreground font-semibold text-xs"
+                  unitClassName="text-xs"
+                />
+              </div>
+            ))}
+            {inputs.hiddenCount > 0 && (
+              <button
+                onClick={() => setShowAllInputs(true)}
+                className="text-xs text-primary hover:underline mt-1"
+              >
+                Show {inputs.hiddenCount} more input{inputs.hiddenCount !== 1 ? 's' : ''}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {outputs.visible.length > 0 && (
+        <div>
+          <span className="text-xs text-muted-foreground font-medium">Outputs</span>
+          <div className="ml-2 space-y-0.5 mt-0.5">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {outputs.visible.map((out: any, oi: number) => (
+              <div key={oi} className="text-xs font-mono text-muted-foreground flex items-center gap-1">
+                <span>vout:{out.vout} &rarr;</span>{' '}
+                <AssetAmountDisplay
+                  amount={Number(out.amount)}
+                  assetId={assetIdStr}
+                  valueClassName="text-foreground font-semibold text-xs"
+                  unitClassName="text-xs"
+                />
+              </div>
+            ))}
+            {outputs.hiddenCount > 0 && (
+              <button
+                onClick={() => setShowAllOutputs(true)}
+                className="text-xs text-primary hover:underline mt-1"
+              >
+                Show {outputs.hiddenCount} more output{outputs.hiddenCount !== 1 ? 's' : ''}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
