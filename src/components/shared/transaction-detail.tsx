@@ -10,9 +10,10 @@ import { AssetAmountDisplay } from '@/components/shared/asset-amount-display';
 import { AssetBadge } from '@/components/shared/asset-badge';
 import { BadgeStatus, BadgeRecoverable, deriveVtxoStatus, isRecoverable } from '@/components/shared/badge-status';
 import { truncateHash, formatTimestamp } from '@/lib/utils';
-import { constructArkAddress } from '@/lib/arkAddress';
+import { constructArkAddress, deriveOutputDisplayAddress } from '@/lib/arkAddress';
 import { indexerClient } from '@/lib/api/indexer';
 import { fetchAllPages } from '@/lib/api/fetchAllPages';
+import { usePendingOutpoints } from '@/hooks/use-pending-outpoints';
 import { capList } from '@/lib/cap-list';
 import { useServerInfo } from '@/providers/server-info-provider';
 import { useRecentSearches } from '@/hooks/use-recent-searches';
@@ -442,6 +443,7 @@ function OutputCard({
   batchRootTxid,
   forfeitVtxo,
   checkpointVtxo,
+  pendingOutpoints,
 }: {
   output: ParsedOutput;
   txid: string;
@@ -453,6 +455,7 @@ function OutputCard({
   batchRootTxid?: string;
   forfeitVtxo?: VirtualCoin | null;
   checkpointVtxo?: VirtualCoin | null;
+  pendingOutpoints?: ReadonlySet<string>;
 }) {
   // For checkpoint/forfeit txs, use the fetched VTXO from the input instead of
   // per-output vtxo lookup (checkpoint/forfeit outputs aren't individual VTXOs)
@@ -461,7 +464,7 @@ function OutputCard({
     (forfeitVtxo && output.isForfeit) ? forfeitVtxo :
     output.vtxo;
   const vtxo = effectiveVtxo;
-  const vtxoStatus = vtxo ? deriveVtxoStatus(vtxo) : undefined;
+  const vtxoStatus = vtxo ? deriveVtxoStatus(vtxo, pendingOutpoints) : undefined;
   const isSpent =
     vtxo?.isSpent === true || (vtxo?.spentBy && vtxo.spentBy !== '');
   let spendingTxid: string | null = null;
@@ -1114,31 +1117,12 @@ export function TransactionDetail({
         output?.script &&
         serverInfo?.network
       ) {
-        if (
-          type === 'commitment' ||
-          detectedSubtype === 'checkpoint' ||
-          detectedSubtype === 'connector-tree'
-        ) {
-          try {
-            const net =
-              serverInfo.network === 'bitcoin' ? btc.NETWORK : btc.TEST_NETWORK;
-            const decoded = btc.OutScript.decode(output.script);
-            arkAddress = btc.Address(net).encode(decoded);
-          } catch {
-            // non-standard script, leave blank
-          }
-        } else if (serverInfo?.signerPubkey) {
-          try {
-            const addr = constructArkAddress(
-              output.script,
-              serverInfo.signerPubkey,
-              serverInfo.network,
-            );
-            if (addr) arkAddress = addr;
-          } catch {
-            // fallback: leave blank
-          }
-        }
+        arkAddress = deriveOutputDisplayAddress(output.script, {
+          type,
+          subtype: detectedSubtype,
+          network: serverInfo.network,
+          signerPubkey: serverInfo.signerPubkey,
+        });
       }
 
       // Check if this output is a batch
@@ -1364,6 +1348,30 @@ export function TransactionDetail({
         console.error('Failed to fetch input VTXOs:', err);
       });
   }, [type, parsedTx]);
+
+  // -------------------------------------------------------------------------
+  // Detect unfinalized (submitted-not-finalized) spends among displayed VTXOs
+  // -------------------------------------------------------------------------
+
+  const statusVtxos = useMemo(
+    () => [...(vtxoData ?? []), checkpointVtxo, forfeitVtxo].filter(Boolean) as VirtualCoin[],
+    [vtxoData, checkpointVtxo, forfeitVtxo],
+  );
+  const anyVtxoSpent = useMemo(
+    () => statusVtxos.some((v) => v.isSpent || (!!v.spentBy && v.spentBy !== '')),
+    [statusVtxos],
+  );
+  // Detection must query by script (the indexer ignores status filters for outpoint
+  // queries). Collect the scripts of the displayed VTXOs; matching is by outpoint.
+  const pendingScripts = useMemo(() => {
+    const set = new Set<string>();
+    for (const v of statusVtxos) if (v.script) set.add(v.script);
+    return [...set];
+  }, [statusVtxos]);
+  const pendingOutpoints = usePendingOutpoints({
+    scripts: pendingScripts,
+    enabled: anyVtxoSpent,
+  });
 
   // -------------------------------------------------------------------------
   // Derive title from subtype
@@ -1698,6 +1706,7 @@ export function TransactionDetail({
                   batchRootTxid={batchRootTxids.get(output.index)}
                   forfeitVtxo={forfeitVtxo}
                   checkpointVtxo={checkpointVtxo}
+                  pendingOutpoints={pendingOutpoints}
                 />
               ))}
             </div>
