@@ -8,6 +8,7 @@ import type { VirtualCoin } from '@arkade-os/sdk';
 import { MoneyDisplay } from '@/components/shared/money-display';
 import { AssetAmountDisplay } from '@/components/shared/asset-amount-display';
 import { BadgeStatus, BadgeRecoverable, deriveVtxoStatus, isRecoverable } from '@/components/shared/badge-status';
+import { deriveExpiryKind, expiryKindLabel } from '@/lib/vtxo-display';
 import { CopyButton } from '@/components/shared/copy-button';
 import { truncateHash, copyToClipboard, formatTimestamp } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -41,6 +42,14 @@ function formatExpiry(vtxo: VirtualCoin): string {
   if (hours > 0) return `${hours}h`;
   const minutes = Math.floor(diff / (1000 * 60));
   return `${minutes}m`;
+}
+
+/**
+ * What to render in the expiry slot: a terminal status word ("Settled"/"Spent")
+ * for a consumed VTXO, or the live batch-expiry countdown while it is active.
+ */
+function expiryDisplay(vtxo: VirtualCoin): string {
+  return expiryKindLabel(deriveExpiryKind(vtxo)) ?? formatExpiry(vtxo);
 }
 
 /** Attempt to derive an Arkade address from the VTXO's script or PSBT. */
@@ -393,7 +402,7 @@ function VtxoTableRow({
         </td>
         <td className="px-4 py-3 text-right">
           <span className="text-xs text-muted-foreground font-mono">
-            {formatExpiry(vtxo)}
+            {expiryDisplay(vtxo)}
           </span>
         </td>
       </tr>
@@ -530,7 +539,7 @@ function VtxoCard({
         <StatusBadges vtxo={vtxo} />
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
-          <span className="font-mono">{formatExpiry(vtxo)}</span>
+          <span className="font-mono">{expiryDisplay(vtxo)}</span>
         </div>
       </div>
 
@@ -671,6 +680,17 @@ function VtxoDenseRow({
           </Link>
         )}
 
+        {/* Settled by inline */}
+        {vtxo.settledBy && (
+          <Link
+            to={`/commitment-tx/${vtxo.settledBy}`}
+            className="text-[10px] text-muted-foreground hover:text-foreground font-mono transition-colors duration-150 shrink-0 hidden sm:inline"
+            title={`Settled by ${vtxo.settledBy}`}
+          >
+            settled:{truncateHash(vtxo.settledBy, 4, 4)}
+          </Link>
+        )}
+
         {/* Spacer */}
         <div className="flex-1" />
 
@@ -696,7 +716,7 @@ function VtxoDenseRow({
 
         {/* Expiry */}
         <span className="text-xs text-muted-foreground font-mono shrink-0 w-16 text-right">
-          {formatExpiry(vtxo)}
+          {expiryDisplay(vtxo)}
         </span>
       </div>
 
