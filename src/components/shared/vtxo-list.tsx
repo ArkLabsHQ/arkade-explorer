@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef, useLayoutEffect } from 'react';
+import { useCallback, useState, useRef, useLayoutEffect, createContext, useContext } from 'react';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { Link } from 'react-router-dom';
 import { Copy, ExternalLink, Clock, ChevronDown, ChevronRight } from 'lucide-react';
@@ -14,6 +14,11 @@ import { cn } from '@/lib/utils';
 import { constructArkAddress } from '@/lib/arkAddress';
 import { useServerInfo } from '@/providers/server-info-provider';
 type ListStyle = 'table' | 'cards' | 'dense-rows';
+
+const EMPTY_PENDING: ReadonlySet<string> = new Set<string>();
+
+/** Pending ("unfinalized spend") outpoints, supplied by the page and read by StatusBadges. */
+const PendingOutpointsContext = createContext<ReadonlySet<string>>(EMPTY_PENDING);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -78,7 +83,8 @@ function deriveAddress(
 }
 
 function StatusBadges({ vtxo }: { vtxo: VirtualCoin }) {
-  const status = deriveVtxoStatus(vtxo);
+  const pendingOutpoints = useContext(PendingOutpointsContext);
+  const status = deriveVtxoStatus(vtxo, pendingOutpoints);
   return (
     <span className="inline-flex items-center gap-1.5">
       <BadgeStatus status={status} />
@@ -228,6 +234,7 @@ interface VtxoListProps {
   showScript?: boolean;
   variant?: ListStyle;
   className?: string;
+  pendingOutpoints?: ReadonlySet<string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -717,7 +724,7 @@ function VtxoDenseRow({
 // Main component (variant-aware)
 // ---------------------------------------------------------------------------
 
-export function VtxoList({ vtxos, showScript, variant: overrideVariant, className }: VtxoListProps) {
+export function VtxoList({ vtxos, showScript, variant: overrideVariant, className, pendingOutpoints }: VtxoListProps) {
   const { serverInfo } = useServerInfo();
   const variant = overrideVariant ?? 'table';
 
@@ -728,46 +735,45 @@ export function VtxoList({ vtxos, showScript, variant: overrideVariant, classNam
     return <EmptyState />;
   }
 
-  switch (variant) {
-    case 'table':
-      return (
-        <VtxoTable
-          vtxos={vtxos}
-          showScript={showScript}
-          className={className}
-          signerPubkey={signerPubkey}
-          network={network}
-        />
-      );
-    case 'cards':
-      return (
-        <VtxoCards
-          vtxos={vtxos}
-          showScript={showScript}
-          className={className}
-          signerPubkey={signerPubkey}
-          network={network}
-        />
-      );
-    case 'dense-rows':
-      return (
-        <VtxoDenseRows
-          vtxos={vtxos}
-          showScript={showScript}
-          className={className}
-          signerPubkey={signerPubkey}
-          network={network}
-        />
-      );
-    default:
-      return (
-        <VtxoTable
-          vtxos={vtxos}
-          showScript={showScript}
-          className={className}
-          signerPubkey={signerPubkey}
-          network={network}
-        />
-      );
-  }
+  const body = (() => {
+    switch (variant) {
+      case 'cards':
+        return (
+          <VtxoCards
+            vtxos={vtxos}
+            showScript={showScript}
+            className={className}
+            signerPubkey={signerPubkey}
+            network={network}
+          />
+        );
+      case 'dense-rows':
+        return (
+          <VtxoDenseRows
+            vtxos={vtxos}
+            showScript={showScript}
+            className={className}
+            signerPubkey={signerPubkey}
+            network={network}
+          />
+        );
+      case 'table':
+      default:
+        return (
+          <VtxoTable
+            vtxos={vtxos}
+            showScript={showScript}
+            className={className}
+            signerPubkey={signerPubkey}
+            network={network}
+          />
+        );
+    }
+  })();
+
+  return (
+    <PendingOutpointsContext.Provider value={pendingOutpoints ?? EMPTY_PENDING}>
+      {body}
+    </PendingOutpointsContext.Provider>
+  );
 }

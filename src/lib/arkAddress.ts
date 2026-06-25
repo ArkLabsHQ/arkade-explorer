@@ -1,5 +1,6 @@
 import { ArkAddress } from '@arkade-os/sdk';
 import { hex } from '@scure/base';
+import * as btc from '@scure/btc-signer';
 
 export function constructArkAddress(
   scriptPubkey: Uint8Array,
@@ -41,4 +42,38 @@ export function decodeArkAddress(arkAddressStr: string): ArkAddress | null {
     console.error('Failed to decode Arkade address:', e);
     return null;
   }
+}
+
+/**
+ * Display address for a parsed transaction output.
+ * Commitment txs and connector-tree outputs are genuine on-chain outputs (bc1…/tb1…).
+ * Everything else off-chain — including checkpoint outputs — is a VTXO and renders as
+ * an Arkade address (ark1…/tark1…).
+ */
+export function deriveOutputDisplayAddress(
+  script: Uint8Array,
+  opts: {
+    type: 'arkade' | 'commitment';
+    subtype: 'generic' | 'forfeit' | 'checkpoint' | 'batch-tree' | 'connector-tree';
+    network: string;
+    signerPubkey?: string;
+  },
+): string {
+  const onchain = opts.type === 'commitment' || opts.subtype === 'connector-tree';
+  if (onchain) {
+    try {
+      const net = opts.network === 'bitcoin' ? btc.NETWORK : btc.TEST_NETWORK;
+      return btc.Address(net).encode(btc.OutScript.decode(script));
+    } catch {
+      return '';
+    }
+  }
+  if (opts.signerPubkey) {
+    try {
+      return constructArkAddress(script, opts.signerPubkey, opts.network) ?? '';
+    } catch {
+      return '';
+    }
+  }
+  return '';
 }

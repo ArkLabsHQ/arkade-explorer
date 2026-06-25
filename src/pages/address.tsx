@@ -11,6 +11,7 @@ import { sumVtxoValue, hasMorePages } from '@/lib/vtxo-aggregation';
 import { debounce } from '@/lib/debounce';
 import { copyToClipboard, cn } from '@/lib/utils';
 import { useRecentSearches } from '@/hooks/use-recent-searches';
+import { usePendingOutpoints } from '@/hooks/use-pending-outpoints';
 import { MoneyDisplay } from '@/components/shared/money-display';
 import { VtxoList } from '@/components/shared/vtxo-list';
 import { AddressStats } from '@/components/shared/address-stats';
@@ -169,6 +170,18 @@ export function AddressPage() {
     [data],
   );
 
+  // Detect spends that were submitted but not finalized. Only query when at least
+  // one VTXO is actually spent, so addresses with nothing spent pay no extra request.
+  const anySpent = useMemo(
+    () => allVtxos.some((v) => v.isSpent || (!!v.spentBy && v.spentBy !== '')),
+    [allVtxos],
+  );
+
+  const pendingOutpoints = usePendingOutpoints({
+    scripts: scriptHex ? [scriptHex] : undefined,
+    enabled: !!scriptHex && anySpent,
+  });
+
   const filteredVtxos = useMemo(() => {
     if (statusFilter === 'all') return allVtxos;
     return allVtxos.filter(
@@ -323,7 +336,7 @@ export function AddressPage() {
         <ErrorMessage message={error instanceof Error ? error.message : 'Failed to fetch VTXOs'} />
       ) : (
         <>
-          <VtxoList vtxos={filteredVtxos} variant="dense-rows" />
+          <VtxoList vtxos={filteredVtxos} variant="dense-rows" pendingOutpoints={pendingOutpoints} />
           {isFetchingNextPage && <LoadingSpinner />}
           {!isDraining && filteredVtxos.length > 0 && (
             <p className="text-center text-xs text-muted-foreground py-4">All VTXOs loaded</p>
