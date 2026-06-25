@@ -9,6 +9,7 @@ import { MoneyDisplay } from '@/components/shared/money-display';
 import { AssetAmountDisplay } from '@/components/shared/asset-amount-display';
 import { AssetBadge } from '@/components/shared/asset-badge';
 import { BadgeStatus, BadgeRecoverable, deriveVtxoStatus, isRecoverable } from '@/components/shared/badge-status';
+import { deriveExpiryKind, expiryKindLabel, type ExpiryKind } from '@/lib/vtxo-display';
 import { truncateHash, formatTimestamp } from '@/lib/utils';
 import { constructArkAddress, deriveOutputDisplayAddress } from '@/lib/arkAddress';
 import { indexerClient } from '@/lib/api/indexer';
@@ -1397,13 +1398,15 @@ export function TransactionDetail({
   // Derive timestamps from vtxoData for Arkade transactions
   // -------------------------------------------------------------------------
 
-  const { earliestCreatedAt, earliestExpiry } = useMemo(() => {
+  const { earliestCreatedAt, earliestExpiry, aggregateKind } = useMemo(() => {
     if (type !== 'arkade' || !vtxoData || vtxoData.length === 0) {
-      return { earliestCreatedAt: null, earliestExpiry: null };
+      return { earliestCreatedAt: null, earliestExpiry: null, aggregateKind: 'active' as ExpiryKind };
     }
 
     let minCreated: number | null = null;
     let minExpiry: number | null = null;
+    let anyActive = false;
+    let anySettled = false;
 
     for (const vtxo of vtxoData) {
       // createdAt
@@ -1423,9 +1426,16 @@ export function TransactionDetail({
           minExpiry = ts;
         }
       }
+      // Terminal state: the expiry slot is only meaningful while a vtxo is live,
+      // so the aggregate stays "active" if any displayed output is still live.
+      const kind = deriveExpiryKind(vtxo);
+      if (kind === 'active') anyActive = true;
+      else if (kind === 'settled') anySettled = true;
     }
 
-    return { earliestCreatedAt: minCreated, earliestExpiry: minExpiry };
+    const aggregateKind: ExpiryKind = anyActive ? 'active' : anySettled ? 'settled' : 'spent';
+
+    return { earliestCreatedAt: minCreated, earliestExpiry: minExpiry, aggregateKind };
   }, [type, vtxoData]);
 
   // -------------------------------------------------------------------------
@@ -1592,12 +1602,19 @@ export function TransactionDetail({
                 value={formatTimestamp(earliestCreatedAt)}
               />
             )}
-            {earliestExpiry && (
-              <InfoRow
-                label="Expires"
-                value={formatTimestamp(earliestExpiry)}
-              />
-            )}
+            {aggregateKind === 'active'
+              ? earliestExpiry && (
+                  <InfoRow
+                    label="Expires"
+                    value={formatTimestamp(earliestExpiry)}
+                  />
+                )
+              : (
+                  <InfoRow
+                    label="Status"
+                    value={expiryKindLabel(aggregateKind)}
+                  />
+                )}
           </dl>
         )}
 
