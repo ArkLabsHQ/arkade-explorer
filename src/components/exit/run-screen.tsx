@@ -169,6 +169,12 @@ function ExecutionTimeline({
               style={{ width: `${pct}%` }}
             />
           </div>
+          {!done && (
+            <p className="text-[11px] text-muted-foreground">
+              Safe to close and reopen — execution reads only the blockchain, so it resumes where it
+              left off.
+            </p>
+          )}
         </div>
       </Card>
 
