@@ -1,11 +1,15 @@
-import type { ExitPackage } from '@arkade-os/sdk';
 import { FileUp, ShieldAlert } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { decodePackageBlob, packageParamFromUrl, readFileText } from '@/lib/exit/package';
+import {
+  decodePackageBlob,
+  packageParamFromUrl,
+  readFileText,
+  type LoadedPackage,
+} from '@/lib/exit/package';
 import { Button, Card } from '@/components/exit/ui';
 import { cn } from '@/lib/utils';
 
-export function ImportScreen({ onImport }: { onImport: (pkg: ExitPackage) => void }) {
+export function ImportScreen({ onImport }: { onImport: (loaded: LoadedPackage) => void }) {
   const [error, setError] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [dragging, setDragging] = useState(false);

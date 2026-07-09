@@ -1,7 +1,9 @@
-import { RefreshCw, Wallet } from 'lucide-react';
+import type { ExitPackage } from '@arkade-os/sdk';
+import { Download, Wallet } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { resetFeeKey, type FeeWalletHandle } from '@/lib/exit/fee-wallet';
-import { formatSats } from '@/lib/utils';
+import { encodeExitBundle } from '@/lib/exit/package';
+import { type FeeWalletHandle } from '@/lib/exit/fee-wallet';
+import { MoneyDisplay } from '@/components/shared/money-display';
 import { CopyButton } from '@/components/shared/copy-button';
 import { Button, Card, CardTitle } from '@/components/exit/ui';
 
@@ -17,23 +19,33 @@ function Bar({ pct, done }: { pct: number; done: boolean }) {
   );
 }
 
+function downloadText(filename: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 /**
  * Graph-mode funding gate: this browser owns a throwaway fee key; the user
  * sends fee sats to its address and we proceed once the deposit confirms.
+ * The exit can also be exported as a self-executable bundle carrying that fee
+ * key, so another machine can run it against the already-funded address.
  */
 export function FundingGate({
   fee,
   required,
+  pkg,
   onReady,
-  onRegenerate,
 }: {
   fee: FeeWalletHandle;
   required: number;
+  pkg: ExitPackage;
   onReady: () => void;
-  onRegenerate: () => void;
 }) {
   const [balance, setBalance] = useState(0);
-  const [showKey, setShowKey] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -55,6 +67,7 @@ export function FundingGate({
 
   const funded = balance >= required;
   const pct = required > 0 ? (balance / required) * 100 : 0;
+  const bundle = encodeExitBundle(pkg, fee.privKeyHex);
 
   return (
     <Card>
@@ -65,8 +78,10 @@ export function FundingGate({
       <div className="flex flex-col gap-4">
         <p className="text-sm text-muted-foreground">
           Send at least{' '}
-          <span className="font-mono font-medium text-foreground">{formatSats(required)}</span> to
-          this throwaway fee address. It only ever holds fee sats — never your exited funds — and
+          <span className="font-medium text-foreground">
+            <MoneyDisplay sats={required} />
+          </span>{' '}
+          to this throwaway fee address. It only ever holds fee sats — never your exited funds — and
           lives in this browser. Change comes back to it.
         </p>
 
@@ -79,7 +94,7 @@ export function FundingGate({
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Received (confirmed)</span>
             <span className="font-mono text-foreground tabular-nums">
-              {formatSats(balance)} / {formatSats(required)}
+              <MoneyDisplay sats={balance} /> / <MoneyDisplay sats={required} />
             </span>
           </div>
           <Bar pct={pct} done={funded} />
@@ -87,30 +102,25 @@ export function FundingGate({
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => setShowKey((s) => !s)}>
-              {showKey ? 'Hide' : 'Export'} fee key
-            </Button>
             <Button
               variant="ghost"
-              onClick={() => {
-                resetFeeKey();
-                onRegenerate();
-              }}
-              title="Discard this fee key and generate a new one"
+              onClick={() => downloadText(`arkade-exit-${pkg.createdAt}.json`, bundle)}
+              title="Download this exit with its fee key embedded, so another machine can run it standalone"
             >
-              <RefreshCw className="h-3.5 w-3.5" /> New key
+              <Download className="h-3.5 w-3.5" /> Export package
             </Button>
+            <CopyButton text={bundle} />
           </div>
           <Button disabled={!funded} onClick={onReady}>
             {funded ? 'Proceed' : 'Waiting for deposit…'}
           </Button>
         </div>
 
-        {showKey && (
-          <p className="break-all rounded border border-border bg-background p-2 font-mono text-[11px] text-muted-foreground">
-            {fee.privKeyHex}
-          </p>
-        )}
+        <p className="text-[11px] text-muted-foreground">
+          Export produces a self-executable bundle with the fee key embedded — the graph-mode
+          equivalent of a fully-signed package. Keep it private: anyone holding it can spend the
+          small fee remainder.
+        </p>
       </div>
     </Card>
   );

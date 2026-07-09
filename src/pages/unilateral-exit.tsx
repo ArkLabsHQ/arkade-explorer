@@ -1,7 +1,6 @@
 import type { ExitPackage } from '@arkade-os/sdk';
 import { DoorOpen, RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useServerInfo } from '@/providers/server-info-provider';
 import { ImportScreen } from '@/components/exit/import-screen';
 import { ReviewScreen } from '@/components/exit/review-screen';
@@ -26,7 +25,9 @@ export function UnilateralExitPage() {
   const { serverInfo } = useServerInfo();
   const [screen, setScreen] = useState<Screen>('import');
   const [pkg, setPkg] = useState<ExitPackage | null>(null);
+  const [feeKeyHex, setFeeKeyHex] = useState<string | null>(null);
   const [esplora, setEsplora] = useState('');
+  const [confirmingReset, setConfirmingReset] = useState(false);
 
   useEffect(() => {
     document.title = 'Unilateral Exit | Arkade Explorer';
@@ -37,8 +38,20 @@ export function UnilateralExitPage() {
 
   const reset = () => {
     setPkg(null);
+    setFeeKeyHex(null);
     setEsplora('');
     setScreen('import');
+    setConfirmingReset(false);
+  };
+
+  // Once execution has started, guard "Start over": it doesn't stop broadcasts
+  // already made and it discards the live progress view.
+  const onStartOver = () => {
+    if (screen === 'run' && !confirmingReset) {
+      setConfirmingReset(true);
+      return;
+    }
+    reset();
   };
 
   const currentIndex = STEPS.findIndex((s) => s.id === screen);
@@ -46,17 +59,6 @@ export function UnilateralExitPage() {
   return (
     <PageTransition>
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <Link
-            to="/"
-            className="text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground"
-          >
-            Home
-          </Link>
-          <span className="text-muted-foreground">/</span>
-          <span className="text-sm text-foreground">Unilateral Exit</span>
-        </div>
-
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/30 bg-primary/10">
@@ -69,14 +71,33 @@ export function UnilateralExitPage() {
               </p>
             </div>
           </div>
-          {pkg && (
-            <button
-              onClick={reset}
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <RotateCcw className="h-3.5 w-3.5" /> Start over
-            </button>
-          )}
+          {pkg &&
+            (confirmingReset ? (
+              <div className="flex items-center gap-2">
+                <span className="hidden text-[11px] text-muted-foreground sm:inline">
+                  Broadcasts already sent won’t stop.
+                </span>
+                <button
+                  onClick={reset}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/20"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" /> Confirm start over
+                </button>
+                <button
+                  onClick={() => setConfirmingReset(false)}
+                  className="rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={onStartOver}
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Start over
+              </button>
+            ))}
         </div>
 
         <nav className="flex items-center gap-2">
@@ -106,8 +127,9 @@ export function UnilateralExitPage() {
 
         {screen === 'import' && (
           <ImportScreen
-            onImport={(p) => {
-              setPkg(p);
+            onImport={(loaded) => {
+              setPkg(loaded.pkg);
+              setFeeKeyHex(loaded.feeKeyHex ?? null);
               setScreen('review');
             }}
           />
@@ -123,7 +145,12 @@ export function UnilateralExitPage() {
           />
         )}
         {screen === 'run' && pkg && esplora && (
-          <RunScreen pkg={pkg} esploraUrl={esplora} network={serverInfo?.network} />
+          <RunScreen
+            pkg={pkg}
+            esploraUrl={esplora}
+            network={serverInfo?.network}
+            embeddedFeeKeyHex={feeKeyHex}
+          />
         )}
 
         <p className="border-t border-border pt-4 text-[11px] text-muted-foreground">

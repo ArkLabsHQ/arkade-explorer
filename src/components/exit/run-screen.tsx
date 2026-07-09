@@ -17,46 +17,56 @@ export function RunScreen({
   pkg,
   esploraUrl,
   network,
+  embeddedFeeKeyHex,
 }: {
   pkg: ExitPackage;
   esploraUrl: string;
   network: string | undefined;
+  /** Fee key carried inside a self-executable bundle; when present we skip the
+   * funding gate and run directly against its already-funded address. */
+  embeddedFeeKeyHex?: string | null;
 }) {
   const graph = pkg.mode === 'graph';
-  const [phase, setPhase] = useState<'funding' | 'running'>(graph ? 'funding' : 'running');
+  // An embedded key means the exit was funded elsewhere — go straight to running.
+  const [phase, setPhase] = useState<'funding' | 'running'>(
+    graph && !embeddedFeeKeyHex ? 'funding' : 'running',
+  );
   const [fee, setFee] = useState<FeeWalletHandle | null>(null);
-  const [feeKeyNonce, setFeeKeyNonce] = useState(0);
 
   const provider = useMemo(() => new EsploraProvider(esploraUrl), [esploraUrl]);
 
   useEffect(() => {
     if (!graph) return;
     let live = true;
-    void makeFeeWallet(loadOrCreateFeeKey(), network ?? 'bitcoin', esploraUrl).then((f) => {
+    const privKey = embeddedFeeKeyHex ?? loadOrCreateFeeKey();
+    void makeFeeWallet(privKey, network ?? 'bitcoin', esploraUrl).then((f) => {
       if (live) setFee(f);
     });
     return () => {
       live = false;
     };
-  }, [graph, network, esploraUrl, feeKeyNonce]);
+  }, [graph, network, esploraUrl, embeddedFeeKeyHex]);
+
+  const preparing = (
+    <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" /> Preparing fee wallet…
+    </div>
+  );
 
   if (phase === 'funding') {
-    if (!fee) {
-      return (
-        <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Preparing fee wallet…
-        </div>
-      );
-    }
+    if (!fee) return preparing;
     return (
       <FundingGate
         fee={fee}
         required={pkg.totals.fundingRequiredSats}
+        pkg={pkg}
         onReady={() => setPhase('running')}
-        onRegenerate={() => setFeeKeyNonce((n) => n + 1)}
       />
     );
   }
+
+  // Graph mode always needs its fee wallet before the executor can bump anchors.
+  if (graph && !fee) return preparing;
 
   return <ExecutionTimeline pkg={pkg} provider={provider} feeWallet={fee?.wallet} />;
 }
