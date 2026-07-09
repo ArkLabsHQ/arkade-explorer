@@ -24,8 +24,12 @@ function downloadText(filename: string, text: string) {
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
+  // Firefox only triggers a programmatic download when the anchor is in the
+  // document; defer the revoke so the browser can read the blob first.
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 /**
