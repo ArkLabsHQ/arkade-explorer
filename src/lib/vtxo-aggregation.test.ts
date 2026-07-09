@@ -55,9 +55,9 @@ describe('sumVtxoValue / sumActiveVtxoValue', () => {
 describe('aggregateAssetBalances', () => {
   it('aggregates active vs total per asset id across the full set', () => {
     const vtxos = [
-      makeVtxo({ value: 0, assets: [{ assetId: 'A', amount: 10 }] as VirtualCoin['assets'] }),
-      makeVtxo({ value: 0, spentBy: 'x', assets: [{ assetId: 'A', amount: 5 }] as VirtualCoin['assets'] }),
-      makeVtxo({ value: 0, assets: [{ assetId: 'B', amount: 7 }] as VirtualCoin['assets'] }),
+      makeVtxo({ value: 0, assets: [{ assetId: 'A', amount: 10n }] as VirtualCoin['assets'] }),
+      makeVtxo({ value: 0, spentBy: 'x', assets: [{ assetId: 'A', amount: 5n }] as VirtualCoin['assets'] }),
+      makeVtxo({ value: 0, assets: [{ assetId: 'B', amount: 7n }] as VirtualCoin['assets'] }),
     ];
     const result = aggregateAssetBalances(vtxos);
     expect(result.get('A')).toEqual({ active: 10, total: 15 });

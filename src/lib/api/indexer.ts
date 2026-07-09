@@ -52,7 +52,7 @@ export function isSafeImageUrl(url: string): boolean {
  * Format an asset amount using string-based decimal placement to avoid
  * floating-point precision loss with large values or high decimal counts.
  */
-export function formatAssetAmount(amount: number, decimals: number): string {
+export function formatAssetAmount(amount: number | bigint, decimals: number): string {
   if (decimals === 0) return amount.toLocaleString('en-US');
   const amountStr = amount.toString();
   const padded = amountStr.padStart(decimals + 1, '0');

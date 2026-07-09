@@ -32,8 +32,8 @@ export function aggregateAssetBalances(
     const active = isVtxoActive(v);
     for (const asset of v.assets ?? []) {
       const existing = balances.get(asset.assetId) ?? { active: 0, total: 0 };
-      existing.total += asset.amount;
-      if (active) existing.active += asset.amount;
+      existing.total += Number(asset.amount);
+      if (active) existing.active += Number(asset.amount);
       balances.set(asset.assetId, existing);
     }
   }
