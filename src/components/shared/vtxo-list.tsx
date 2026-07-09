@@ -386,7 +386,7 @@ function VtxoTableRow({
               sats={vtxo.value}
               className="text-foreground font-mono text-xs"
             />
-            {vtxo.assets && vtxo.assets.length > 0 && vtxo.assets.map((asset: { assetId: string; amount: number }, idx: number) => (
+            {vtxo.assets && vtxo.assets.length > 0 && vtxo.assets.map((asset, idx: number) => (
               <AssetAmountDisplay
                 key={idx}
                 amount={asset.amount}
@@ -700,7 +700,7 @@ function VtxoDenseRow({
             sats={vtxo.value}
             className="text-foreground font-mono text-xs"
           />
-          {vtxo.assets && vtxo.assets.length > 0 && vtxo.assets.map((asset: { assetId: string; amount: number }, idx: number) => (
+          {vtxo.assets && vtxo.assets.length > 0 && vtxo.assets.map((asset, idx: number) => (
             <AssetAmountDisplay
               key={idx}
               amount={asset.amount}

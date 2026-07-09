@@ -5,7 +5,7 @@ import { truncateHash } from '@/lib/utils';
 import { isSafeImageUrl, formatAssetAmount } from '@/lib/api/indexer';
 
 interface AssetAmountDisplayProps {
-  amount: number;
+  amount: number | bigint;
   assetId: string;
   className?: string;
   valueClassName?: string;

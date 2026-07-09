@@ -36,8 +36,10 @@ export function useAssetDetails(assetId: string | undefined) {
       const cached = readFromSessionStorage(assetId);
       if (cached) return cached;
 
-      // Fetch from indexer
-      const details = await indexerClient.getAssetDetails(assetId);
+      // Fetch from indexer. The SDK models supply as bigint; the explorer
+      // uses number and caches to (JSON) sessionStorage, so normalise here.
+      const raw = await indexerClient.getAssetDetails(assetId);
+      const details: AssetDetails = { ...raw, supply: Number(raw.supply) };
       writeToSessionStorage(assetId, details);
       return details;
     },
