@@ -97,14 +97,12 @@ function Warning({
 
 export function ReviewScreen({
   pkg,
-  network,
   onContinue,
 }: {
   pkg: ExitPackage;
-  network: string | undefined;
   onContinue: (esploraUrl: string) => void;
 }) {
-  const [esplora, setEsplora] = useState(() => esploraUrlFor(network));
+  const [esplora, setEsplora] = useState(() => esploraUrlFor(pkg.network));
   const [showAdvanced, setShowAdvanced] = useState(false);
   const active = pkg.vtxos.filter((v) => !v.skipped);
   const skipped = pkg.vtxos.filter((v) => v.skipped);

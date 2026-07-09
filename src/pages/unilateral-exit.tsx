@@ -1,7 +1,6 @@
 import type { ExitPackage } from '@arkade-os/sdk';
-import { DoorOpen, RotateCcw } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { useServerInfo } from '@/providers/server-info-provider';
+import { DoorOpen, RotateCcw, ShieldAlert } from 'lucide-react';
+import { Component, useEffect, useState, type ReactNode } from 'react';
 import { ImportScreen } from '@/components/exit/import-screen';
 import { ReviewScreen } from '@/components/exit/review-screen';
 import { RunScreen } from '@/components/exit/run-screen';
@@ -16,13 +15,41 @@ const STEPS: { id: Screen; label: string }[] = [
 ];
 
 /**
+ * Defense-in-depth: a malformed package that clears decode validation but still
+ * throws during render must not blank the whole app. Keyed by screen so it
+ * resets on navigation / "Start over". The header (with Start over) lives
+ * outside it, so the user can always recover.
+ */
+class ScreenErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state: { error: Error | null } = { error: null };
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <p className="font-medium">Couldn’t render this package</p>
+            <p className="mt-0.5 text-xs opacity-90">
+              {this.state.error.message}. Use “Start over” to load a different one.
+            </p>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/**
  * Self-contained, keyless unilateral-exit executor. Imports a pre-signed exit
  * package (from `@arkade-os/sdk`'s `UnilateralExit.prepare()`) and drives it
  * onchain with only an Esplora endpoint. Deliberately NOT linked from the rest
  * of the explorer — reachable directly at /unilateral-exit.
  */
 export function UnilateralExitPage() {
-  const { serverInfo } = useServerInfo();
   const [screen, setScreen] = useState<Screen>('import');
   const [pkg, setPkg] = useState<ExitPackage | null>(null);
   const [feeKeyHex, setFeeKeyHex] = useState<string | null>(null);
@@ -125,33 +152,29 @@ export function UnilateralExitPage() {
           ))}
         </nav>
 
-        {screen === 'import' && (
-          <ImportScreen
-            onImport={(loaded) => {
-              setPkg(loaded.pkg);
-              setFeeKeyHex(loaded.feeKeyHex ?? null);
-              setScreen('review');
-            }}
-          />
-        )}
-        {screen === 'review' && pkg && (
-          <ReviewScreen
-            pkg={pkg}
-            network={serverInfo?.network}
-            onContinue={(url) => {
-              setEsplora(url);
-              setScreen('run');
-            }}
-          />
-        )}
-        {screen === 'run' && pkg && esplora && (
-          <RunScreen
-            pkg={pkg}
-            esploraUrl={esplora}
-            network={serverInfo?.network}
-            embeddedFeeKeyHex={feeKeyHex}
-          />
-        )}
+        <ScreenErrorBoundary key={screen}>
+          {screen === 'import' && (
+            <ImportScreen
+              onImport={(loaded) => {
+                setPkg(loaded.pkg);
+                setFeeKeyHex(loaded.feeKeyHex ?? null);
+                setScreen('review');
+              }}
+            />
+          )}
+          {screen === 'review' && pkg && (
+            <ReviewScreen
+              pkg={pkg}
+              onContinue={(url) => {
+                setEsplora(url);
+                setScreen('run');
+              }}
+            />
+          )}
+          {screen === 'run' && pkg && esplora && (
+            <RunScreen pkg={pkg} esploraUrl={esplora} embeddedFeeKeyHex={feeKeyHex} />
+          )}
+        </ScreenErrorBoundary>
 
         <p className="border-t border-border pt-4 text-[11px] text-muted-foreground">
           Runs entirely in your browser. Package secrets never leave this page except as

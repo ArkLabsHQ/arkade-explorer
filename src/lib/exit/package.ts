@@ -16,6 +16,30 @@ const BUNDLE_MARKER = 'arkadeExitBundle';
 const FEE_KEY_RE = /^[0-9a-f]{64}$/;
 
 /**
+ * The SDK's `deserializeExitPackage` validates `steps` but NOT `totals` or the
+ * fields inside `vtxos[]` — it casts the rest. The screens dereference those
+ * unconditionally (`pkg.totals.txCount`, `truncateHash(v.outpoint)`), so a
+ * hostile or truncated package that clears the SDK check would crash the render
+ * (a blank page) reachable from a bare `?pkg=` link. Validate them here so the
+ * failure surfaces through the import error path instead.
+ */
+function assertRenderable(pkg: ExitPackage): void {
+  const totals = pkg.totals as unknown as Record<string, unknown> | null | undefined;
+  const numericFields = ['txCount', 'totalFeeSats', 'fundingRequiredSats', 'recoveredSats'];
+  if (!totals || numericFields.some((k) => typeof totals[k] !== 'number')) {
+    throw new Error('invalid exit package: missing or malformed totals');
+  }
+  for (const v of pkg.vtxos as unknown as Array<Record<string, unknown>>) {
+    if (typeof v.outpoint !== 'string') {
+      throw new Error('invalid exit package: every vtxo needs a string outpoint');
+    }
+    if (v.value !== undefined && typeof v.value !== 'number') {
+      throw new Error('invalid exit package: vtxo value must be a number');
+    }
+  }
+}
+
+/**
  * Decode a URL-safe base64 string to bytes. Accepts padded or unpadded, and
  * both the URL alphabet (`-_`) and standard (`+/`).
  */
@@ -53,13 +77,16 @@ function fromParsedJson(text: string): LoadedPackage {
   if (obj && typeof obj === 'object' && BUNDLE_MARKER in obj) {
     const bundle = obj as { pkg?: unknown; feeKeyHex?: unknown };
     const pkg = deserializeExitPackage(JSON.stringify(bundle.pkg));
+    assertRenderable(pkg);
     const feeKeyHex =
       typeof bundle.feeKeyHex === 'string' && FEE_KEY_RE.test(bundle.feeKeyHex)
         ? bundle.feeKeyHex
         : undefined;
     return { pkg, feeKeyHex };
   }
-  return { pkg: deserializeExitPackage(text) };
+  const pkg = deserializeExitPackage(text);
+  assertRenderable(pkg);
+  return { pkg };
 }
 
 /**

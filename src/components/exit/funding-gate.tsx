@@ -1,5 +1,5 @@
 import type { ExitPackage } from '@arkade-os/sdk';
-import { Download, Wallet } from 'lucide-react';
+import { CircleAlert, Download, Wallet } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { encodeExitBundle } from '@/lib/exit/package';
 import { type FeeWalletHandle } from '@/lib/exit/fee-wallet';
@@ -50,15 +50,25 @@ export function FundingGate({
   onReady: () => void;
 }) {
   const [balance, setBalance] = useState(0);
+  const [unreachable, setUnreachable] = useState(false);
 
   useEffect(() => {
     let live = true;
+    let failures = 0;
     const poll = async () => {
       try {
         const b = await fee.confirmedBalance();
-        if (live) setBalance(b);
+        if (!live) return;
+        setBalance(b);
+        failures = 0;
+        setUnreachable(false);
       } catch {
-        /* endpoint hiccup — keep polling */
+        // Tolerate transient hiccups, but after a few consecutive failures
+        // surface the outage — otherwise "can't reach the endpoint" is
+        // indistinguishable from "deposit not seen yet" and the user waits
+        // forever (or re-sends fees).
+        failures += 1;
+        if (live && failures >= 3) setUnreachable(true);
       }
     };
     void poll();
@@ -103,6 +113,16 @@ export function FundingGate({
           </div>
           <Bar pct={pct} done={funded} />
         </div>
+
+        {unreachable && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400">
+            <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              Can’t reach the Esplora endpoint to check the balance — still retrying. If this
+              persists, verify the endpoint in Review → Advanced settings.
+            </span>
+          </div>
+        )}
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

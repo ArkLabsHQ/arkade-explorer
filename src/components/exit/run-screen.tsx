@@ -5,7 +5,7 @@ import {
   type ExitPackage,
 } from '@arkade-os/sdk';
 import { CheckCircle2, CircleAlert, Loader2 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { loadOrCreateFeeKey, makeFeeWallet, type FeeWalletHandle } from '@/lib/exit/fee-wallet';
 import { KIND_LABEL, PHASE_STYLE, phaseFor, type StepPhase } from '@/components/exit/step-meta';
 import { FundingGate } from '@/components/exit/funding-gate';
@@ -16,22 +16,21 @@ import { cn, truncateHash } from '@/lib/utils';
 export function RunScreen({
   pkg,
   esploraUrl,
-  network,
   embeddedFeeKeyHex,
 }: {
   pkg: ExitPackage;
   esploraUrl: string;
-  network: string | undefined;
-  /** Fee key carried inside a self-executable bundle; when present we skip the
-   * funding gate and run directly against its already-funded address. */
+  /** Fee key carried inside a self-executable bundle; funds the graph-mode CPFP
+   * bumps from an already-funded address instead of a freshly generated one. */
   embeddedFeeKeyHex?: string | null;
 }) {
   const graph = pkg.mode === 'graph';
-  // An embedded key means the exit was funded elsewhere — go straight to running.
-  const [phase, setPhase] = useState<'funding' | 'running'>(
-    graph && !embeddedFeeKeyHex ? 'funding' : 'running',
-  );
+  // Graph mode always shows the funding gate — even with an embedded fee key it
+  // stays visible so the fee address is never hidden and the balance is
+  // confirmed before broadcasting (an embedded key just pre-funds it).
+  const [phase, setPhase] = useState<'funding' | 'running'>(graph ? 'funding' : 'running');
   const [fee, setFee] = useState<FeeWalletHandle | null>(null);
+  const [feeError, setFeeError] = useState<string | null>(null);
 
   const provider = useMemo(() => new EsploraProvider(esploraUrl), [esploraUrl]);
 
@@ -39,21 +38,32 @@ export function RunScreen({
     if (!graph) return;
     let live = true;
     const privKey = embeddedFeeKeyHex ?? loadOrCreateFeeKey();
-    void makeFeeWallet(privKey, network ?? 'bitcoin', esploraUrl).then((f) => {
-      if (live) setFee(f);
-    });
+    // Network comes from the package itself, not the connected Ark server.
+    makeFeeWallet(privKey, pkg.network, esploraUrl)
+      .then((f) => {
+        if (live) setFee(f);
+      })
+      .catch((e) => {
+        if (live) setFeeError(e instanceof Error ? e.message : String(e));
+      });
     return () => {
       live = false;
     };
-  }, [graph, network, esploraUrl, embeddedFeeKeyHex]);
+  }, [graph, pkg.network, esploraUrl, embeddedFeeKeyHex]);
 
   const preparing = (
     <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
       <Loader2 className="h-4 w-4 animate-spin" /> Preparing fee wallet…
     </div>
   );
+  const feeErrorBanner = feeError ? (
+    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+      Couldn’t prepare the fee wallet: {feeError}
+    </div>
+  ) : null;
 
   if (phase === 'funding') {
+    if (feeError) return feeErrorBanner;
     if (!fee) return preparing;
     return (
       <FundingGate
@@ -66,7 +76,7 @@ export function RunScreen({
   }
 
   // Graph mode always needs its fee wallet before the executor can bump anchors.
-  if (graph && !fee) return preparing;
+  if (graph && !fee) return feeError ? feeErrorBanner : preparing;
 
   return <ExecutionTimeline pkg={pkg} provider={provider} feeWallet={fee?.wallet} />;
 }
@@ -85,26 +95,34 @@ function ExecutionTimeline({
   const [done, setDone] = useState(false);
   const [fatal, setFatal] = useState<string | null>(null);
   const [tipHeight, setTipHeight] = useState<number | null>(null);
-  const started = useRef(false);
-
   useEffect(() => {
-    if (started.current) return; // guard StrictMode double-invoke
-    started.current = true;
     const executor = new UnilateralExit.Executor(pkg, provider, { feeWallet, pollIntervalMs: 4000 });
+    const iterator = executor[Symbol.asyncIterator]();
+    let cancelled = false;
     (async () => {
       try {
-        for await (const ev of executor) {
+        for (let r = await iterator.next(); !r.done; r = await iterator.next()) {
+          if (cancelled) return;
+          const ev = r.value;
           if (ev.stepIndex < 0) {
             if (ev.reason) setWarnings((w) => [...w, ev.reason!]);
             continue;
           }
           setEvents((prev) => new Map(prev).set(ev.stepIndex, ev));
         }
-        setDone(true);
+        if (!cancelled) setDone(true);
       } catch (e) {
-        setFatal(e instanceof Error ? e.message : String(e));
+        if (!cancelled) setFatal(e instanceof Error ? e.message : String(e));
       }
     })();
+    // Unmount (e.g. "Start over") must stop the executor — otherwise the
+    // detached loop keeps polling and broadcasting the remaining steps in the
+    // background. Returning the async iterator halts the generator at its next
+    // suspension point; idempotency makes an in-flight step safe to re-run.
+    return () => {
+      cancelled = true;
+      void iterator.return?.(undefined);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -141,8 +159,20 @@ function ExecutionTimeline({
     <div className="flex flex-col gap-5">
       <Card>
         <div className="mb-3 flex items-center justify-between">
-          <CardTitle>{done ? (failed ? 'Finished with failures' : 'Exit complete') : 'Executing exit'}</CardTitle>
-          {!done ? (
+          <CardTitle>
+            {fatal
+              ? 'Execution stopped'
+              : done
+                ? failed
+                  ? 'Finished with failures'
+                  : 'Exit complete'
+                : 'Executing exit'}
+          </CardTitle>
+          {fatal ? (
+            <span className="flex items-center gap-1.5 text-xs text-destructive">
+              <CircleAlert className="h-3.5 w-3.5" /> stopped
+            </span>
+          ) : !done ? (
             <span className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400">
               <Loader2 className="h-3.5 w-3.5 animate-spin" /> running
             </span>

@@ -52,6 +52,31 @@ describe('decodePackageBlob', () => {
   });
 });
 
+describe('decodePackageBlob rejects render-crashing packages', () => {
+  // These clear the SDK's deserializeExitPackage checks (valid version/steps)
+  // but would throw during render — they must be rejected at decode instead.
+  it('rejects a package with no totals', async () => {
+    const noTotals: Record<string, unknown> = { ...pkg };
+    delete noTotals.totals;
+    await expect(decodePackageBlob(JSON.stringify(noTotals))).rejects.toThrow(/totals/i);
+  });
+
+  it('rejects a non-numeric totals field', async () => {
+    const bad = { ...pkg, totals: { ...pkg.totals, txCount: 'lots' } };
+    await expect(decodePackageBlob(JSON.stringify(bad))).rejects.toThrow(/totals/i);
+  });
+
+  it('rejects a vtxo whose outpoint is not a string', async () => {
+    const bad = { ...pkg, vtxos: [{ outpoint: 123, value: 1000 }] };
+    await expect(decodePackageBlob(JSON.stringify(bad))).rejects.toThrow(/outpoint/i);
+  });
+
+  it('rejects a vtxo whose value is not a number', async () => {
+    const bad = { ...pkg, vtxos: [{ outpoint: 'aa:0', value: 'lots' }] };
+    await expect(decodePackageBlob(JSON.stringify(bad))).rejects.toThrow(/value/i);
+  });
+});
+
 describe('encodeExitBundle / decodePackageBlob round-trip', () => {
   const feeKeyHex = 'ab'.repeat(32);
 
