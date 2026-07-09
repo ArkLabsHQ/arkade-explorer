@@ -128,9 +128,12 @@ function ExecutionTimeline({
     };
   }, [anyWaiting, provider]);
 
-  const confirmed = pkg.steps.filter(
-    (_, i) => events.get(i)?.status === 'confirmed' || events.get(i)?.status === 'skipped',
-  ).length;
+  const confirmed = pkg.steps.filter((_, i) => {
+    const e = events.get(i);
+    // A "skipped" step only counts as onchain when it was already there (no
+    // reason); a skip with a reason means its branch failed upstream.
+    return e?.status === 'confirmed' || (e?.status === 'skipped' && !e.reason);
+  }).length;
   const failed = [...events.values()].filter((e) => e.status === 'failed').length;
   const pct = pkg.steps.length ? (confirmed / pkg.steps.length) * 100 : 0;
 
@@ -226,7 +229,7 @@ function TimelineRow({
   event?: ExecutorEvent;
   tipHeight: number | null;
 }) {
-  const phase: StepPhase = event ? phaseFor(event.status) : 'pending';
+  const phase: StepPhase = event ? phaseFor(event.status, event.reason) : 'pending';
   const s = PHASE_STYLE[phase];
   const blocksLeft =
     event?.status === 'waiting_csv' && event.maturesAtHeight && tipHeight !== null
@@ -255,8 +258,15 @@ function TimelineRow({
             <span className="font-mono text-xs text-muted-foreground">{truncateHash(txid, 8, 6)}</span>
             <CopyButton text={txid} />
           </span>
-          {event?.reason && phase === 'failed' && (
-            <span className="text-xs text-destructive/80">{event.reason}</span>
+          {event?.reason && (phase === 'failed' || phase === 'skipped') && (
+            <span
+              className={cn(
+                'text-xs',
+                phase === 'failed' ? 'text-destructive/80' : 'text-muted-foreground',
+              )}
+            >
+              {event.reason}
+            </span>
           )}
         </div>
         <div className="flex flex-col items-end gap-0.5">
