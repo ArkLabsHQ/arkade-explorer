@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@arkade-os/sdk':
-        specifier: 0.4.43
-        version: 0.4.43
+        specifier: file:./vendor/arkade-os-sdk-0.4.43.tgz
+        version: file:vendor/arkade-os-sdk-0.4.43.tgz
       '@radix-ui/react-dialog':
         specifier: ^1.1.4
         version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -127,8 +127,9 @@ packages:
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
 
-  '@arkade-os/sdk@0.4.43':
-    resolution: {integrity: sha512-gn9aymz5apYLtkiRAhPNzE0YqmCLJn8a6yoB0SBVnzYhZxamCxP4Xnio0nVW+joWNNpGNsVP2S3shCbymXFIRQ==}
+  '@arkade-os/sdk@file:vendor/arkade-os-sdk-0.4.43.tgz':
+    resolution: {integrity: sha512-lWpiYKnMZ+O0V03XoVWylYExj5m2YwfKA9S8J2Pri+hTV46oXF7PrPPoXaxNOVagT2NfK+eoYaNFj01sxLL23g==, tarball: file:vendor/arkade-os-sdk-0.4.43.tgz}
+    version: 0.4.43
     engines: {node: '>=22.12.0 <25'}
     peerDependencies:
       '@react-native-async-storage/async-storage': '>=1.0.0'
@@ -2250,7 +2251,7 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@arkade-os/sdk@0.4.43':
+  '@arkade-os/sdk@file:vendor/arkade-os-sdk-0.4.43.tgz':
     dependencies:
       '@bitcoinerlab/descriptors-scure': 3.1.7
       '@marcbachmann/cel-js': 8.0.0
