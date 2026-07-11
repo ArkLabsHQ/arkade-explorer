@@ -12,7 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@arkade-os/sdk": "file:./vendor/arkade-os-sdk-0.4.43.tgz",
+    "@arkade-os/sdk": "0.4.45",
     "@radix-ui/react-dialog": "^1.1.4",
     "@radix-ui/react-select": "^2.1.4",
     "@radix-ui/react-separator": "^1.1.1",
