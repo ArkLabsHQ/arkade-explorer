@@ -1,0 +1,43 @@
+name: CI
+
+on:
+    workflow_dispatch:
+    push:
+        branches: [master]
+    # Run on all pull requests (not just those targeting master) so stacked
+    # PRs onto feature branches get CI checks too.
+    pull_request:
+
+jobs:
+    check:
+        name: Lint, Typecheck, Build & Test
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 10.29.2
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version-file: ".nvmrc"
+                  cache: "pnpm"
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Lint (prettier)
+              run: pnpm run lint
+
+            - name: Type-check
+              run: pnpm run typecheck
+
+            - name: Build
+              run: pnpm run build
+
+            - name: Unit tests
+              run: pnpm run test

@@ -28,7 +28,8 @@ A modern blockchain explorer for the Arkade protocol, built with React and TypeS
 
 ### Prerequisites
 
-- Node.js 18+ and npm (or pnpm)
+- Node.js 24.15.0 (see `.nvmrc`)
+- pnpm (this project is pnpm-only; pinned to `pnpm@10.29.2`)
 
 ### Installation
 

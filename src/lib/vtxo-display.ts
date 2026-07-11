@@ -1,4 +1,4 @@
-import type { VirtualCoin } from '@arkade-os/sdk';
+import type { VirtualCoin } from "@arkade-os/sdk";
 
 /**
  * What the "expiry" slot of a VTXO should convey.
@@ -6,10 +6,10 @@ import type { VirtualCoin } from '@arkade-os/sdk';
  * - `spent`: spent off-chain (no settle commitment).
  * - `active`: still live; the batch-expiry countdown applies.
  */
-export type ExpiryKind = 'settled' | 'spent' | 'active';
+export type ExpiryKind = "settled" | "spent" | "active";
 
-type ExpiryKindInput = Pick<VirtualCoin, 'isSpent' | 'spentBy' | 'settledBy'> & {
-  virtualStatus?: { state?: string };
+type ExpiryKindInput = Pick<VirtualCoin, "isSpent" | "spentBy" | "settledBy"> & {
+    virtualStatus?: { state?: string };
 };
 
 /**
@@ -20,13 +20,13 @@ type ExpiryKindInput = Pick<VirtualCoin, 'isSpent' | 'spentBy' | 'settledBy'> & 
  * commitment. The batch-expiry countdown is only relevant while `active`.
  */
 export function deriveExpiryKind(vtxo: ExpiryKindInput): ExpiryKind {
-  if (vtxo.settledBy && vtxo.settledBy !== '') return 'settled';
-  const spent =
-    vtxo.isSpent === true ||
-    (!!vtxo.spentBy && vtxo.spentBy !== '') ||
-    vtxo.virtualStatus?.state === 'spent';
-  if (spent) return 'spent';
-  return 'active';
+    if (vtxo.settledBy && vtxo.settledBy !== "") return "settled";
+    const spent =
+        vtxo.isSpent === true ||
+        (!!vtxo.spentBy && vtxo.spentBy !== "") ||
+        vtxo.virtualStatus?.state === "spent";
+    if (spent) return "spent";
+    return "active";
 }
 
 /**
@@ -34,12 +34,12 @@ export function deriveExpiryKind(vtxo: ExpiryKindInput): ExpiryKind {
  * render the live batch-expiry countdown instead).
  */
 export function expiryKindLabel(kind: ExpiryKind): string | null {
-  switch (kind) {
-    case 'settled':
-      return 'Settled';
-    case 'spent':
-      return 'Spent';
-    default:
-      return null;
-  }
+    switch (kind) {
+        case "settled":
+            return "Settled";
+        case "spent":
+            return "Spent";
+        default:
+            return null;
+    }
 }

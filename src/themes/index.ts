@@ -1,6 +1,6 @@
-export type ThemeName = 'dawn' | 'midnight';
+export type ThemeName = "dawn" | "midnight";
 
 export const THEMES: Record<ThemeName, { isDark: boolean }> = {
-  dawn: { isDark: false },
-  midnight: { isDark: true },
+    dawn: { isDark: false },
+    midnight: { isDark: true },
 };

@@ -1,4 +1,4 @@
-import { ESPLORA_URL, type NetworkName } from '@arkade-os/sdk';
+import { ESPLORA_URL, type NetworkName } from "@arkade-os/sdk";
 
 /**
  * Resolve the onchain Esplora REST endpoint for the exit executor. Prefers an
@@ -8,7 +8,7 @@ import { ESPLORA_URL, type NetworkName } from '@arkade-os/sdk';
  * off `serverInfo.network`.
  */
 export function esploraUrlFor(network: string | undefined): string {
-  const override = import.meta.env.VITE_ESPLORA_URL;
-  if (override) return override;
-  return ESPLORA_URL[(network ?? 'bitcoin') as NetworkName] ?? ESPLORA_URL.bitcoin;
+    const override = import.meta.env.VITE_ESPLORA_URL;
+    if (override) return override;
+    return ESPLORA_URL[(network ?? "bitcoin") as NetworkName] ?? ESPLORA_URL.bitcoin;
 }

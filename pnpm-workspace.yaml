@@ -1,7 +1,7 @@
 allowBuilds:
-  esbuild: true
+    esbuild: true
 minimumReleaseAgeExclude:
-  - '@arkade-os/sdk@0.4.45'
+    - "@arkade-os/sdk@0.4.45"
 onlyBuiltDependencies:
-  - "@arkade-os/sdk"
-  - "esbuild"
+    - "@arkade-os/sdk"
+    - "esbuild"

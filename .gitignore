@@ -10,11 +10,13 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+coverage
+
+# pnpm-only: never commit an npm lockfile
+package-lock.json
 
 *.local
-CLAUDE.md
 CLAUDE.local.md
-claude.md
 
 # Editor directories and files
 .vscode/*
@@ -29,6 +31,15 @@ claude.md
 
 # Plans
 docs/plans
+
+# AI / local scratch notes (not authoritative project guidance)
+.claude/
+REVIEW.md
+TASKS.md
+*.agents.md
+
+# Debug captures
+*.har
 
 # Environment variables
 .env

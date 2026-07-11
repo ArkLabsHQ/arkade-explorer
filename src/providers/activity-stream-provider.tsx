@@ -1,186 +1,194 @@
-import { createContext, useContext, useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
-import { arkClient } from '@/lib/api/indexer';
+import {
+    createContext,
+    useContext,
+    useState,
+    useEffect,
+    useRef,
+    useCallback,
+    type ReactNode,
+} from "react";
+import { arkClient } from "@/lib/api/indexer";
 
 interface ActivityItem {
-  id: string;
-  type: 'batch' | 'vtxo' | 'transaction';
-  txid?: string;
-  address?: string;
-  timestamp: number;
-  description: string;
+    id: string;
+    type: "batch" | "vtxo" | "transaction";
+    txid?: string;
+    address?: string;
+    timestamp: number;
+    description: string;
 }
 
 interface StoredActivity extends ActivityItem {
-  storedAt: number;
+    storedAt: number;
 }
 
 interface ActivityStreamContextType {
-  activities: ActivityItem[];
-  isVisible: boolean;
-  subscribeToNewActivity: (callback: () => void) => () => void;
+    activities: ActivityItem[];
+    isVisible: boolean;
+    subscribeToNewActivity: (callback: () => void) => () => void;
 }
 
 const ActivityStreamContext = createContext<ActivityStreamContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'arkade-explorer-recent-activity';
+const STORAGE_KEY = "arkade-explorer-recent-activity";
 const MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes
 
 function loadActivitiesFromStorage(): ActivityItem[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return [];
+    if (typeof window === "undefined") return [];
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) return [];
 
-    const activities: StoredActivity[] = JSON.parse(stored);
-    const now = Date.now();
+        const activities: StoredActivity[] = JSON.parse(stored);
+        const now = Date.now();
 
-    // Filter out activities older than MAX_AGE_MS
-    return activities
-      .filter(activity => (now - activity.storedAt) < MAX_AGE_MS)
-      .map(({ storedAt, ...activity }) => activity);
-  } catch (error) {
-    console.error('Failed to load activities from storage:', error);
-    return [];
-  }
+        // Filter out activities older than MAX_AGE_MS
+        return activities
+            .filter((activity) => now - activity.storedAt < MAX_AGE_MS)
+            .map(({ storedAt, ...activity }) => activity);
+    } catch (error) {
+        console.error("Failed to load activities from storage:", error);
+        return [];
+    }
 }
 
 function saveActivitiesToStorage(activities: ActivityItem[]) {
-  try {
-    const now = Date.now();
-    const storedActivities: StoredActivity[] = activities.map(activity => ({
-      ...activity,
-      storedAt: now
-    }));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(storedActivities));
-  } catch (error) {
-    console.error('Failed to save activities to storage:', error);
-  }
+    try {
+        const now = Date.now();
+        const storedActivities: StoredActivity[] = activities.map((activity) => ({
+            ...activity,
+            storedAt: now,
+        }));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(storedActivities));
+    } catch (error) {
+        console.error("Failed to save activities to storage:", error);
+    }
 }
 
 function parseEvent(event: any): ActivityItem | null {
-  const timestamp = Date.now();
-  const id = `${timestamp}-${Math.random()}`;
+    const timestamp = Date.now();
+    const id = `${timestamp}-${Math.random()}`;
 
-  // Parse commitmentTx events
-  if (event.commitmentTx) {
-    const spentCount = event.commitmentTx.spentVtxos?.length || 0;
-    const spendableCount = event.commitmentTx.spendableVtxos?.length || 0;
+    // Parse commitmentTx events
+    if (event.commitmentTx) {
+        const spentCount = event.commitmentTx.spentVtxos?.length || 0;
+        const spendableCount = event.commitmentTx.spendableVtxos?.length || 0;
 
-    return {
-      id,
-      type: 'batch',
-      txid: event.commitmentTx.txid,
-      timestamp,
-      description: `Batch commitment transaction: ${spentCount} spent, ${spendableCount} created`,
-    };
-  }
+        return {
+            id,
+            type: "batch",
+            txid: event.commitmentTx.txid,
+            timestamp,
+            description: `Batch commitment transaction: ${spentCount} spent, ${spendableCount} created`,
+        };
+    }
 
-  // Parse arkTx events
-  if (event.arkTx) {
-    const spentCount = event.arkTx.spentVtxos?.length || 0;
-    const spendableCount = event.arkTx.spendableVtxos?.length || 0;
+    // Parse arkTx events
+    if (event.arkTx) {
+        const spentCount = event.arkTx.spentVtxos?.length || 0;
+        const spendableCount = event.arkTx.spendableVtxos?.length || 0;
 
-    return {
-      id,
-      type: 'transaction',
-      txid: event.arkTx.txid,
-      timestamp,
-      description: `Arkade transaction: ${spentCount} spent, ${spendableCount} created`,
-    };
-  }
+        return {
+            id,
+            type: "transaction",
+            txid: event.arkTx.txid,
+            timestamp,
+            description: `Arkade transaction: ${spentCount} spent, ${spendableCount} created`,
+        };
+    }
 
-  // Parse batch events
-  if (event.round) {
-    return {
-      id,
-      type: 'batch',
-      txid: event.round.txid,
-      timestamp,
-      description: `New batch ${event.round.id || 'started'}`,
-    };
-  }
+    // Parse batch events
+    if (event.round) {
+        return {
+            id,
+            type: "batch",
+            txid: event.round.txid,
+            timestamp,
+            description: `New batch ${event.round.id || "started"}`,
+        };
+    }
 
-  // Parse VTXO events
-  if (event.vtxo) {
-    return {
-      id,
-      type: 'vtxo',
-      txid: event.vtxo.txid,
-      address: event.vtxo.receiver,
-      timestamp,
-      description: `VTXO ${event.vtxo.spent ? 'spent' : 'created'}`,
-    };
-  }
+    // Parse VTXO events
+    if (event.vtxo) {
+        return {
+            id,
+            type: "vtxo",
+            txid: event.vtxo.txid,
+            address: event.vtxo.receiver,
+            timestamp,
+            description: `VTXO ${event.vtxo.spent ? "spent" : "created"}`,
+        };
+    }
 
-  return null;
+    return null;
 }
 
 export function ActivityStreamProvider({ children }: { children: ReactNode }) {
-  const [activities, setActivities] = useState<ActivityItem[]>(() => loadActivitiesFromStorage());
-  const [isVisible, setIsVisible] = useState(() => loadActivitiesFromStorage().length > 0);
-  const newActivityCallbacksRef = useRef<Set<() => void>>(new Set());
+    const [activities, setActivities] = useState<ActivityItem[]>(() => loadActivitiesFromStorage());
+    const [isVisible, setIsVisible] = useState(() => loadActivitiesFromStorage().length > 0);
+    const newActivityCallbacksRef = useRef<Set<() => void>>(new Set());
 
-  // Save to localStorage whenever activities change
-  useEffect(() => {
-    if (activities.length > 0) {
-      saveActivitiesToStorage(activities);
-    }
-  }, [activities]);
-
-  // Subscribe to event stream globally
-  useEffect(() => {
-    const abortController = new AbortController();
-
-    (async () => {
-      try {
-        const eventStream = arkClient.getTransactionsStream(abortController.signal);
-
-        for await (const event of eventStream) {
-          // Parse event and create activity item
-          const activity = parseEvent(event);
-          if (activity) {
-            setActivities(prev => {
-              const newActivities = [activity, ...prev].slice(0, 10); // Keep last 10
-              return newActivities;
-            });
-
-            // Show the card on first activity
-            setIsVisible(true);
-
-            // Notify all subscribers
-            newActivityCallbacksRef.current.forEach(callback => callback());
-          }
+    // Save to localStorage whenever activities change
+    useEffect(() => {
+        if (activities.length > 0) {
+            saveActivitiesToStorage(activities);
         }
-      } catch (error: any) {
-        if (error.name !== 'AbortError') {
-          console.error('Event stream error:', error);
-        }
-      }
-    })();
+    }, [activities]);
 
-    return () => {
-      abortController.abort();
-    };
-  }, []);
+    // Subscribe to event stream globally
+    useEffect(() => {
+        const abortController = new AbortController();
 
-  const subscribeToNewActivity = useCallback((callback: () => void) => {
-    newActivityCallbacksRef.current.add(callback);
-    return () => {
-      newActivityCallbacksRef.current.delete(callback);
-    };
-  }, []);
+        (async () => {
+            try {
+                const eventStream = arkClient.getTransactionsStream(abortController.signal);
 
-  return (
-    <ActivityStreamContext.Provider value={{ activities, isVisible, subscribeToNewActivity }}>
-      {children}
-    </ActivityStreamContext.Provider>
-  );
+                for await (const event of eventStream) {
+                    // Parse event and create activity item
+                    const activity = parseEvent(event);
+                    if (activity) {
+                        setActivities((prev) => {
+                            const newActivities = [activity, ...prev].slice(0, 10); // Keep last 10
+                            return newActivities;
+                        });
+
+                        // Show the card on first activity
+                        setIsVisible(true);
+
+                        // Notify all subscribers
+                        newActivityCallbacksRef.current.forEach((callback) => callback());
+                    }
+                }
+            } catch (error: any) {
+                if (error.name !== "AbortError") {
+                    console.error("Event stream error:", error);
+                }
+            }
+        })();
+
+        return () => {
+            abortController.abort();
+        };
+    }, []);
+
+    const subscribeToNewActivity = useCallback((callback: () => void) => {
+        newActivityCallbacksRef.current.add(callback);
+        return () => {
+            newActivityCallbacksRef.current.delete(callback);
+        };
+    }, []);
+
+    return (
+        <ActivityStreamContext.Provider value={{ activities, isVisible, subscribeToNewActivity }}>
+            {children}
+        </ActivityStreamContext.Provider>
+    );
 }
 
 export function useActivityStream() {
-  const context = useContext(ActivityStreamContext);
-  if (context === undefined) {
-    throw new Error('useActivityStream must be used within an ActivityStreamProvider');
-  }
-  return context;
+    const context = useContext(ActivityStreamContext);
+    if (context === undefined) {
+        throw new Error("useActivityStream must be used within an ActivityStreamProvider");
+    }
+    return context;
 }
