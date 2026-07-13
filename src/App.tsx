@@ -6,6 +6,7 @@ import { TransactionPage } from '@/pages/tx';
 import { CommitmentTxPage } from '@/pages/commitment-tx';
 import { AddressPage } from '@/pages/address';
 import { AssetPage } from '@/pages/asset';
+import { UnilateralExitPage } from '@/pages/unilateral-exit';
 import { NotFoundPage } from '@/pages/not-found';
 
 export function App() {
@@ -18,6 +19,8 @@ export function App() {
           <Route path="/commitment-tx/:txid" element={<CommitmentTxPage />} />
           <Route path="/address/:address" element={<AddressPage />} />
           <Route path="/asset/:assetId" element={<AssetPage />} />
+          {/* Dedicated, intentionally UNLINKED keyless exit executor. */}
+          <Route path="/unilateral-exit" element={<UnilateralExitPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </DynamicLayout>
