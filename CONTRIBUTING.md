@@ -2,6 +2,11 @@
 
 Thank you for your interest in contributing to Arkade Explorer!
 
+## Prerequisites
+
+- **Node.js 24.15.0** (see `.nvmrc`; e.g. `nvm use`)
+- **pnpm** — this project is **pnpm-only** (pinned to `pnpm@10.29.2`). Do not use `npm` or `yarn`.
+
 ## Development Setup
 
 1. **Clone the repository**
@@ -51,6 +56,9 @@ src/
 - Use functional components with hooks
 - Keep components small and focused
 - Write descriptive variable and function names
+- **Formatting is enforced by Prettier** (double quotes, 4-space indent, 100-char width). Run
+  `pnpm run format` before committing; `pnpm run lint` (`prettier --check .`) must pass. There is no
+  ESLint.
 
 ## Component Guidelines
 
@@ -71,8 +79,10 @@ src/
 Before submitting a PR:
 
 1. Ensure the app builds without errors: `pnpm build`
-2. Check for TypeScript errors: `pnpm lint`
-3. Test your changes in the browser
+2. Check formatting: `pnpm run lint` (and `pnpm run format` to fix)
+3. Check for TypeScript errors: `pnpm run typecheck`
+4. Run unit tests: `pnpm test`
+5. Test your changes in the browser
 
 ## Pull Request Process
 

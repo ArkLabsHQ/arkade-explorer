@@ -1,4 +1,4 @@
-import { deserializeExitPackage, type ExitPackage } from '@arkade-os/sdk';
+import { deserializeExitPackage, type ExitPackage } from "@arkade-os/sdk";
 
 /**
  * A decoded package plus any transport-level extras the explorer layers on top
@@ -7,12 +7,12 @@ import { deserializeExitPackage, type ExitPackage } from '@arkade-os/sdk';
  * such a bundle is self-executable and needs no re-funding.
  */
 export interface LoadedPackage {
-  pkg: ExitPackage;
-  feeKeyHex?: string;
+    pkg: ExitPackage;
+    feeKeyHex?: string;
 }
 
 /** Marker on the explorer's self-executable envelope (distinguishes it from a bare package). */
-const BUNDLE_MARKER = 'arkadeExitBundle';
+const BUNDLE_MARKER = "arkadeExitBundle";
 const FEE_KEY_RE = /^[0-9a-f]{64}$/;
 
 /**
@@ -24,19 +24,19 @@ const FEE_KEY_RE = /^[0-9a-f]{64}$/;
  * failure surfaces through the import error path instead.
  */
 function assertRenderable(pkg: ExitPackage): void {
-  const totals = pkg.totals as unknown as Record<string, unknown> | null | undefined;
-  const numericFields = ['txCount', 'totalFeeSats', 'fundingRequiredSats', 'recoveredSats'];
-  if (!totals || numericFields.some((k) => typeof totals[k] !== 'number')) {
-    throw new Error('invalid exit package: missing or malformed totals');
-  }
-  for (const v of pkg.vtxos as unknown as Array<Record<string, unknown>>) {
-    if (typeof v.outpoint !== 'string') {
-      throw new Error('invalid exit package: every vtxo needs a string outpoint');
+    const totals = pkg.totals as unknown as Record<string, unknown> | null | undefined;
+    const numericFields = ["txCount", "totalFeeSats", "fundingRequiredSats", "recoveredSats"];
+    if (!totals || numericFields.some((k) => typeof totals[k] !== "number")) {
+        throw new Error("invalid exit package: missing or malformed totals");
     }
-    if (v.value !== undefined && typeof v.value !== 'number') {
-      throw new Error('invalid exit package: vtxo value must be a number');
+    for (const v of pkg.vtxos as unknown as Array<Record<string, unknown>>) {
+        if (typeof v.outpoint !== "string") {
+            throw new Error("invalid exit package: every vtxo needs a string outpoint");
+        }
+        if (v.value !== undefined && typeof v.value !== "number") {
+            throw new Error("invalid exit package: vtxo value must be a number");
+        }
     }
-  }
 }
 
 /**
@@ -44,21 +44,21 @@ function assertRenderable(pkg: ExitPackage): void {
  * both the URL alphabet (`-_`) and standard (`+/`).
  */
 function base64urlToBytes(s: string): Uint8Array {
-  const std = s.replace(/-/g, '+').replace(/_/g, '/');
-  const padded = std + '='.repeat((4 - (std.length % 4)) % 4);
-  const bin = atob(padded);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return bytes;
+    const std = s.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = std + "=".repeat((4 - (std.length % 4)) % 4);
+    const bin = atob(padded);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
 }
 
 async function gunzip(bytes: Uint8Array): Promise<string> {
-  const ds = new DecompressionStream('gzip');
-  const writer = ds.writable.getWriter();
-  // Copy into a fresh ArrayBuffer-backed view so the type is concrete.
-  void writer.write(new Uint8Array(bytes));
-  void writer.close();
-  return await new Response(ds.readable).text();
+    const ds = new DecompressionStream("gzip");
+    const writer = ds.writable.getWriter();
+    // Copy into a fresh ArrayBuffer-backed view so the type is concrete.
+    void writer.write(new Uint8Array(bytes));
+    void writer.close();
+    return await new Response(ds.readable).text();
 }
 
 /**
@@ -68,25 +68,25 @@ async function gunzip(bytes: Uint8Array): Promise<string> {
  * truth for the format.
  */
 function fromParsedJson(text: string): LoadedPackage {
-  let obj: unknown;
-  try {
-    obj = JSON.parse(text);
-  } catch {
-    throw new Error('not valid JSON');
-  }
-  if (obj && typeof obj === 'object' && BUNDLE_MARKER in obj) {
-    const bundle = obj as { pkg?: unknown; feeKeyHex?: unknown };
-    const pkg = deserializeExitPackage(JSON.stringify(bundle.pkg));
+    let obj: unknown;
+    try {
+        obj = JSON.parse(text);
+    } catch {
+        throw new Error("not valid JSON");
+    }
+    if (obj && typeof obj === "object" && BUNDLE_MARKER in obj) {
+        const bundle = obj as { pkg?: unknown; feeKeyHex?: unknown };
+        const pkg = deserializeExitPackage(JSON.stringify(bundle.pkg));
+        assertRenderable(pkg);
+        const feeKeyHex =
+            typeof bundle.feeKeyHex === "string" && FEE_KEY_RE.test(bundle.feeKeyHex)
+                ? bundle.feeKeyHex
+                : undefined;
+        return { pkg, feeKeyHex };
+    }
+    const pkg = deserializeExitPackage(text);
     assertRenderable(pkg);
-    const feeKeyHex =
-      typeof bundle.feeKeyHex === 'string' && FEE_KEY_RE.test(bundle.feeKeyHex)
-        ? bundle.feeKeyHex
-        : undefined;
-    return { pkg, feeKeyHex };
-  }
-  const pkg = deserializeExitPackage(text);
-  assertRenderable(pkg);
-  return { pkg };
+    return { pkg };
 }
 
 /**
@@ -95,7 +95,7 @@ function fromParsedJson(text: string): LoadedPackage {
  * the format.
  */
 export function parsePackageJson(text: string): LoadedPackage {
-  return fromParsedJson(text);
+    return fromParsedJson(text);
 }
 
 /**
@@ -106,20 +106,20 @@ export function parsePackageJson(text: string): LoadedPackage {
  * Tries the cheapest interpretation first and falls through.
  */
 export async function decodePackageBlob(blob: string): Promise<LoadedPackage> {
-  const trimmed = blob.trim();
+    const trimmed = blob.trim();
 
-  if (trimmed.startsWith('{')) {
-    return parsePackageJson(trimmed);
-  }
+    if (trimmed.startsWith("{")) {
+        return parsePackageJson(trimmed);
+    }
 
-  const bytes = base64urlToBytes(trimmed);
+    const bytes = base64urlToBytes(trimmed);
 
-  // gzip magic bytes 0x1f 0x8b -> decompress
-  if (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
-    return parsePackageJson(await gunzip(bytes));
-  }
+    // gzip magic bytes 0x1f 0x8b -> decompress
+    if (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
+        return parsePackageJson(await gunzip(bytes));
+    }
 
-  return parsePackageJson(new TextDecoder().decode(bytes));
+    return parsePackageJson(new TextDecoder().decode(bytes));
 }
 
 /**
@@ -133,11 +133,11 @@ export async function decodePackageBlob(blob: string): Promise<LoadedPackage> {
  * spend its small fee remainder, so treat the exported file as sensitive.
  */
 export function encodeExitBundle(pkg: ExitPackage, feeKeyHex?: string): string {
-  const body =
-    feeKeyHex && FEE_KEY_RE.test(feeKeyHex)
-      ? { [BUNDLE_MARKER]: 1 as const, pkg, feeKeyHex }
-      : pkg;
-  return JSON.stringify(body, null, 2);
+    const body =
+        feeKeyHex && FEE_KEY_RE.test(feeKeyHex)
+            ? { [BUNDLE_MARKER]: 1 as const, pkg, feeKeyHex }
+            : pkg;
+    return JSON.stringify(body, null, 2);
 }
 
 /**
@@ -146,10 +146,10 @@ export function encodeExitBundle(pkg: ExitPackage, feeKeyHex?: string): string {
  * string (`?pkg=…`).
  */
 export function packageParamFromUrl(url: URL): string | null {
-  const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
-  return hash.get('pkg') ?? url.searchParams.get('pkg');
+    const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
+    return hash.get("pkg") ?? url.searchParams.get("pkg");
 }
 
 export async function readFileText(file: File): Promise<string> {
-  return await file.text();
+    return await file.text();
 }

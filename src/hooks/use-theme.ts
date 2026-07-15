@@ -1,1 +1,1 @@
-export { useTheme } from '@/providers/theme-provider';
+export { useTheme } from "@/providers/theme-provider";

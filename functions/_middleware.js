@@ -1,10 +1,11 @@
-import { bech32m, hex } from '@scure/base';
-import { Script } from '@scure/btc-signer/script.js';
+import { bech32m, hex } from "@scure/base";
+import { Script } from "@scure/btc-signer/script.js";
 
-const BOT_UA = /Twitterbot|facebookexternalhit|Slackbot|Slack-ImgProxy|LinkedInBot|Discordbot|WhatsApp|TelegramBot|Googlebot|bingbot|yandex|Embedly|showyoubot|outbrain|pinterest|vkShare|W3C_Validator|Iframely/i;
+const BOT_UA =
+    /Twitterbot|facebookexternalhit|Slackbot|Slack-ImgProxy|LinkedInBot|Discordbot|WhatsApp|TelegramBot|Googlebot|bingbot|yandex|Embedly|showyoubot|outbrain|pinterest|vkShare|W3C_Validator|Iframely/i;
 
-const DEFAULT_INDEXER = 'https://indexer.arkadeos.com';
-const BRAND_ORANGE = '#F14317';
+const DEFAULT_INDEXER = "https://indexer.arkadeos.com";
+const BRAND_ORANGE = "#F14317";
 
 // Arkade logo as inline SVG path data (extracted from logo-orange.svg)
 const LOGO_SVG = `<svg width="200" height="60" viewBox="130 55 430 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -25,62 +26,62 @@ const LOGO_SVG = `<svg width="200" height="60" viewBox="130 55 430 100" fill="no
 // ---------------------------------------------------------------------------
 
 function truncate(str, start = 8, end = 8) {
-  if (!str || str.length <= start + end + 3) return str || '';
-  return `${str.slice(0, start)}...${str.slice(-end)}`;
+    if (!str || str.length <= start + end + 3) return str || "";
+    return `${str.slice(0, start)}...${str.slice(-end)}`;
 }
 
 function esc(str) {
-  return (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    return (str || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
 function formatSats(satsBigInt) {
-  const str = satsBigInt.toString();
-  const padded = str.padStart(9, '0');
-  const intPart = padded.slice(0, padded.length - 8);
-  const decPart = padded.slice(padded.length - 8).replace(/0+$/, '');
-  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return decPart ? `${formattedInt}.${decPart} BTC` : `${formattedInt} BTC`;
+    const str = satsBigInt.toString();
+    const padded = str.padStart(9, "0");
+    const intPart = padded.slice(0, padded.length - 8);
+    const decPart = padded.slice(padded.length - 8).replace(/0+$/, "");
+    const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return decPart ? `${formattedInt}.${decPart} BTC` : `${formattedInt} BTC`;
 }
 
 function formatAmount(amount, decimals) {
-  if (decimals === 0) return BigInt(amount).toLocaleString('en-US');
-  const str = BigInt(amount).toString();
-  const padded = str.padStart(decimals + 1, '0');
-  const intPart = padded.slice(0, padded.length - decimals);
-  const decPart = padded.slice(padded.length - decimals).replace(/0+$/, '');
-  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return decPart ? `${formattedInt}.${decPart}` : formattedInt;
+    if (decimals === 0) return BigInt(amount).toLocaleString("en-US");
+    const str = BigInt(amount).toString();
+    const padded = str.padStart(decimals + 1, "0");
+    const intPart = padded.slice(0, padded.length - decimals);
+    const decPart = padded.slice(padded.length - decimals).replace(/0+$/, "");
+    const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return decPart ? `${formattedInt}.${decPart}` : formattedInt;
 }
 
 function addressToScriptHex(address) {
-  if (/^[0-9a-fA-F]+$/.test(address) && address.length % 2 === 0) {
-    return address.toLowerCase();
-  }
-  // Inline ArkAddress.decode() to avoid importing the full SDK (which pulls in
-  // @bitcoinerlab/descriptors-core and breaks the Wrangler/esbuild bundle).
-  // Canonical implementation: @arkade-os/sdk → src/script/address.ts
-  // Format: 1 byte version + 32 bytes server pubkey + 32 bytes VTXO taproot key
-  const decoded = bech32m.decodeUnsafe(address, 1023);
-  if (!decoded) throw new Error('Invalid address');
-  const data = new Uint8Array(bech32m.fromWords(decoded.words));
-  if (data.length !== 65) throw new Error('Invalid data length');
-  const vtxoTaprootKey = data.slice(33, 65);
-  const pkScript = Script.encode(['OP_1', vtxoTaprootKey]);
-  return hex.encode(pkScript);
+    if (/^[0-9a-fA-F]+$/.test(address) && address.length % 2 === 0) {
+        return address.toLowerCase();
+    }
+    // Inline ArkAddress.decode() to avoid importing the full SDK (which pulls in
+    // @bitcoinerlab/descriptors-core and breaks the Wrangler/esbuild bundle).
+    // Canonical implementation: @arkade-os/sdk → src/script/address.ts
+    // Format: 1 byte version + 32 bytes server pubkey + 32 bytes VTXO taproot key
+    const decoded = bech32m.decodeUnsafe(address, 1023);
+    if (!decoded) throw new Error("Invalid address");
+    const data = new Uint8Array(bech32m.fromWords(decoded.words));
+    if (data.length !== 65) throw new Error("Invalid data length");
+    const vtxoTaprootKey = data.slice(33, 65);
+    const pkScript = Script.encode(["OP_1", vtxoTaprootKey]);
+    return hex.encode(pkScript);
 }
 
 async function indexerFetch(indexerUrl, path) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3000);
-  try {
-    const res = await fetch(`${indexerUrl}${path}`, { signal: controller.signal });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timeout);
-  }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    try {
+        const res = await fetch(`${indexerUrl}${path}`, { signal: controller.signal });
+        if (!res.ok) return null;
+        return await res.json();
+    } catch {
+        return null;
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -88,107 +89,120 @@ async function indexerFetch(indexerUrl, path) {
 // ---------------------------------------------------------------------------
 
 async function getPageMeta(pagePath, indexerUrl) {
-  // Arkade transaction (offchain)
-  const txMatch = pagePath.match(/^\/tx\/([0-9a-fA-F]+)$/);
-  if (txMatch) {
-    return {
-      type: 'tx',
-      label: 'Transaction',
-      id: txMatch[1],
-      title: `Transaction ${truncate(txMatch[1])} | Arkade Explorer`,
-      description: `View Arkade transaction ${txMatch[1]}`,
-      stats: [],
-    };
-  }
-
-  // Batch commitment transaction (onchain)
-  const commitMatch = pagePath.match(/^\/commitment-tx\/([0-9a-fA-F]+)$/);
-  if (commitMatch) {
-    const data = await indexerFetch(indexerUrl, `/v1/indexer/commitmentTx/${commitMatch[1]}`);
-    const stats = [];
-    if (data?.batchCount != null) stats.push({ label: 'Batches', value: String(data.batchCount) });
-    if (data?.createdAt) {
-      const d = new Date(data.createdAt);
-      if (!isNaN(d.getTime())) stats.push({ label: 'Date', value: d.toISOString().slice(0, 10) });
+    // Arkade transaction (offchain)
+    const txMatch = pagePath.match(/^\/tx\/([0-9a-fA-F]+)$/);
+    if (txMatch) {
+        return {
+            type: "tx",
+            label: "Transaction",
+            id: txMatch[1],
+            title: `Transaction ${truncate(txMatch[1])} | Arkade Explorer`,
+            description: `View Arkade transaction ${txMatch[1]}`,
+            stats: [],
+        };
     }
-    const extra = stats.map(s => `${s.label}: ${s.value}`).join(' | ');
-    return {
-      type: 'batch',
-      label: 'Batch Commitment Transaction',
-      id: commitMatch[1],
-      title: `Batch Commitment Transaction ${truncate(commitMatch[1])} | Arkade Explorer`,
-      description: extra ? `Arkade batch commitment transaction ${truncate(commitMatch[1])} | ${extra}` : `View Arkade batch commitment transaction ${commitMatch[1]}`,
-      stats,
-    };
-  }
 
-  // Address
-  const addrMatch = pagePath.match(/^\/address\/(.+)$/);
-  if (addrMatch) {
-    const addr = decodeURIComponent(addrMatch[1]);
-    const stats = [];
-    try {
-      const scriptHex = addressToScriptHex(addr);
-      const data = await indexerFetch(indexerUrl, `/v1/indexer/vtxos?scripts=${scriptHex}`);
-      if (data?.vtxos) {
-        let totalSats = 0n;
-        let activeCount = 0;
-        const assetIds = new Set();
-        for (const v of data.vtxos) {
-          const isSpent = (v.spentBy && v.spentBy !== '') || v.isSpent;
-          if (!isSpent) {
-            totalSats += BigInt(v.amount || 0);
-            activeCount++;
-          }
-          if (v.assets) {
-            for (const a of v.assets) {
-              if (a.assetId) assetIds.add(a.assetId);
-            }
-          }
+    // Batch commitment transaction (onchain)
+    const commitMatch = pagePath.match(/^\/commitment-tx\/([0-9a-fA-F]+)$/);
+    if (commitMatch) {
+        const data = await indexerFetch(indexerUrl, `/v1/indexer/commitmentTx/${commitMatch[1]}`);
+        const stats = [];
+        if (data?.batchCount != null)
+            stats.push({ label: "Batches", value: String(data.batchCount) });
+        if (data?.createdAt) {
+            const d = new Date(data.createdAt);
+            if (!isNaN(d.getTime()))
+                stats.push({ label: "Date", value: d.toISOString().slice(0, 10) });
         }
-        stats.push({ label: 'Balance', value: formatSats(totalSats) });
-        stats.push({ label: 'Active VTXOs', value: String(activeCount) });
-        if (assetIds.size > 0) stats.push({ label: 'Assets', value: String(assetIds.size) });
-      }
-    } catch { /* graceful fallback */ }
-    const extra = stats.map(s => `${s.value}`).join(' | ');
-    return {
-      type: 'address',
-      label: 'Address',
-      id: addr,
-      title: `Address ${truncate(addr, 12, 8)} | Arkade Explorer`,
-      description: extra ? `${truncate(addr, 12, 8)} | ${extra}` : `View Arkade address ${addr}`,
-      stats,
-    };
-  }
-
-  // Asset
-  const assetMatch = pagePath.match(/^\/asset\/([0-9a-fA-F]+)$/);
-  if (assetMatch) {
-    const data = await indexerFetch(indexerUrl, `/v1/indexer/asset/${encodeURIComponent(assetMatch[1])}`);
-    const stats = [];
-    let assetLabel = truncate(assetMatch[1]);
-    if (data) {
-      const ticker = data.metadata?.ticker;
-      const name = data.metadata?.name;
-      const decimals = data.metadata?.decimals || 0;
-      assetLabel = ticker || name || assetLabel;
-      if (name) stats.push({ label: 'Name', value: name });
-      if (ticker && name) stats.push({ label: 'Ticker', value: ticker });
-      if (data.supply != null) stats.push({ label: 'Supply', value: formatAmount(data.supply, decimals) });
+        const extra = stats.map((s) => `${s.label}: ${s.value}`).join(" | ");
+        return {
+            type: "batch",
+            label: "Batch Commitment Transaction",
+            id: commitMatch[1],
+            title: `Batch Commitment Transaction ${truncate(commitMatch[1])} | Arkade Explorer`,
+            description: extra
+                ? `Arkade batch commitment transaction ${truncate(commitMatch[1])} | ${extra}`
+                : `View Arkade batch commitment transaction ${commitMatch[1]}`,
+            stats,
+        };
     }
-    const extra = stats.map(s => `${s.value}`).join(' | ');
-    return {
-      type: 'asset',
-      label: assetLabel,
-      id: assetMatch[1],
-      title: `${assetLabel} | Arkade Explorer`,
-      description: extra || `View Arkade asset ${assetMatch[1]}`,
-      stats,
-    };
-  }
 
-  return null;
+    // Address
+    const addrMatch = pagePath.match(/^\/address\/(.+)$/);
+    if (addrMatch) {
+        const addr = decodeURIComponent(addrMatch[1]);
+        const stats = [];
+        try {
+            const scriptHex = addressToScriptHex(addr);
+            const data = await indexerFetch(indexerUrl, `/v1/indexer/vtxos?scripts=${scriptHex}`);
+            if (data?.vtxos) {
+                let totalSats = 0n;
+                let activeCount = 0;
+                const assetIds = new Set();
+                for (const v of data.vtxos) {
+                    const isSpent = (v.spentBy && v.spentBy !== "") || v.isSpent;
+                    if (!isSpent) {
+                        totalSats += BigInt(v.amount || 0);
+                        activeCount++;
+                    }
+                    if (v.assets) {
+                        for (const a of v.assets) {
+                            if (a.assetId) assetIds.add(a.assetId);
+                        }
+                    }
+                }
+                stats.push({ label: "Balance", value: formatSats(totalSats) });
+                stats.push({ label: "Active VTXOs", value: String(activeCount) });
+                if (assetIds.size > 0)
+                    stats.push({ label: "Assets", value: String(assetIds.size) });
+            }
+        } catch {
+            /* graceful fallback */
+        }
+        const extra = stats.map((s) => `${s.value}`).join(" | ");
+        return {
+            type: "address",
+            label: "Address",
+            id: addr,
+            title: `Address ${truncate(addr, 12, 8)} | Arkade Explorer`,
+            description: extra
+                ? `${truncate(addr, 12, 8)} | ${extra}`
+                : `View Arkade address ${addr}`,
+            stats,
+        };
+    }
+
+    // Asset
+    const assetMatch = pagePath.match(/^\/asset\/([0-9a-fA-F]+)$/);
+    if (assetMatch) {
+        const data = await indexerFetch(
+            indexerUrl,
+            `/v1/indexer/asset/${encodeURIComponent(assetMatch[1])}`,
+        );
+        const stats = [];
+        let assetLabel = truncate(assetMatch[1]);
+        if (data) {
+            const ticker = data.metadata?.ticker;
+            const name = data.metadata?.name;
+            const decimals = data.metadata?.decimals || 0;
+            assetLabel = ticker || name || assetLabel;
+            if (name) stats.push({ label: "Name", value: name });
+            if (ticker && name) stats.push({ label: "Ticker", value: ticker });
+            if (data.supply != null)
+                stats.push({ label: "Supply", value: formatAmount(data.supply, decimals) });
+        }
+        const extra = stats.map((s) => `${s.value}`).join(" | ");
+        return {
+            type: "asset",
+            label: assetLabel,
+            id: assetMatch[1],
+            title: `${assetLabel} | Arkade Explorer`,
+            description: extra || `View Arkade asset ${assetMatch[1]}`,
+            stats,
+        };
+    }
+
+    return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -196,39 +210,46 @@ async function getPageMeta(pagePath, indexerUrl) {
 // ---------------------------------------------------------------------------
 
 function buildOgImageSvg(meta) {
-  const displayId = meta.type === 'address'
-    ? truncate(meta.id, 16, 12)
-    : meta.type === 'asset'
-    ? ''
-    : truncate(meta.id);
+    const displayId =
+        meta.type === "address"
+            ? truncate(meta.id, 16, 12)
+            : meta.type === "asset"
+              ? ""
+              : truncate(meta.id);
 
-  const typeLabel = meta.type === 'asset' ? '' : meta.label;
+    const typeLabel = meta.type === "asset" ? "" : meta.label;
 
-  // Stats: evenly distributed across the width
-  const statsCount = meta.stats.length;
-  let statsBlock = '';
-  if (statsCount > 0) {
-    const colWidth = 1040 / statsCount; // usable width = 1200 - 80*2
-    const statItems = meta.stats.map((s, i) => {
-      const x = 80 + i * colWidth;
-      return `<text x="${x}" y="420" font-size="52" font-weight="bold" fill="white" font-family="sans-serif">${esc(s.value)}</text>
+    // Stats: evenly distributed across the width
+    const statsCount = meta.stats.length;
+    let statsBlock = "";
+    if (statsCount > 0) {
+        const colWidth = 1040 / statsCount; // usable width = 1200 - 80*2
+        const statItems = meta.stats
+            .map((s, i) => {
+                const x = 80 + i * colWidth;
+                return `<text x="${x}" y="420" font-size="52" font-weight="bold" fill="white" font-family="sans-serif">${esc(s.value)}</text>
         <text x="${x}" y="460" font-size="24" fill="#9ca3af" font-family="sans-serif">${esc(s.label.toUpperCase())}</text>`;
-    }).join('\n');
-    statsBlock = statItems;
-  } else {
-    statsBlock = `<text x="80" y="420" font-size="36" fill="#9ca3af" font-family="sans-serif">Arkade Protocol Explorer</text>`;
-  }
+            })
+            .join("\n");
+        statsBlock = statItems;
+    } else {
+        statsBlock = `<text x="80" y="420" font-size="36" fill="#9ca3af" font-family="sans-serif">Arkade Protocol Explorer</text>`;
+    }
 
-  // Accent bar at top
-  return `<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+    // Accent bar at top
+    return `<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="630" fill="#0f0b1a"/>
     <rect width="1200" height="6" fill="${BRAND_ORANGE}"/>
     <text x="80" y="100" font-size="64" font-weight="bold" fill="${BRAND_ORANGE}" font-family="sans-serif">ARKADE</text>
     <text x="370" y="100" font-size="64" font-weight="300" fill="#4b5563" font-family="sans-serif">EXPLORER</text>
-    ${typeLabel ? `<text x="80" y="200" font-size="32" font-weight="bold" fill="${BRAND_ORANGE}" font-family="sans-serif">${esc(typeLabel.toUpperCase())}</text>` : ''}
-    ${meta.type === 'asset'
-      ? `<text x="80" y="280" font-size="56" font-weight="bold" fill="white" font-family="sans-serif">${esc(meta.label)}</text>`
-      : displayId ? `<text x="80" y="${typeLabel ? '270' : '200'}" font-size="38" fill="#d1d5db" font-family="monospace">${esc(displayId)}</text>` : ''}
+    ${typeLabel ? `<text x="80" y="200" font-size="32" font-weight="bold" fill="${BRAND_ORANGE}" font-family="sans-serif">${esc(typeLabel.toUpperCase())}</text>` : ""}
+    ${
+        meta.type === "asset"
+            ? `<text x="80" y="280" font-size="56" font-weight="bold" fill="white" font-family="sans-serif">${esc(meta.label)}</text>`
+            : displayId
+              ? `<text x="80" y="${typeLabel ? "270" : "200"}" font-size="38" fill="#d1d5db" font-family="monospace">${esc(displayId)}</text>`
+              : ""
+    }
     <line x1="80" y1="340" x2="1120" y2="340" stroke="#2d2640" stroke-width="1"/>
     ${statsBlock}
     <line x1="80" y1="520" x2="1120" y2="520" stroke="#2d2640" stroke-width="1"/>
@@ -238,16 +259,16 @@ function buildOgImageSvg(meta) {
 }
 
 async function handleOgImage(pagePath, indexerUrl) {
-  const meta = await getPageMeta(pagePath, indexerUrl);
-  if (!meta) return null;
+    const meta = await getPageMeta(pagePath, indexerUrl);
+    if (!meta) return null;
 
-  const svg = buildOgImageSvg(meta);
-  return new Response(svg, {
-    headers: {
-      'Content-Type': 'image/svg+xml',
-      'Cache-Control': 'public, max-age=3600',
-    },
-  });
+    const svg = buildOgImageSvg(meta);
+    return new Response(svg, {
+        headers: {
+            "Content-Type": "image/svg+xml",
+            "Cache-Control": "public, max-age=3600",
+        },
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -255,10 +276,10 @@ async function handleOgImage(pagePath, indexerUrl) {
 // ---------------------------------------------------------------------------
 
 function buildMetaHtml(title, description, pageUrl, ogImageUrl) {
-  const t = esc(title);
-  const d = esc(description);
+    const t = esc(title);
+    const d = esc(description);
 
-  return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -286,35 +307,35 @@ function buildMetaHtml(title, description, pageUrl, ogImageUrl) {
 // ---------------------------------------------------------------------------
 
 export async function onRequest(context) {
-  const url = new URL(context.request.url);
-  const path = url.pathname;
-  const indexerUrl = context.env?.VITE_INDEXER_URL || DEFAULT_INDEXER;
-  const origin = url.origin;
+    const url = new URL(context.request.url);
+    const path = url.pathname;
+    const indexerUrl = context.env?.VITE_INDEXER_URL || DEFAULT_INDEXER;
+    const origin = url.origin;
 
-  // Handle OG image requests: /og-image/address/... /og-image/tx/... etc.
-  if (path.startsWith('/og-image/')) {
-    const pagePath = path.replace(/^\/og-image/, '');
-    try {
-      const response = await handleOgImage(pagePath, indexerUrl);
-      if (response) return response;
-    } catch {
-      // Fall through to 404
+    // Handle OG image requests: /og-image/address/... /og-image/tx/... etc.
+    if (path.startsWith("/og-image/")) {
+        const pagePath = path.replace(/^\/og-image/, "");
+        try {
+            const response = await handleOgImage(pagePath, indexerUrl);
+            if (response) return response;
+        } catch {
+            // Fall through to 404
+        }
+        return new Response("Not found", { status: 404 });
     }
-    return new Response('Not found', { status: 404 });
-  }
 
-  // Bot detection for meta HTML
-  const ua = context.request.headers.get('user-agent') || '';
-  if (!BOT_UA.test(ua)) {
-    return context.next();
-  }
+    // Bot detection for meta HTML
+    const ua = context.request.headers.get("user-agent") || "";
+    if (!BOT_UA.test(ua)) {
+        return context.next();
+    }
 
-  const meta = await getPageMeta(path, indexerUrl);
-  if (!meta) return context.next();
+    const meta = await getPageMeta(path, indexerUrl);
+    if (!meta) return context.next();
 
-  const ogImageUrl = `${origin}/og-image${path}`;
-  return new Response(
-    buildMetaHtml(meta.title, meta.description, context.request.url, ogImageUrl),
-    { headers: { 'Content-Type': 'text/html;charset=UTF-8' } }
-  );
+    const ogImageUrl = `${origin}/og-image${path}`;
+    return new Response(
+        buildMetaHtml(meta.title, meta.description, context.request.url, ogImageUrl),
+        { headers: { "Content-Type": "text/html;charset=UTF-8" } },
+    );
 }
