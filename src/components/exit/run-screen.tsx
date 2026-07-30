@@ -207,8 +207,8 @@ function ExecutionTimeline({
                     </div>
                     {!done && (
                         <p className="text-[11px] text-muted-foreground">
-                            Safe to close and reopen — execution reads only the blockchain, so it
-                            resumes where it left off.
+                            Keep your package file — reopening this page needs it again. Execution
+                            reads only the blockchain, so re-importing resumes where it left off.
                         </p>
                     )}
                 </div>
