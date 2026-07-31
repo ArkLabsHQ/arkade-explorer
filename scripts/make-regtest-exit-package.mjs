@@ -19,7 +19,22 @@
  * Writes progress to stderr and the package JSON to stdout, so it can be piped
  * straight into a file or a share link. Regtest only — never point this at a
  * network where the coins matter.
+ *
+ * ## The sweep will look stuck. It probably isn't.
+ *
+ * A funded package ends in a sweep behind a relative timelock, and `Executor`
+ * gates it on `tip.time >= dep.blockTime + delay`. Those are two *different*
+ * clocks: `dep.blockTime` is the parent block's timestamp, while `tip.time` is
+ * the tip's **median time past** — the median of the last 11 block timestamps.
+ *
+ * The consequence is unintuitive on regtest: mining a pile of blocks does not
+ * release a seconds-delay timelock. Mediantime only advances as blocks receive
+ * *recent* timestamps, so it freezes the moment you stop mining and trails real
+ * time by roughly five blocks. Mine a short burst immediately before checking,
+ * and read `mediantime` (not `timestamp`) from `/api/block/<tip>` when working
+ * out whether it should have fired yet.
  */
+import { existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import {
     EsploraProvider,
@@ -37,8 +52,24 @@ import { wordlist } from "@scure/bip39/wordlists/english.js";
 
 const ARK_SERVER = "http://localhost:7070";
 const ESPLORA = "http://localhost:3000/api";
-const TS_SDK = process.env.TS_SDK_DIR ?? "C:/Git/ts-sdk";
 const VTXO_SATS = 60_000;
+
+/**
+ * The regtest CLI lives in a ts-sdk checkout, not here. Defaults to a sibling
+ * directory, which is where one usually sits relative to this repo; override
+ * with `TS_SDK_DIR` for any other layout. Checked eagerly so a wrong path fails
+ * with this message rather than as a confusing ENOENT from `execFileSync` after
+ * a wallet has already been created and funded.
+ */
+const TS_SDK = process.env.TS_SDK_DIR ?? "../ts-sdk";
+if (!existsSync(`${TS_SDK}/regtest/regtest.mjs`)) {
+    console.error(
+        `[exit-pkg] no regtest CLI at ${TS_SDK}/regtest/regtest.mjs — ` +
+            `set TS_SDK_DIR to the root of your ts-sdk checkout`,
+    );
+    process.exit(1);
+}
+
 /** Settlement fee headroom; the operator here requires at least 600 sats. */
 const INTENT_FEE_SATS = 1_000;
 
@@ -117,10 +148,14 @@ await waitFor("settled vtxos", async () => (await wallet.getVtxos()).length > 0)
 
 // Funded mode signs fee children from an onchain wallet that must share the
 // wallet identity — prepare() rejects a mismatch.
-const feeWallet = await OnchainWallet.create(identity, "regtest");
+// Pass `provider` explicitly: OnchainWallet.create otherwise builds its own
+// EsploraProvider without `forcePolling`, so these two would poll differently
+// from the wallet above for no reason.
+const feeWallet = await OnchainWallet.create(identity, "regtest", provider);
 const destination = await OnchainWallet.create(
     MnemonicIdentity.fromMnemonic(generateMnemonic(wordlist, 128), { isMainnet: false }),
     "regtest",
+    provider,
 );
 log("sweep destination:", destination.address);
 
@@ -159,10 +194,13 @@ log(
 );
 log("step kinds:", pkg.steps.map((s) => s.kind).join(" → "));
 
-process.stdout.write(JSON.stringify(pkg));
-
 // The wallet holds an open SSE subscription to the operator, which keeps the
-// event loop alive forever — without this the script finishes its work and then
-// hangs, looking exactly like a failure. Nothing is left to flush: the package
-// is already on stdout.
-process.exit(0);
+// event loop alive forever — without an explicit exit the script finishes its
+// work and then hangs, looking exactly like a failure.
+//
+// Exit from the write callback, not after it. process.exit() abandons pending
+// stdout writes, and stdout is asynchronous whenever it is a pipe — so
+// `… | tee pkg.json` could silently produce an empty file. A plain `>` redirect
+// happens to be safe (regular files are synchronous on POSIX), but relying on
+// that means the tool breaks the first time someone pipes it.
+process.stdout.write(JSON.stringify(pkg), () => process.exit(0));

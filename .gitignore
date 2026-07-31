@@ -46,3 +46,7 @@ TASKS.md
 .env.local
 .env.production
 tsconfig.tsbuildinfo
+
+# Output of scripts/make-regtest-exit-package.mjs — regtest, but it is
+# pre-signed transaction hex; no reason to commit it.
+exit-package.json
