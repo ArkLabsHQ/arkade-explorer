@@ -94,7 +94,17 @@
     --color-exit-ink: hsl(var(--foreground));
     --color-exit-ink-dim: hsl(var(--muted-foreground));
     /* Blended toward the background so the faintest tier stays a step below
-       ink-dim in both themes, instead of collapsing into it. */
+       ink-dim in both themes, instead of collapsing into it.
+
+       color-mix() needs Chrome 111+ / Firefox 113+ / Safari 16.2+. A custom
+       property still parses on older browsers — it holds an arbitrary token
+       stream — so this fails at *use* time instead, as invalid-at-computed-
+       value-time. That resolves differently per property: `color` falls back to
+       the inherited value, so faint text renders more prominent than intended;
+       `background-color` falls back to its initial `transparent`, so the
+       pending/skipped step dot disappears. Both are cosmetic and the adjacent
+       text label still names the state, which is why this is tolerable here —
+       but it is the reason nothing load-bearing may depend on color-mix(). */
     --color-exit-ink-faint: color-mix(
         in oklab,
         hsl(var(--muted-foreground)) 70%,

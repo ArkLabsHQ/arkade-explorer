@@ -74,6 +74,41 @@ Key conventions:
 - **Config** is environment-driven (`VITE_*` vars, see `README.md`); there are sensible defaults so
   the app runs with no `.env`.
 
+## `@arkade-os/exit-ui` (the unilateral exit route)
+
+`/unilateral-exit` is not implemented here. The whole flow — import, review, funding gate, execute,
+plus package decoding and session persistence — lives in
+[`@arkade-os/exit-ui`](https://github.com/arkade-os/arkade-unilateral-exit), shared with the
+standalone tool so the two cannot drift apart again. `src/pages/unilateral-exit.tsx` is route chrome
+around `<ExitFlow />`. **Fix exit bugs in that repo, not here.**
+
+Two things about it are easy to get wrong:
+
+- It is installed from a **GitHub Release tarball URL**, not a registry. There is no `npm publish`
+  and no dist-tag: a new version means a new release asset and a new URL in `package.json`. The
+  lockfile records a sha512 of the tarball contents, which is what actually pins it.
+- It styles itself only against `--color-exit-*` / `--radius-exit`, which `src/globals.css` maps onto
+  this design system's semantic tokens. That file also declares
+  `@source "../node_modules/@arkade-os/exit-ui/dist"` — Tailwind does not scan dependencies, and
+  without it the route compiles, renders and comes out **completely unstyled** while every gate stays
+  green.
+
+### Before bumping the version
+
+The exit UI's protocol-sensitive tests (package decode, and the `phaseFor` mapping that decides
+whether a failed branch renders as "Confirmed") live in the package's CI, not this repo's. Nothing
+here will fail if a future version regresses them. So an upgrade is not a routine dependency bump:
+
+1. Confirm the package's own CI is green on the tag being adopted, and that its suite still covers
+   package decode and `phaseFor`'s `skipped`-with-reason vs. `skipped`-without-reason distinction.
+   Getting that backwards shows a failed exit branch as a green tick.
+2. Update the URL in `package.json` and refresh the lockfile so a new integrity hash is recorded.
+   Reusing a hash across versions means the pin is stale.
+3. Load `/unilateral-exit` and confirm it renders **styled**. An unstyled render is the signature of
+   a broken or missing `@source`, and no automated gate catches it.
+4. Re-check the `--color-exit-*` mapping if the package added tokens. A token the host does not
+   define resolves to nothing, and the element paints transparent rather than erroring.
+
 ## Deployment
 
 Containerized via `Dockerfile` (Node 24 build stage → nginx static serve). CI builds and pushes the
