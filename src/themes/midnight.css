@@ -48,4 +48,10 @@
     /* Semantic */
     --success: 142 72% 40%;
     --warning: 38 92% 50%;
+
+    /* In-flight. The only exit state with no existing semantic token: it must
+       read as distinct from success, warning and destructive at a glance, since
+       a user watching an exit is distinguishing "still going" from "done" and
+       "stuck". Lightened for contrast on this theme's dark surfaces. */
+    --exit-flight: 213 94% 68%;
 }
