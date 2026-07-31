@@ -72,7 +72,47 @@
     --color-success: hsl(var(--success));
     --color-warning: hsl(var(--warning));
     --radius: var(--radius);
+
+    /* --- @arkade-os/exit-ui theming contract ---------------------------------
+       The package styles itself only against these names, so the exit flow
+       renders in this explorer's palette while the standalone tool keeps its
+       own. Aliases, not copies: they follow the active [data-theme], so dawn
+       and midnight both work with no per-theme code in the package.
+
+       Mapped onto this design system's semantic tokens rather than raw palette
+       values, so a future theme change carries the exit UI with it. */
+    --color-exit-field: hsl(var(--surface-sunken));
+    --color-exit-panel: hsl(var(--card));
+    /* --secondary, not --surface-elevated: the package uses panel-2 for surfaces
+       nested *inside* a panel, so it has to differ from --card. In dawn,
+       --surface-elevated is pure white — the same as --card, because that theme
+       expresses elevation against the page rather than against the card — which
+       would flatten every nested surface. --secondary differs from --card in
+       both themes. */
+    --color-exit-panel-2: hsl(var(--secondary));
+    --color-exit-line: hsl(var(--border));
+    --color-exit-ink: hsl(var(--foreground));
+    --color-exit-ink-dim: hsl(var(--muted-foreground));
+    /* Blended toward the background so the faintest tier stays a step below
+       ink-dim in both themes, instead of collapsing into it. */
+    --color-exit-ink-faint: color-mix(
+        in oklab,
+        hsl(var(--muted-foreground)) 70%,
+        hsl(var(--background))
+    );
+    --color-exit-signal: hsl(var(--primary));
+    --color-exit-signal-ink: hsl(var(--primary-foreground));
+    --color-exit-ok: hsl(var(--success));
+    --color-exit-flight: hsl(var(--exit-flight));
+    --color-exit-wait: hsl(var(--warning));
+    --color-exit-dead: hsl(var(--destructive));
+    --radius-exit: var(--radius);
 }
+
+/* Tailwind does not scan dependencies. Without this the package's classes
+   compile to nothing and the exit flow renders unstyled — while typecheck,
+   tests and build all still pass. */
+@source "../node_modules/@arkade-os/exit-ui/dist";
 
 @utility font-heading {
     font-family: "TT Firs Neue", system-ui, sans-serif;
