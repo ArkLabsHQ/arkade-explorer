@@ -10,10 +10,10 @@ importers:
     dependencies:
       '@arkade-os/exit-ui':
         specifier: https://github.com/arkade-os/arkade-unilateral-exit/releases/download/exit-ui-v0.1.0/arkade-os-exit-ui-0.1.0.tgz
-        version: https://github.com/arkade-os/arkade-unilateral-exit/releases/download/exit-ui-v0.1.0/arkade-os-exit-ui-0.1.0.tgz(@arkade-os/sdk@0.4.45)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@0.554.0(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        version: https://github.com/arkade-os/arkade-unilateral-exit/releases/download/exit-ui-v0.1.0/arkade-os-exit-ui-0.1.0.tgz(@arkade-os/sdk@0.4.55)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@0.554.0(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@arkade-os/sdk':
-        specifier: 0.4.45
-        version: 0.4.45
+        specifier: 0.4.55
+        version: 0.4.55
       '@radix-ui/react-dialog':
         specifier: ^1.1.4
         version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -119,7 +119,7 @@ packages:
     engines: {node: '>=10'}
 
   '@arkade-os/exit-ui@https://github.com/arkade-os/arkade-unilateral-exit/releases/download/exit-ui-v0.1.0/arkade-os-exit-ui-0.1.0.tgz':
-    resolution: {tarball: https://github.com/arkade-os/arkade-unilateral-exit/releases/download/exit-ui-v0.1.0/arkade-os-exit-ui-0.1.0.tgz}
+    resolution: {integrity: sha512-Fwg7uoo5UNV5lpp2eI1MBGfZSJ6zLowbYKPvlzMiEKqM851FFdyFvWxxMRtzu1PI1Kxr1NSLfMoaAQLl9XLN/A==, tarball: https://github.com/arkade-os/arkade-unilateral-exit/releases/download/exit-ui-v0.1.0/arkade-os-exit-ui-0.1.0.tgz}
     version: 0.1.0
     peerDependencies:
       '@arkade-os/sdk': '>=0.4.45'
@@ -127,8 +127,8 @@ packages:
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
 
-  '@arkade-os/sdk@0.4.45':
-    resolution: {integrity: sha512-8S9oa0iHYh2b2Cf1yDLW+zk8GK+3Cfqg896n8woExk3CMpfwsBLNNpaZpFLvzgVUHgq/RbylpXBDb4MxPL6e+Q==}
+  '@arkade-os/sdk@0.4.55':
+    resolution: {integrity: sha512-MSntbGPCJLrp8zG46uCYmxTsDV2NBEX58vU8P/I6LxD2xATRe9sNFD9ZVYt59DwoD9RhS+cxXiV/PRTXOMpZaA==}
     engines: {node: '>=22.12.0 <25'}
     peerDependencies:
       '@react-native-async-storage/async-storage': '>=1.0.0'
@@ -1954,9 +1954,9 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@arkade-os/exit-ui@https://github.com/arkade-os/arkade-unilateral-exit/releases/download/exit-ui-v0.1.0/arkade-os-exit-ui-0.1.0.tgz(@arkade-os/sdk@0.4.45)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@0.554.0(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@arkade-os/exit-ui@https://github.com/arkade-os/arkade-unilateral-exit/releases/download/exit-ui-v0.1.0/arkade-os-exit-ui-0.1.0.tgz(@arkade-os/sdk@0.4.55)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@0.554.0(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
-      '@arkade-os/sdk': 0.4.45
+      '@arkade-os/sdk': 0.4.55
       '@radix-ui/react-progress': 1.1.16(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@radix-ui/react-slot': 1.2.4(@types/react@19.2.14)(react@19.2.4)
       '@radix-ui/react-tooltip': 1.2.16(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -1970,7 +1970,7 @@ snapshots:
       - '@types/react'
       - '@types/react-dom'
 
-  '@arkade-os/sdk@0.4.45':
+  '@arkade-os/sdk@0.4.55':
     dependencies:
       '@bitcoinerlab/descriptors-scure': 3.1.7
       '@marcbachmann/cel-js': 8.0.0
