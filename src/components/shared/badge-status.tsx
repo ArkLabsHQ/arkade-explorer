@@ -80,8 +80,17 @@ export function deriveVtxoStatus(
  */
 export function isRecoverable(vtxo: {
     isSwept?: boolean;
+    expiresAt?: Date | string;
     virtualStatus?: { state: string };
 }): boolean {
     if (vtxo.isSwept) return true;
+    if (vtxo.expiresAt) {
+        const expiryDate = new Date(
+            typeof vtxo.expiresAt === "string" && !isNaN(parseInt(vtxo.expiresAt))
+                ? parseInt(vtxo.expiresAt) * 1000
+                : vtxo.expiresAt,
+        );
+        if (expiryDate < new Date()) return true;
+    }
     return vtxo.virtualStatus?.state === "swept";
 }
