@@ -86,7 +86,7 @@ export function isRecoverable(vtxo: {
     if (vtxo.isSwept) return true;
     if (vtxo.expiresAt) {
         const expiryDate = new Date(
-            typeof vtxo.expiresAt === "string" && !isNaN(parseInt(vtxo.expiresAt))
+            typeof vtxo.expiresAt === "string" && /^\d+$/.test(vtxo.expiresAt)
                 ? parseInt(vtxo.expiresAt) * 1000
                 : vtxo.expiresAt,
         );
