@@ -118,12 +118,10 @@ function TreeNodeView({ node, depth }: { node: TreeNode; depth: number }) {
     );
 }
 
-function LeafVtxoRow({ leaf }: { leaf: LeafVtxo }) {
+function LeafVtxoRow({ leaf, expiresAt }: { leaf: LeafVtxo; expiresAt?: string }) {
+    const recoverable = isRecoverable({ isSwept: leaf.isSwept, expiresAt });
     const outpointStr = `${leaf.outpoint.txid}:${leaf.outpoint.vout}`;
-    const status = deriveVtxoStatus({
-        isSpent: leaf.isSpent,
-    });
-    const recoverable = isRecoverable({ isSwept: leaf.isSwept });
+    const status = deriveVtxoStatus({ isSpent: leaf.isSpent });
 
     return (
         <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-secondary/50 transition-colors duration-150">
@@ -362,6 +360,7 @@ function BatchItem({ batch }: { batch: BatchEntry }) {
                                         {leaves.map((leaf) => (
                                             <LeafVtxoRow
                                                 key={`${leaf.outpoint.txid}:${leaf.outpoint.vout}`}
+                                                expiresAt={batch.info.expiresAt}
                                                 leaf={leaf}
                                             />
                                         ))}
