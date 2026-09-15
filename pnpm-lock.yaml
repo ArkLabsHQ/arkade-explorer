@@ -75,6 +75,9 @@ importers:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@4.2.2)
     devDependencies:
+      '@scure/bip39':
+        specifier: 2.0.1
+        version: 2.0.1
       '@tailwindcss/postcss':
         specifier: ^4.1.17
         version: 4.2.2
