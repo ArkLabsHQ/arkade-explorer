@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useLayoutEffect } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Link } from "react-router-dom";
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import {
     ChevronDown,
     ChevronRight,
@@ -26,6 +26,12 @@ import {
 import { deriveExpiryKind, expiryKindLabel, type ExpiryKind } from "@/lib/vtxo-display";
 import { truncateHash, formatTimestamp } from "@/lib/utils";
 import { constructArkAddress, deriveOutputDisplayAddress } from "@/lib/arkAddress";
+import {
+    emulatorScripts,
+    extractSpendPath,
+    type ScriptView,
+    type SpendPath,
+} from "@/lib/arkadeScript";
 import { indexerClient } from "@/lib/api/indexer";
 import { fetchAllPages } from "@/lib/api/fetchAllPages";
 import { usePendingOutpoints } from "@/hooks/use-pending-outpoints";
@@ -114,6 +120,20 @@ function parseArkPacket(script: Uint8Array): ParsedPacket | null {
 }
 
 /** Convert a Uint8Array to lowercase hex string */
+/** Parse indexer virtual txs (hex raw tx or base64 PSBT), skipping undecodable ones. */
+function parseVirtualTxs(raws: string[]): btc.Transaction[] {
+    return raws.flatMap((raw) => {
+        try {
+            return /^[0-9a-fA-F]+$/.test(raw)
+                ? [btc.Transaction.fromRaw(hex.decode(raw))]
+                : [btc.Transaction.fromPSBT(Uint8Array.from(atob(raw), (c) => c.charCodeAt(0)))];
+        } catch (e) {
+            console.error("Failed to decode virtual transaction:", e);
+            return [];
+        }
+    });
+}
+
 function toHex(bytes: Uint8Array): string {
     return Array.from(bytes)
         .map((b) => b.toString(16).padStart(2, "0"))
@@ -351,14 +371,85 @@ function ConnectorList({
 // Input card
 // ---------------------------------------------------------------------------
 
+/** Opcodes of a script, with a caption and a copy button for the raw hex. */
+function ScriptOpcodes({ caption, script }: { caption: string; script: ScriptView }) {
+    return (
+        <div className="mt-1 rounded-md bg-secondary/50 px-2 py-1">
+            <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    {caption}
+                </span>
+                <CopyButton text={script.scriptHex} />
+            </div>
+            <div className="max-h-40 overflow-y-auto font-mono text-[10px] leading-relaxed flex flex-wrap gap-x-1.5">
+                {script.asm.length === 0 ? (
+                    <span className="text-muted-foreground break-all">{script.scriptHex}</span>
+                ) : (
+                    script.asm.map((op, i) =>
+                        op.startsWith("OP_") ? (
+                            <span key={i} className="text-foreground">
+                                {op}
+                            </span>
+                        ) : (
+                            <span key={i} className="text-muted-foreground break-all" title={op}>
+                                {op.length > 16 && !op.startsWith('"')
+                                    ? truncateHash(op, 6, 6)
+                                    : op}
+                            </span>
+                        ),
+                    )
+                )}
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Renders how a VTXO was spent: key path or, when the spend revealed a tapleaf,
+ * which script was used and its opcodes. A leaf bound to an Arkade Script (the
+ * covenant the emulator runs before co-signing) shows that program first.
+ */
+function SpendPathLine({ spendPath }: { spendPath: SpendPath }) {
+    const script = spendPath.kind === "script-path" ? spendPath.info : null;
+    const label = script
+        ? `${script.label} script`
+        : spendPath.kind === "key-path"
+          ? "Key path"
+          : "Script path";
+    return (
+        <div className="mt-1 text-xs">
+            <div className="flex items-center gap-1.5">
+                <span className="text-muted-foreground uppercase">Spent via:</span>
+                {/* Neutral for plain leaves: colored badges on these cards carry status.
+                    Arkade Scripts get the brand accent since they are the notable case. */}
+                <span
+                    className={`inline-flex items-center px-1.5 py-0.5 font-semibold rounded-full border ${
+                        script?.arkadeScript
+                            ? "border-primary/30 bg-primary/15 text-primary"
+                            : "border-border bg-secondary text-foreground"
+                    }`}
+                >
+                    {label}
+                </span>
+            </div>
+            {script?.arkadeScript && (
+                <ScriptOpcodes caption="Arkade Script" script={script.arkadeScript} />
+            )}
+            {script && <ScriptOpcodes caption="Tapscript" script={script} />}
+        </div>
+    );
+}
+
 function InputCard({
     input,
     assetPacket,
     txid,
     settlementTxId,
     mempoolUrl,
+    spendPath,
 }: {
     input: ParsedInput;
+    spendPath?: SpendPath | null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     assetPacket?: any;
     txid?: string;
@@ -453,6 +544,7 @@ function InputCard({
                         {input.scriptHex.substring(0, 40)}...
                     </div>
                 ) : null}
+                {spendPath && <SpendPathLine spendPath={spendPath} />}
                 {settlementTxId && (
                     <Link
                         to={`/commitment-tx/${settlementTxId}`}
@@ -483,6 +575,7 @@ function OutputCard({
     forfeitVtxo,
     checkpointVtxo,
     pendingOutpoints,
+    spendPath,
 }: {
     output: ParsedOutput;
     txid: string;
@@ -495,6 +588,7 @@ function OutputCard({
     forfeitVtxo?: VirtualCoin | null;
     checkpointVtxo?: VirtualCoin | null;
     pendingOutpoints?: ReadonlySet<string>;
+    spendPath?: SpendPath | null;
 }) {
     // For checkpoint/forfeit txs, use the fetched VTXO from the input instead of
     // per-output vtxo lookup (checkpoint/forfeit outputs aren't individual VTXOs)
@@ -696,6 +790,9 @@ function OutputCard({
                         <CopyButton text={output.scriptHex} />
                     </div>
                 ) : null}
+
+                {/* How this VTXO was spent (decoded from the spending transaction) */}
+                {isSpent && spendPath && <SpendPathLine spendPath={spendPath} />}
             </div>
 
             {/* Spending / Arkade tx arrow */}
@@ -1436,6 +1533,101 @@ export function TransactionDetail({
     });
 
     // -------------------------------------------------------------------------
+    // Fetch the transactions that spent the displayed VTXOs and decode which
+    // arkade script each spend used
+    // -------------------------------------------------------------------------
+
+    const spendingTxids = useMemo(() => {
+        const ids = new Set<string>();
+        for (const output of outputs) {
+            // Mirror the spending-tx derivation in OutputCard
+            if (checkpointVtxo && !output.isAnchor && checkpointVtxo.arkTxId) {
+                ids.add(checkpointVtxo.arkTxId);
+            } else {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const vtxo = output.vtxo as any;
+                if (vtxo?.spentBy) ids.add(vtxo.spentBy);
+                // The Arkade tx behind a checkpoint spend carries the Emulator Packet
+                if (vtxo?.arkTxId) ids.add(vtxo.arkTxId);
+            }
+        }
+        ids.delete(txid);
+        return [...ids];
+    }, [outputs, checkpointVtxo, txid]);
+
+    const { data: spendingTxs = [] } = useQuery({
+        queryKey: ["spending-txs", spendingTxids],
+        queryFn: async () =>
+            parseVirtualTxs((await indexerClient.getVirtualTxs(spendingTxids)).txs),
+        enabled: type === "arkade" && spendingTxids.length > 0,
+        retry: false,
+    });
+
+    // A VTXO spent through a batch reveals its Arkade Script in the intent proof,
+    // which arkd copies into the leaf transactions the batch creates. Fetch those
+    // leaves for every commitment that settled a displayed VTXO.
+    const settlementTxids = useMemo(() => {
+        const ids = new Set<string>();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const v of [forfeitVtxo, ...outputs.map((o) => o.vtxo as any)]) {
+            if (v?.settledBy) ids.add(v.settledBy);
+        }
+        return [...ids];
+    }, [forfeitVtxo, outputs]);
+
+    const { data: settlementLeafTxs = [] } = useQuery({
+        queryKey: ["settlement-leaf-txs", settlementTxids],
+        queryFn: async () => {
+            const leafTxids = new Set<string>();
+            for (const commitmentTxid of settlementTxids) {
+                const { batches } = await indexerClient.getCommitmentTx(commitmentTxid);
+                for (const vout of Object.keys(batches ?? {})) {
+                    // ponytail: first page of leaves only; page through if large batches matter
+                    const { leaves } = await indexerClient.getVtxoTreeLeaves({
+                        txid: commitmentTxid,
+                        vout: Number(vout),
+                    });
+                    for (const leaf of leaves ?? []) leafTxids.add(leaf.txid);
+                }
+            }
+            if (leafTxids.size === 0) return [];
+            return parseVirtualTxs((await indexerClient.getVirtualTxs([...leafTxids])).txs);
+        },
+        enabled: type === "arkade" && settlementTxids.length > 0,
+        retry: false,
+    });
+
+    // Candidate Arkade Scripts for the displayed spends. extractSpendPath only
+    // attaches one to a leaf whose emulator-tweaked key matches, so over-collecting is safe.
+    const spendOpts = useMemo(() => {
+        const txs = [...(parsedTx ? [parsedTx] : []), ...spendingTxs, ...settlementLeafTxs];
+        return {
+            operatorPubkeyHex: serverInfo?.signerPubkey,
+            arkadeScripts: txs.flatMap(emulatorScripts),
+        };
+    }, [parsedTx, spendingTxs, settlementLeafTxs, serverInfo?.signerPubkey]);
+
+    const inputSpendPaths = useMemo(() => {
+        if (!parsedTx) return [];
+        return Array.from({ length: parsedTx.inputsLength }, (_, i) =>
+            extractSpendPath(parsedTx.getInput(i), spendOpts),
+        );
+    }, [parsedTx, spendOpts]);
+
+    const outputSpendPaths = useMemo(() => {
+        const map = new Map<number, SpendPath>();
+        for (const spendingTx of spendingTxs) {
+            for (let i = 0; i < spendingTx.inputsLength; i++) {
+                const input = spendingTx.getInput(i);
+                if (!input?.txid || toHex(input.txid) !== txid) continue;
+                const path = extractSpendPath(input, spendOpts);
+                if (path) map.set(input.index ?? 0, path);
+            }
+        }
+        return map;
+    }, [spendingTxs, txid, spendOpts]);
+
+    // -------------------------------------------------------------------------
     // Derive title from subtype
     // -------------------------------------------------------------------------
 
@@ -1711,6 +1903,7 @@ export function TransactionDetail({
                                         txid={txid}
                                         settlementTxId={inputVtxo?.settledBy || undefined}
                                         mempoolUrl={inputMempoolUrl}
+                                        spendPath={inputSpendPaths[input.index]}
                                     />
                                 );
                             })}
@@ -1781,6 +1974,7 @@ export function TransactionDetail({
                                     forfeitVtxo={forfeitVtxo}
                                     checkpointVtxo={checkpointVtxo}
                                     pendingOutpoints={pendingOutpoints}
+                                    spendPath={outputSpendPaths.get(output.index)}
                                 />
                             ))}
                         </div>
