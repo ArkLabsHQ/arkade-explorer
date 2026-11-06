@@ -18,17 +18,17 @@ export function AssetBadge({ assetId, className = "" }: AssetBadgeProps) {
     const hasIcon = metadata?.icon && isSafeImageUrl(metadata.icon);
 
     return (
-        <span className={`inline-flex items-center gap-1.5 ${className}`}>
+        <span className={`inline-flex min-w-0 max-w-full items-center gap-1.5 ${className}`}>
             <Link
                 to={`/asset/${assetId}`}
-                className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-bold uppercase
+                className="inline-flex min-w-0 max-w-full items-center gap-1.5 px-2 py-0.5 text-xs font-medium
           bg-accent border border-border text-accent-foreground
           rounded-md hover:bg-accent/80 transition-colors duration-150"
                 title={assetId}
             >
-                {label}
+                <span className="truncate">{label}</span>
                 {hasIcon && (
-                    <img src={metadata.icon} alt={label} className="w-3.5 h-3.5 rounded-full" />
+                    <img src={metadata.icon} alt="" className="w-3.5 h-3.5 shrink-0 rounded-full" />
                 )}
             </Link>
         </span>

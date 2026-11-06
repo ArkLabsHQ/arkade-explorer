@@ -1,3 +1,22 @@
+export function formatBTC(sats: number | bigint): string {
+    const value = BigInt(sats);
+    const absolute = value < 0n ? -value : value;
+    const whole = (absolute / 100_000_000n).toLocaleString("en-US");
+    const fraction = (absolute % 100_000_000n).toString().padStart(8, "0");
+    return `${value < 0n ? "-" : ""}${whole}.${fraction}`;
+}
+
+export function formatAssetAmount(amount: number | bigint, decimals: number): string {
+    const digits = BigInt(amount)
+        .toString()
+        .replace(/^-/, "")
+        .padStart(decimals + 1, "0");
+    const whole = decimals === 0 ? digits : digits.slice(0, -decimals);
+    const fraction = decimals === 0 ? "" : digits.slice(-decimals).replace(/0+$/, "");
+    const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return `${amount < 0 ? "-" : ""}${grouped}${fraction ? `.${fraction}` : ""}`;
+}
+
 export function satsToBTC(sats: number | string): string {
     const amount = typeof sats === "string" ? parseInt(sats) : sats;
     return (amount / 100000000).toFixed(8);

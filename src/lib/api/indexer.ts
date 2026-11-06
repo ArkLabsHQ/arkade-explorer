@@ -48,19 +48,7 @@ export function isSafeImageUrl(url: string): boolean {
     }
 }
 
-/**
- * Format an asset amount using string-based decimal placement to avoid
- * floating-point precision loss with large values or high decimal counts.
- */
-export function formatAssetAmount(amount: number | bigint, decimals: number): string {
-    if (decimals === 0) return amount.toLocaleString("en-US");
-    const amountStr = amount.toString();
-    const padded = amountStr.padStart(decimals + 1, "0");
-    const intPart = padded.slice(0, padded.length - decimals);
-    const decPart = padded.slice(padded.length - decimals);
-    const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    return `${formattedInt}.${decPart}`;
-}
+export { formatAssetAmount } from "@/lib/formatters";
 
 // ---------------------------------------------------------------------------
 // Re-exports from SDK for convenience

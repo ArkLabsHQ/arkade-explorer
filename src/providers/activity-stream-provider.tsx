@@ -1,22 +1,6 @@
-import {
-    createContext,
-    useContext,
-    useState,
-    useEffect,
-    useRef,
-    useCallback,
-    type ReactNode,
-} from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { arkClient } from "@/lib/api/indexer";
-
-interface ActivityItem {
-    id: string;
-    type: "batch" | "vtxo" | "transaction";
-    txid?: string;
-    address?: string;
-    timestamp: number;
-    description: string;
-}
+import { parseActivityEvent, type ActivityItem } from "@/lib/activity";
 
 interface StoredActivity extends ActivityItem {
     storedAt: number;
@@ -24,14 +8,13 @@ interface StoredActivity extends ActivityItem {
 
 interface ActivityStreamContextType {
     activities: ActivityItem[];
-    isVisible: boolean;
-    subscribeToNewActivity: (callback: () => void) => () => void;
+    connectionStatus: "connecting" | "live" | "disconnected";
 }
 
 const ActivityStreamContext = createContext<ActivityStreamContextType | undefined>(undefined);
 
 const STORAGE_KEY = "arkade-explorer-recent-activity";
-const MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes
+const MAX_AGE_MS = 30 * 60 * 1000;
 
 function loadActivitiesFromStorage(): ActivityItem[] {
     if (typeof window === "undefined") return [];
@@ -42,7 +25,6 @@ function loadActivitiesFromStorage(): ActivityItem[] {
         const activities: StoredActivity[] = JSON.parse(stored);
         const now = Date.now();
 
-        // Filter out activities older than MAX_AGE_MS
         return activities
             .filter((activity) => now - activity.storedAt < MAX_AGE_MS)
             .map(({ storedAt, ...activity }) => activity);
@@ -65,121 +47,41 @@ function saveActivitiesToStorage(activities: ActivityItem[]) {
     }
 }
 
-function parseEvent(event: any): ActivityItem | null {
-    const timestamp = Date.now();
-    const id = `${timestamp}-${Math.random()}`;
-
-    // Parse commitmentTx events
-    if (event.commitmentTx) {
-        const spentCount = event.commitmentTx.spentVtxos?.length || 0;
-        const spendableCount = event.commitmentTx.spendableVtxos?.length || 0;
-
-        return {
-            id,
-            type: "batch",
-            txid: event.commitmentTx.txid,
-            timestamp,
-            description: `Batch commitment transaction: ${spentCount} spent, ${spendableCount} created`,
-        };
-    }
-
-    // Parse arkTx events
-    if (event.arkTx) {
-        const spentCount = event.arkTx.spentVtxos?.length || 0;
-        const spendableCount = event.arkTx.spendableVtxos?.length || 0;
-
-        return {
-            id,
-            type: "transaction",
-            txid: event.arkTx.txid,
-            timestamp,
-            description: `Arkade transaction: ${spentCount} spent, ${spendableCount} created`,
-        };
-    }
-
-    // Parse batch events
-    if (event.round) {
-        return {
-            id,
-            type: "batch",
-            txid: event.round.txid,
-            timestamp,
-            description: `New batch ${event.round.id || "started"}`,
-        };
-    }
-
-    // Parse VTXO events
-    if (event.vtxo) {
-        return {
-            id,
-            type: "vtxo",
-            txid: event.vtxo.txid,
-            address: event.vtxo.receiver,
-            timestamp,
-            description: `VTXO ${event.vtxo.spent ? "spent" : "created"}`,
-        };
-    }
-
-    return null;
-}
-
 export function ActivityStreamProvider({ children }: { children: ReactNode }) {
     const [activities, setActivities] = useState<ActivityItem[]>(() => loadActivitiesFromStorage());
-    const [isVisible, setIsVisible] = useState(() => loadActivitiesFromStorage().length > 0);
-    const newActivityCallbacksRef = useRef<Set<() => void>>(new Set());
+    const [connectionStatus, setConnectionStatus] =
+        useState<ActivityStreamContextType["connectionStatus"]>("connecting");
 
-    // Save to localStorage whenever activities change
     useEffect(() => {
-        if (activities.length > 0) {
-            saveActivitiesToStorage(activities);
-        }
+        if (activities.length > 0) saveActivitiesToStorage(activities);
     }, [activities]);
 
-    // Subscribe to event stream globally
     useEffect(() => {
         const abortController = new AbortController();
 
         (async () => {
             try {
                 const eventStream = arkClient.getTransactionsStream(abortController.signal);
-
                 for await (const event of eventStream) {
-                    // Parse event and create activity item
-                    const activity = parseEvent(event);
+                    if (abortController.signal.aborted) break;
+                    setConnectionStatus("live");
+                    const activity = parseActivityEvent(event);
                     if (activity) {
-                        setActivities((prev) => {
-                            const newActivities = [activity, ...prev].slice(0, 10); // Keep last 10
-                            return newActivities;
-                        });
-
-                        // Show the card on first activity
-                        setIsVisible(true);
-
-                        // Notify all subscribers
-                        newActivityCallbacksRef.current.forEach((callback) => callback());
+                        setActivities((prev) => [activity, ...prev].slice(0, 10));
                     }
                 }
-            } catch (error: any) {
-                if (error.name !== "AbortError") {
-                    console.error("Event stream error:", error);
-                }
+            } catch (error) {
+                if (!abortController.signal.aborted) console.error("Event stream error:", error);
+            } finally {
+                if (!abortController.signal.aborted) setConnectionStatus("disconnected");
             }
         })();
 
-        return () => {
-            abortController.abort();
-        };
-    }, []);
-
-    const subscribeToNewActivity = useCallback((callback: () => void) => {
-        newActivityCallbacksRef.current.add(callback);
-        return () => {
-            newActivityCallbacksRef.current.delete(callback);
-        };
+        return () => abortController.abort();
     }, []);
 
     return (
-        <ActivityStreamContext.Provider value={{ activities, isVisible, subscribeToNewActivity }}>
+        <ActivityStreamContext.Provider value={{ activities, connectionStatus }}>
             {children}
         </ActivityStreamContext.Provider>
     );

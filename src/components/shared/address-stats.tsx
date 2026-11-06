@@ -17,136 +17,75 @@ interface AddressStatsProps {
     isDraining?: boolean;
 }
 
-export function AddressStats({ vtxos, className, isDraining }: AddressStatsProps) {
-    const activeVtxos = vtxos.filter(isVtxoActive);
-    const spentCount = vtxos.length - activeVtxos.length;
-
+export function AddressStats({ vtxos, className = "", isDraining }: AddressStatsProps) {
+    const activeCount = vtxos.filter(isVtxoActive).length;
     const totalBalance = sumActiveVtxoValue(vtxos);
     const totalReceived = sumVtxoValue(vtxos);
+    const assetEntries = Array.from(aggregateAssetBalances(vtxos).entries());
 
-    const assetBalances = aggregateAssetBalances(vtxos);
-    const assetEntries = Array.from(assetBalances.entries());
-    const hasAssets = assetEntries.length > 0;
-
-    // -----------------------------------------------------------------------
-    // Layout: scrollable asset balance list (when assets exist)
-    // -----------------------------------------------------------------------
-    if (hasAssets) {
-        return (
-            <div className={className ?? "max-w-lg"}>
-                <div className="rounded-xl border border-border bg-card p-5 shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2)] flex flex-col overflow-hidden">
-                    <div className="flex items-center gap-2 mb-3">
-                        <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                            Balances
-                        </h3>
-                        {isDraining && (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                                <span className="h-1 w-1 rounded-full bg-primary animate-pulse" />
-                                updating…
-                            </span>
-                        )}
-                    </div>
-
-                    {/* Column header */}
-                    <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 pb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        <span />
-                        <span className="text-right">Balance</span>
-                        <span className="text-right pl-3">Received</span>
-                    </div>
-
-                    {/* Pinned BTC row */}
-                    <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 items-center border-b border-border py-1.5">
-                        <span className="text-foreground font-bold uppercase">BTC</span>
-                        <MoneyDisplay
-                            sats={totalBalance}
-                            className="text-foreground font-bold font-mono text-right"
-                        />
-                        <MoneyDisplay
-                            sats={totalReceived}
-                            className="text-muted-foreground font-mono text-right pl-3"
-                        />
-                    </div>
-
-                    {/* Virtualized asset rows */}
-                    <AssetRowsVirtualized assetEntries={assetEntries} />
-
-                    {/* VTXO summary footer */}
-                    <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border text-xs">
-                        <span className="text-muted-foreground uppercase">
-                            VTXOs:{" "}
-                            <span className="text-foreground font-bold font-mono">
-                                {activeVtxos.length}
-                            </span>{" "}
-                            active
-                        </span>
-                        <span className="text-muted-foreground uppercase">
-                            <span className="text-muted-foreground font-bold font-mono">
-                                {spentCount}
-                            </span>{" "}
-                            spent
-                        </span>
-                        <span className="text-muted-foreground uppercase">
-                            of {vtxos.length} total
-                        </span>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    // -----------------------------------------------------------------------
-    // Layout: simple 4-card grid (no assets)
-    // -----------------------------------------------------------------------
     return (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="rounded-xl border border-border bg-card p-4 shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2)]">
-                <div className="text-center space-y-2">
-                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Total balance
+        <section
+            className={`min-w-0 overflow-hidden rounded-xl border border-border bg-card ${className}`}
+        >
+            <div className="grid gap-6 p-5 sm:grid-cols-2 sm:p-6 md:grid-cols-[1.4fr_1fr_auto] md:items-center">
+                <div className="min-w-0 space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        Balance
+                        {isDraining && <span className="text-xs">Updating…</span>}
                     </div>
                     <MoneyDisplay
                         sats={totalBalance}
-                        className="text-foreground text-xl font-bold font-mono block"
+                        className="block break-all text-2xl font-semibold text-foreground sm:text-3xl"
+                        valueClassName="tabular-nums"
+                        unitClassName="text-sm font-normal text-muted-foreground"
                     />
                 </div>
-            </div>
-
-            <div className="rounded-xl border border-border bg-card p-4 shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2)]">
-                <div className="text-center space-y-2">
-                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Total received
-                    </div>
+                <div className="min-w-0 space-y-2">
+                    <div className="text-sm text-muted-foreground">Total received</div>
                     <MoneyDisplay
                         sats={totalReceived}
-                        className="text-foreground text-xl font-bold font-mono block"
+                        className="block break-all text-lg font-medium text-foreground"
+                        unitClassName="text-sm font-normal text-muted-foreground"
                     />
                 </div>
-            </div>
-
-            <div className="rounded-xl border border-border bg-card p-4 shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2)]">
-                <div className="text-center space-y-2">
-                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Active VTXOs
+                <div className="flex gap-6 border-t border-border pt-4 text-sm sm:col-span-2 md:col-span-1 md:border-t-0 md:border-l md:pl-6 md:pt-0">
+                    <div>
+                        <div className="text-xl font-semibold tabular-nums text-foreground">
+                            {activeCount.toLocaleString()}
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">Active outputs</div>
                     </div>
-                    <div className="text-foreground text-xl font-bold font-mono">
-                        {activeVtxos.length}
+                    <div>
+                        <div className="text-xl font-semibold tabular-nums text-foreground">
+                            {(vtxos.length - activeCount).toLocaleString()}
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">Spent outputs</div>
                     </div>
-                    <div className="text-xs text-muted-foreground">of {vtxos.length}</div>
                 </div>
             </div>
 
-            <div className="rounded-xl border border-border bg-card p-4 shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2)]">
-                <div className="text-center space-y-2">
-                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Spent VTXOs
+            {assetEntries.length > 0 && (
+                <div className="border-t border-border">
+                    <div className="flex items-center justify-between gap-3 px-5 py-4 sm:px-6">
+                        <h2 className="text-sm font-medium text-foreground">Asset holdings</h2>
+                        <span className="text-xs text-muted-foreground">
+                            {assetEntries.length.toLocaleString()} asset
+                            {assetEntries.length !== 1 ? "s" : ""}
+                        </span>
                     </div>
-                    <div className="text-muted-foreground text-xl font-bold font-mono">
-                        {spentCount}
+                    <div className="overflow-x-auto">
+                        <div className="min-w-0 px-5 pb-2 sm:px-6">
+                            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-x-4 border-b border-border pb-3 text-xs text-muted-foreground">
+                                <span>Asset</span>
+                                <span className="text-right">Balance</span>
+                                <span className="text-right">Received</span>
+                            </div>
+                            <AssetRowsVirtualized assetEntries={assetEntries} />
+                        </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">of {vtxos.length}</div>
                 </div>
-            </div>
-        </div>
+            )}
+        </section>
     );
 }
 
@@ -159,16 +98,13 @@ function AssetRowsVirtualized({
     const virtualizer = useVirtualizer({
         count: assetEntries.length,
         getScrollElement: () => scrollRef.current,
-        estimateSize: () => 34,
+        estimateSize: () => 48,
         overscan: 10,
         getItemKey: (index) => assetEntries[index][0],
     });
 
     return (
-        <div
-            ref={scrollRef}
-            className="overflow-y-auto overflow-x-hidden min-h-0 flex-1 max-h-[60vh]"
-        >
+        <div ref={scrollRef} className="max-h-96 overflow-y-auto overflow-x-hidden">
             <div
                 style={{
                     height: `${virtualizer.getTotalSize()}px`,
@@ -190,20 +126,25 @@ function AssetRowsVirtualized({
                                 width: "100%",
                                 transform: `translateY(${item.start}px)`,
                             }}
-                            className="grid grid-cols-[1fr_auto_auto] gap-x-3 items-center border-b border-border py-1.5"
+                            className="grid min-h-12 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-4 border-b border-border py-3 text-xs sm:text-sm last:border-b-0"
                         >
-                            <AssetBadge assetId={assetId} />
+                            <AssetBadge
+                                assetId={assetId}
+                                className="min-w-0 [&_a]:max-w-full [&_a]:truncate"
+                            />
                             <AssetAmountDisplay
                                 amount={balances.active}
                                 assetId={assetId}
                                 hideUnit
-                                valueClassName="text-foreground font-bold font-mono text-right"
+                                className="min-w-0 justify-end"
+                                valueClassName="break-all text-right font-medium tabular-nums text-foreground"
                             />
                             <AssetAmountDisplay
                                 amount={balances.total}
                                 assetId={assetId}
                                 hideUnit
-                                valueClassName="text-muted-foreground font-mono text-right pl-3"
+                                className="min-w-0 justify-end"
+                                valueClassName="break-all text-right tabular-nums text-muted-foreground"
                             />
                         </div>
                     );

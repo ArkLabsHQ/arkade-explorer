@@ -15,6 +15,8 @@ import {
 import { CopyButton } from "@/components/shared/copy-button";
 import { InfoRow } from "@/components/shared/info-row";
 import { MoneyDisplay } from "@/components/shared/money-display";
+import { TapscriptDetails } from "@/components/shared/tapscript-details";
+import { TransactionAssets } from "@/components/shared/transaction-assets";
 import { AssetAmountDisplay } from "@/components/shared/asset-amount-display";
 import { AssetBadge } from "@/components/shared/asset-badge";
 import {
@@ -26,12 +28,7 @@ import {
 import { deriveExpiryKind, expiryKindLabel, type ExpiryKind } from "@/lib/vtxo-display";
 import { truncateHash, formatTimestamp } from "@/lib/utils";
 import { constructArkAddress, deriveOutputDisplayAddress } from "@/lib/arkAddress";
-import {
-    emulatorScripts,
-    extractSpendPath,
-    type ScriptView,
-    type SpendPath,
-} from "@/lib/arkadeScript";
+import { emulatorScripts, extractSpendPath, type SpendPath } from "@/lib/arkadeScript";
 import { indexerClient } from "@/lib/api/indexer";
 import { fetchAllPages } from "@/lib/api/fetchAllPages";
 import { usePendingOutpoints } from "@/hooks/use-pending-outpoints";
@@ -371,75 +368,6 @@ function ConnectorList({
 // Input card
 // ---------------------------------------------------------------------------
 
-/** Opcodes of a script, with a caption and a copy button for the raw hex. */
-function ScriptOpcodes({ caption, script }: { caption: string; script: ScriptView }) {
-    return (
-        <div className="mt-1 rounded-md bg-secondary/50 px-2 py-1">
-            <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                    {caption}
-                </span>
-                <CopyButton text={script.scriptHex} />
-            </div>
-            <div className="max-h-40 overflow-y-auto font-mono text-[10px] leading-relaxed flex flex-wrap gap-x-1.5">
-                {script.asm.length === 0 ? (
-                    <span className="text-muted-foreground break-all">{script.scriptHex}</span>
-                ) : (
-                    script.asm.map((op, i) =>
-                        op.startsWith("OP_") ? (
-                            <span key={i} className="text-foreground">
-                                {op}
-                            </span>
-                        ) : (
-                            <span key={i} className="text-muted-foreground break-all" title={op}>
-                                {op.length > 16 && !op.startsWith('"')
-                                    ? truncateHash(op, 6, 6)
-                                    : op}
-                            </span>
-                        ),
-                    )
-                )}
-            </div>
-        </div>
-    );
-}
-
-/**
- * Renders how a VTXO was spent: key path or, when the spend revealed a tapleaf,
- * which script was used and its opcodes. A leaf bound to an Arkade Script (the
- * covenant the emulator runs before co-signing) shows that program first.
- */
-function SpendPathLine({ spendPath }: { spendPath: SpendPath }) {
-    const script = spendPath.kind === "script-path" ? spendPath.info : null;
-    const label = script
-        ? `${script.label} script`
-        : spendPath.kind === "key-path"
-          ? "Key path"
-          : "Script path";
-    return (
-        <div className="mt-1 text-xs">
-            <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground uppercase">Spent via:</span>
-                {/* Neutral for plain leaves: colored badges on these cards carry status.
-                    Arkade Scripts get the brand accent since they are the notable case. */}
-                <span
-                    className={`inline-flex items-center px-1.5 py-0.5 font-semibold rounded-full border ${
-                        script?.arkadeScript
-                            ? "border-primary/30 bg-primary/15 text-primary"
-                            : "border-border bg-secondary text-foreground"
-                    }`}
-                >
-                    {label}
-                </span>
-            </div>
-            {script?.arkadeScript && (
-                <ScriptOpcodes caption="Arkade Script" script={script.arkadeScript} />
-            )}
-            {script && <ScriptOpcodes caption="Tapscript" script={script} />}
-        </div>
-    );
-}
-
 function InputCard({
     input,
     assetPacket,
@@ -457,7 +385,7 @@ function InputCard({
     mempoolUrl?: string;
 }) {
     // Derive asset information from packet for this input
-    const inputAssets: Array<{ assetId: string; amount: number }> = [];
+    const inputAssets: Array<{ assetId: string; amount: number | bigint }> = [];
     if (assetPacket) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         assetPacket.groups?.forEach((g: any, gi: number) => {
@@ -467,7 +395,7 @@ function InputCard({
             const aid =
                 g.assetId?.toString() ||
                 (g.isIssuance?.() && txid ? txid + gi.toString(16).padStart(4, "0") : null);
-            if (aid) inputAssets.push({ assetId: aid, amount: Number(inp.amount) });
+            if (aid) inputAssets.push({ assetId: aid, amount: BigInt(inp.amount) });
         });
     }
 
@@ -504,23 +432,14 @@ function InputCard({
                     </span>
                     {input.amount !== null && (
                         <MoneyDisplay
-                            sats={Number(input.amount)}
+                            sats={input.amount}
                             className="text-xs font-semibold text-foreground"
                         />
                     )}
                 </div>
-                {/* Asset amounts */}
                 {inputAssets.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                        {inputAssets.map((a, ai) => (
-                            <AssetAmountDisplay
-                                key={ai}
-                                amount={a.amount}
-                                assetId={a.assetId}
-                                valueClassName="text-xs font-semibold text-foreground"
-                                unitClassName="text-xs"
-                            />
-                        ))}
+                    <div className="my-3">
+                        <TransactionAssets assets={inputAssets} />
                     </div>
                 )}
                 {input.arkAddress ? (
@@ -544,7 +463,7 @@ function InputCard({
                         {input.scriptHex.substring(0, 40)}...
                     </div>
                 ) : null}
-                {spendPath && <SpendPathLine spendPath={spendPath} />}
+                {spendPath && <TapscriptDetails spendPath={spendPath} />}
                 {settlementTxId && (
                     <Link
                         to={`/commitment-tx/${settlementTxId}`}
@@ -622,10 +541,12 @@ function OutputCard({
 
     // Derive asset information from vtxo or packet
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const outputAssets: Array<{ assetId: string; amount: number }> = [];
+    const outputAssets: Array<{ assetId: string; amount: number | bigint }> = [];
     if (!output.isAnchor && !output.isArkExtension) {
         if (vtxo?.assets && vtxo.assets.length > 0) {
-            vtxo.assets.forEach((a: { assetId: string; amount: number }) => outputAssets.push(a));
+            vtxo.assets.forEach((a: { assetId: string; amount: number | bigint }) =>
+                outputAssets.push(a),
+            );
         } else if (assetPacket) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             assetPacket.groups?.forEach((g: any, gi: number) => {
@@ -635,7 +556,7 @@ function OutputCard({
                 const aid =
                     g.assetId?.toString() ||
                     (g.isIssuance?.() ? txid + gi.toString(16).padStart(4, "0") : null);
-                if (aid) outputAssets.push({ assetId: aid, amount: Number(out.amount) });
+                if (aid) outputAssets.push({ assetId: aid, amount: BigInt(out.amount) });
             });
         }
     }
@@ -681,11 +602,6 @@ function OutputCard({
                                 <ArrowRight className="h-3 w-3" aria-hidden="true" />
                             </Link>
                         )}
-                        {outputAssets.length > 0 && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-semibold rounded-full border bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30">
-                                Asset
-                            </span>
-                        )}
                         {isConnector && (
                             <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-semibold rounded-full border bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30">
                                 Connector
@@ -693,7 +609,7 @@ function OutputCard({
                         )}
                     </div>
                     <MoneyDisplay
-                        sats={Number(output.amount)}
+                        sats={output.amount}
                         className="text-xs font-semibold text-foreground"
                     />
                 </div>
@@ -713,18 +629,9 @@ function OutputCard({
                     </div>
                 )}
 
-                {/* Asset amounts */}
                 {outputAssets.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                        {outputAssets.map((a, ai) => (
-                            <AssetAmountDisplay
-                                key={ai}
-                                amount={a.amount}
-                                assetId={a.assetId}
-                                valueClassName="text-xs font-semibold text-foreground"
-                                unitClassName="text-xs"
-                            />
-                        ))}
+                    <div className="my-3">
+                        <TransactionAssets assets={outputAssets} />
                     </div>
                 )}
 
@@ -792,7 +699,7 @@ function OutputCard({
                 ) : null}
 
                 {/* How this VTXO was spent (decoded from the spending transaction) */}
-                {isSpent && spendPath && <SpendPathLine spendPath={spendPath} />}
+                {isSpent && spendPath && <TapscriptDetails spendPath={spendPath} />}
             </div>
 
             {/* Spending / Arkade tx arrow */}
@@ -847,16 +754,27 @@ function PacketSection({
     return (
         <div className={`rounded-xl border border-border bg-card p-6 ${CARD_SHADOW}`}>
             <div className="flex items-center gap-2 mb-4">
-                <h2 className="text-sm font-semibold text-foreground">Packet</h2>
-                {extensions.map((ext, i) => (
-                    <span
-                        key={i}
-                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-semibold rounded-full border bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30"
-                    >
-                        {ext.name}
-                    </span>
-                ))}
+                <h2 className="text-sm font-semibold text-foreground">
+                    {hasAssetGroups ? "Asset transfers" : "Packet"}
+                </h2>
+                {extensions
+                    .filter((ext) => !hasAssetGroups || ext.type !== 0)
+                    .map((ext, i) => (
+                        <span
+                            key={i}
+                            className="inline-flex items-center px-1.5 py-0.5 text-xs font-semibold rounded-full border bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30"
+                        >
+                            {ext.name}
+                        </span>
+                    ))}
             </div>
+            {hasAssetGroups && (
+                <div className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-4 border-b border-border pb-3 text-xs text-muted-foreground sm:grid">
+                    <span>Asset</span>
+                    <span>Inputs</span>
+                    <span>Outputs</span>
+                </div>
+            )}
             <PacketGroups assetPacket={assetPacket} txid={txid} hasAssetGroups={hasAssetGroups} />
         </div>
     );
@@ -874,19 +792,36 @@ function PacketGroups({
     hasAssetGroups: boolean;
 }) {
     const parentRef = useRef<HTMLDivElement>(null);
-    const parentOffsetRef = useRef(0);
+    const [scrollMargin, setScrollMargin] = useState(0);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const groups: any[] = hasAssetGroups ? assetPacket.groups : [];
 
     useLayoutEffect(() => {
-        parentOffsetRef.current = parentRef.current?.offsetTop ?? 0;
+        const measureOffset = () => {
+            let offset = 0;
+            let element: HTMLElement | null = parentRef.current;
+            while (element) {
+                offset += element.offsetTop;
+                element = element.offsetParent as HTMLElement | null;
+            }
+            setScrollMargin(offset);
+        };
+        measureOffset();
+        const observer = new ResizeObserver(measureOffset);
+        const main = parentRef.current?.closest("main");
+        if (main) observer.observe(main);
+        window.addEventListener("resize", measureOffset);
+        return () => {
+            observer.disconnect();
+            window.removeEventListener("resize", measureOffset);
+        };
     }, []);
 
     const virtualizer = useWindowVirtualizer({
         count: groups.length,
-        estimateSize: () => 140,
+        estimateSize: () => 64,
         overscan: 6,
-        scrollMargin: parentOffsetRef.current,
+        scrollMargin,
     });
 
     if (!hasAssetGroups) return null;
@@ -910,7 +845,6 @@ function PacketGroups({
                             top: 0,
                             left: 0,
                             width: "100%",
-                            paddingBottom: "0.75rem",
                             transform: `translateY(${item.start - virtualizer.options.scrollMargin}px)`,
                         }}
                     >
@@ -936,82 +870,78 @@ function PacketGroup({ group, txid, gi }: { group: any; txid: string; gi: number
     const outputs = capList(group.outputs ?? [], PACKET_ROW_CAP, showAllOutputs);
 
     return (
-        <div
-            className={`rounded-lg border border-border bg-secondary/30 p-3 space-y-2 ${CARD_SHADOW}`}
-        >
-            <div className="flex items-center gap-2 flex-wrap">
+        <div className="grid min-w-0 grid-cols-2 gap-4 border-b border-border py-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="col-span-2 flex min-w-0 flex-wrap items-start gap-2 sm:col-span-1">
                 <AssetBadge assetId={assetIdStr} />
                 <CopyButton text={assetIdStr} />
                 {isIssuance && (
-                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full border bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
                         Issuance
                     </span>
                 )}
             </div>
-
-            {inputs.visible.length > 0 && (
-                <div>
-                    <span className="text-xs text-muted-foreground font-medium">Inputs</span>
-                    <div className="ml-2 space-y-0.5 mt-0.5">
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        {inputs.visible.map((inp: any, ii: number) => (
-                            <div
-                                key={ii}
-                                className="text-xs font-mono text-muted-foreground flex items-center gap-1"
-                            >
-                                <span>vin:{inp.vin} &rarr;</span>{" "}
-                                <AssetAmountDisplay
-                                    amount={Number(inp.amount)}
-                                    assetId={assetIdStr}
-                                    valueClassName="text-foreground font-semibold text-xs"
-                                    unitClassName="text-xs"
-                                />
-                            </div>
-                        ))}
-                        {inputs.hiddenCount > 0 && (
-                            <button
-                                onClick={() => setShowAllInputs(true)}
-                                className="text-xs text-primary hover:underline mt-1"
-                            >
-                                Show {inputs.hiddenCount} more input
-                                {inputs.hiddenCount !== 1 ? "s" : ""}
-                            </button>
-                        )}
+            <div className="min-w-0 space-y-2">
+                <span className="text-xs text-muted-foreground sm:hidden">Inputs</span>
+                {inputs.visible.length === 0 && (
+                    <span className="text-sm text-muted-foreground">—</span>
+                )}
+                {inputs.visible.map((inp: any, index: number) => (
+                    <div
+                        key={index}
+                        className="flex min-w-0 items-baseline justify-between gap-3 text-sm"
+                    >
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                            Input {inp.vin}
+                        </span>
+                        <AssetAmountDisplay
+                            amount={BigInt(inp.amount)}
+                            assetId={assetIdStr}
+                            hideUnit
+                            className="min-w-0 justify-end"
+                            valueClassName="break-all text-right font-medium tabular-nums"
+                        />
                     </div>
-                </div>
-            )}
-
-            {outputs.visible.length > 0 && (
-                <div>
-                    <span className="text-xs text-muted-foreground font-medium">Outputs</span>
-                    <div className="ml-2 space-y-0.5 mt-0.5">
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        {outputs.visible.map((out: any, oi: number) => (
-                            <div
-                                key={oi}
-                                className="text-xs font-mono text-muted-foreground flex items-center gap-1"
-                            >
-                                <span>vout:{out.vout} &rarr;</span>{" "}
-                                <AssetAmountDisplay
-                                    amount={Number(out.amount)}
-                                    assetId={assetIdStr}
-                                    valueClassName="text-foreground font-semibold text-xs"
-                                    unitClassName="text-xs"
-                                />
-                            </div>
-                        ))}
-                        {outputs.hiddenCount > 0 && (
-                            <button
-                                onClick={() => setShowAllOutputs(true)}
-                                className="text-xs text-primary hover:underline mt-1"
-                            >
-                                Show {outputs.hiddenCount} more output
-                                {outputs.hiddenCount !== 1 ? "s" : ""}
-                            </button>
-                        )}
+                ))}
+                {inputs.hiddenCount > 0 && (
+                    <button
+                        onClick={() => setShowAllInputs(true)}
+                        className="text-xs text-muted-foreground hover:underline"
+                    >
+                        Show {inputs.hiddenCount} more input{inputs.hiddenCount !== 1 ? "s" : ""}
+                    </button>
+                )}
+            </div>
+            <div className="min-w-0 space-y-2">
+                <span className="text-xs text-muted-foreground sm:hidden">Outputs</span>
+                {outputs.visible.length === 0 && (
+                    <span className="text-sm text-muted-foreground">—</span>
+                )}
+                {outputs.visible.map((out: any, index: number) => (
+                    <div
+                        key={index}
+                        className="flex min-w-0 items-baseline justify-between gap-3 text-sm"
+                    >
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                            Output {out.vout}
+                        </span>
+                        <AssetAmountDisplay
+                            amount={BigInt(out.amount)}
+                            assetId={assetIdStr}
+                            hideUnit
+                            className="min-w-0 justify-end"
+                            valueClassName="break-all text-right font-medium tabular-nums"
+                        />
                     </div>
-                </div>
-            )}
+                ))}
+                {outputs.hiddenCount > 0 && (
+                    <button
+                        onClick={() => setShowAllOutputs(true)}
+                        className="text-xs text-muted-foreground hover:underline"
+                    >
+                        Show {outputs.hiddenCount} more output{outputs.hiddenCount !== 1 ? "s" : ""}
+                    </button>
+                )}
+            </div>
         </div>
     );
 }
@@ -1602,10 +1532,9 @@ export function TransactionDetail({
     const spendOpts = useMemo(() => {
         const txs = [...(parsedTx ? [parsedTx] : []), ...spendingTxs, ...settlementLeafTxs];
         return {
-            operatorPubkeyHex: serverInfo?.signerPubkey,
             arkadeScripts: txs.flatMap(emulatorScripts),
         };
-    }, [parsedTx, spendingTxs, settlementLeafTxs, serverInfo?.signerPubkey]);
+    }, [parsedTx, spendingTxs, settlementLeafTxs]);
 
     const inputSpendPaths = useMemo(() => {
         if (!parsedTx) return [];

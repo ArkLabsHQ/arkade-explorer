@@ -29,8 +29,8 @@ export function AssetAmountDisplay({
     const formatted = formatAssetAmount(amount, decimals);
 
     return (
-        <span className={`${className} inline-flex items-center gap-1`}>
-            <span className={valueClassName}>{formatted}</span>
+        <span className={`${className} inline-flex items-center gap-1`} aria-busy={isLoading}>
+            <span className={valueClassName}>{isLoading ? "…" : formatted}</span>
             {!hideUnit && metadata?.icon && isSafeImageUrl(metadata.icon) && (
                 <img src={metadata.icon} alt={ticker} className="inline w-3.5 h-3.5 rounded-full" />
             )}

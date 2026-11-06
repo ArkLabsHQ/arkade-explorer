@@ -122,6 +122,20 @@ function CreatedAt({ vtxo }: { vtxo: VirtualCoin }) {
     );
 }
 
+function CreatedTime({ vtxo }: { vtxo: VirtualCoin }) {
+    if (vtxo.createdAt == null) return <span>—</span>;
+    const timestamp =
+        vtxo.createdAt instanceof Date ? vtxo.createdAt.getTime() : Number(vtxo.createdAt);
+    const date = new Date(timestamp);
+    if (!Number.isFinite(date.getTime())) return <span>—</span>;
+    const label = formatTimestamp(timestamp);
+    return (
+        <time dateTime={date.toISOString()} title={label} className="tabular-nums">
+            {label}
+        </time>
+    );
+}
+
 function SpentByLink({ vtxo }: { vtxo: VirtualCoin }) {
     if (!vtxo.spentBy || vtxo.spentBy === "") return null;
     const label = vtxo.settledBy ? "Forfeit tx:" : "Spent by:";
@@ -564,29 +578,49 @@ function VtxoDenseRows({
     network?: string;
 }) {
     const parentRef = useRef<HTMLDivElement>(null);
-    const parentOffsetRef = useRef(0);
+    const [scrollMargin, setScrollMargin] = useState(0);
 
     useLayoutEffect(() => {
-        parentOffsetRef.current = parentRef.current?.offsetTop ?? 0;
+        const measureOffset = () => {
+            let offset = 0;
+            let element: HTMLElement | null = parentRef.current;
+            while (element) {
+                offset += element.offsetTop;
+                element = element.offsetParent as HTMLElement | null;
+            }
+            setScrollMargin(offset);
+        };
+        measureOffset();
+        const observer = new ResizeObserver(measureOffset);
+        if (parentRef.current) observer.observe(parentRef.current);
+        const main = parentRef.current?.closest("main");
+        if (main) observer.observe(main);
+        window.addEventListener("resize", measureOffset);
+        return () => {
+            observer.disconnect();
+            window.removeEventListener("resize", measureOffset);
+        };
     }, []);
 
     const virtualizer = useWindowVirtualizer({
         count: vtxos.length,
-        estimateSize: () => 40,
+        estimateSize: () => 96,
         overscan: 12,
-        scrollMargin: parentOffsetRef.current,
+        scrollMargin,
         getItemKey: (index) => `${vtxos[index].txid}:${vtxos[index].vout}`,
     });
 
     return (
-        <div
-            ref={parentRef}
-            className={cn(
-                "rounded-xl border border-border bg-card overflow-hidden shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_-1px_hsl(var(--border)/0.3),0_2px_4px_hsl(var(--border)/0.2)]",
-                className,
-            )}
-        >
+        <div className={cn("rounded-xl border border-border bg-card overflow-hidden", className)}>
+            <div className="hidden sm:grid grid-cols-[minmax(0,1fr)_minmax(9rem,auto)_9rem_6rem] gap-4 border-b border-border bg-secondary/30 px-4 py-3 text-xs text-muted-foreground lg:grid-cols-[minmax(0,1fr)_minmax(9rem,auto)_8rem_10rem_6rem]">
+                <span className="pl-8">Output</span>
+                <span className="text-right">Value / assets</span>
+                <span>Status</span>
+                <span className="hidden lg:block">Created</span>
+                <span className="text-right">Expiry / outcome</span>
+            </div>
             <div
+                ref={parentRef}
                 style={{
                     height: `${virtualizer.getTotalSize()}px`,
                     position: "relative",
@@ -639,89 +673,80 @@ function VtxoDenseRow({
     const [expanded, setExpanded] = useState(false);
 
     return (
-        <div
-            className={cn(
-                "transition-colors duration-150",
-                index % 2 === 0 && "bg-secondary/30",
-                "hover:bg-secondary/50",
-            )}
-        >
-            {/* Main dense row */}
-            <div className="flex items-center gap-3 py-1.5 px-3">
-                <button
-                    onClick={() => setExpanded(!expanded)}
-                    className="text-muted-foreground hover:text-foreground transition-colors duration-150 shrink-0"
-                    aria-label={expanded ? "Collapse" : "Expand"}
-                >
-                    {expanded ? (
-                        <ChevronDown className="h-3 w-3" />
-                    ) : (
-                        <ChevronRight className="h-3 w-3" />
-                    )}
-                </button>
-
-                {/* Outpoint */}
-                <Link
-                    to={`/tx/${vtxo.txid}`}
-                    className="font-mono text-xs text-foreground hover:text-primary transition-colors duration-150 truncate min-w-0 shrink"
-                >
-                    {truncateHash(vtxo.txid, 6, 4)}:{vtxo.vout}
-                </Link>
-
-                {/* Spent by inline */}
-                {vtxo.spentBy && (
-                    <Link
-                        to={`/tx/${vtxo.spentBy}`}
-                        className="text-[10px] text-muted-foreground hover:text-foreground font-mono transition-colors duration-150 shrink-0 hidden sm:inline"
-                        title={`Spent by ${vtxo.spentBy}`}
+        <div className={cn("border-b border-border/70", index % 2 === 1 && "bg-secondary/15")}>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(9rem,auto)_9rem_6rem] lg:grid-cols-[minmax(0,1fr)_minmax(9rem,auto)_8rem_10rem_6rem]">
+                <div className="flex min-w-0 items-center gap-2">
+                    <button
+                        onClick={() => setExpanded(!expanded)}
+                        className="shrink-0 rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        aria-label={`${expanded ? "Collapse" : "Expand"} output ${truncateHash(vtxo.txid, 6, 4)}:${vtxo.vout}`}
+                        aria-expanded={expanded}
                     >
-                        spent:{truncateHash(vtxo.spentBy, 4, 4)}
-                    </Link>
-                )}
-
-                {/* Settled by inline */}
-                {vtxo.settledBy && (
-                    <Link
-                        to={`/commitment-tx/${vtxo.settledBy}`}
-                        className="text-[10px] text-muted-foreground hover:text-foreground font-mono transition-colors duration-150 shrink-0 hidden sm:inline"
-                        title={`Settled by ${vtxo.settledBy}`}
-                    >
-                        settled:{truncateHash(vtxo.settledBy, 4, 4)}
-                    </Link>
-                )}
-
-                {/* Spacer */}
-                <div className="flex-1" />
-
-                {/* Amount */}
-                <div className="flex items-center gap-2 shrink-0">
-                    <MoneyDisplay sats={vtxo.value} className="text-foreground font-mono text-xs" />
-                    {vtxo.assets &&
-                        vtxo.assets.length > 0 &&
-                        vtxo.assets.map((asset, idx: number) => (
-                            <AssetAmountDisplay
-                                key={idx}
-                                amount={asset.amount}
-                                assetId={asset.assetId}
-                                valueClassName="text-foreground font-bold font-mono text-xs"
-                                unitClassName="text-foreground font-mono text-xs"
-                            />
-                        ))}
+                        {expanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                        ) : (
+                            <ChevronRight className="h-4 w-4" />
+                        )}
+                    </button>
+                    <div className="min-w-0 space-y-1">
+                        <Link
+                            to={`/tx/${vtxo.txid}`}
+                            className="block truncate font-mono text-xs text-foreground hover:underline"
+                            title={`${vtxo.txid}:${vtxo.vout}`}
+                        >
+                            {truncateHash(vtxo.txid, 8, 6)}:{vtxo.vout}
+                        </Link>
+                        {vtxo.settledBy ? (
+                            <Link
+                                to={`/commitment-tx/${vtxo.settledBy}`}
+                                className="block truncate text-xs text-muted-foreground hover:underline"
+                                title={vtxo.settledBy}
+                            >
+                                Settled by {truncateHash(vtxo.settledBy, 4, 4)}
+                            </Link>
+                        ) : vtxo.spentBy ? (
+                            <Link
+                                to={`/tx/${vtxo.spentBy}`}
+                                className="block truncate text-xs text-muted-foreground hover:underline"
+                                title={vtxo.spentBy}
+                            >
+                                Spent by {truncateHash(vtxo.spentBy, 4, 4)}
+                            </Link>
+                        ) : null}
+                    </div>
                 </div>
-
-                {/* Status */}
-                <StatusBadges vtxo={vtxo} />
-
-                {/* Expiry */}
-                <span className="text-xs text-muted-foreground font-mono shrink-0 w-16 text-right">
+                <div className="min-w-0 text-right">
+                    <MoneyDisplay
+                        sats={vtxo.value}
+                        className="text-sm font-medium"
+                        unitClassName="text-xs text-muted-foreground"
+                    />
+                    {!!vtxo.assets?.length && (
+                        <button
+                            onClick={() => setExpanded(!expanded)}
+                            aria-expanded={expanded}
+                            className="mt-1 block w-full text-right text-xs text-muted-foreground hover:text-foreground hover:underline"
+                        >
+                            {vtxo.assets.length} {vtxo.assets.length === 1 ? "asset" : "assets"}
+                        </button>
+                    )}
+                </div>
+                <div className="min-w-0 pl-8 sm:pl-0">
+                    <StatusBadges vtxo={vtxo} />
+                </div>
+                <div className="hidden min-w-0 text-xs leading-relaxed text-muted-foreground lg:block">
+                    <CreatedTime vtxo={vtxo} />
+                </div>
+                <span className="text-right text-xs tabular-nums text-muted-foreground">
                     {expiryDisplay(vtxo)}
                 </span>
+                <div className="col-span-2 pl-8 text-xs leading-relaxed text-muted-foreground sm:col-span-4 lg:hidden">
+                    Created <CreatedTime vtxo={vtxo} />
+                </div>
             </div>
 
-            {/* Expanded details */}
             {expanded && (
-                <div className="px-3 pb-2 pl-9 space-y-1.5">
-                    <CreatedAt vtxo={vtxo} />
+                <div className="space-y-3 border-t border-border/60 bg-secondary/20 px-4 py-4 sm:pl-12">
                     <AssetsList vtxo={vtxo} />
                     <AddressLink
                         vtxo={vtxo}

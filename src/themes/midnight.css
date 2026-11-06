@@ -6,24 +6,24 @@
     --primary-foreground: 0 0% 100%;
 
     /* Backgrounds */
-    --background: 240 33% 4%; /* #0a0a0f */
-    --foreground: 240 5% 90%; /* #e4e4e7 */
+    --background: 225 22% 8%;
+    --foreground: 220 20% 94%;
 
     /* Cards */
-    --card: 240 20% 8%; /* #12121a */
-    --card-foreground: 240 5% 90%; /* #e4e4e7 */
+    --card: 225 20% 11%;
+    --card-foreground: 220 20% 94%;
 
     /* Popovers */
-    --popover: 240 20% 8%; /* #12121a */
-    --popover-foreground: 240 5% 90%; /* #e4e4e7 */
+    --popover: 225 20% 11%;
+    --popover-foreground: 220 20% 94%;
 
     /* Secondary */
-    --secondary: 240 15% 14%; /* #1e1e28 */
+    --secondary: 225 17% 16%;
     --secondary-foreground: 240 5% 85%;
 
     /* Muted */
     --muted: 240 12% 16%; /* #232330 */
-    --muted-foreground: 240 5% 55%; /* #88889a */
+    --muted-foreground: 220 12% 69%;
 
     /* Accent */
     --accent: 256 40% 18%; /* Purple-tinted dark */
@@ -34,16 +34,16 @@
     --destructive-foreground: 0 0% 100%;
 
     /* Borders & inputs */
-    --border: 256 20% 18%; /* Purple-tinted border */
-    --input: 256 15% 20%;
-    --ring: 256 72% 35%;
+    --border: 225 15% 22%;
+    --input: 225 15% 25%;
+    --ring: 256 80% 72%;
 
     /* Radius */
     --radius: 0.5rem;
 
     /* Elevation surfaces */
-    --surface-elevated: 240 18% 11%; /* #171722 */
-    --surface-sunken: 240 30% 3%; /* #070710 */
+    --surface-elevated: 225 18% 15%;
+    --surface-sunken: 225 22% 6%;
 
     /* Semantic */
     --success: 142 72% 40%;
