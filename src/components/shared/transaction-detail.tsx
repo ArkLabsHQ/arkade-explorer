@@ -13,6 +13,10 @@ import {
     ExternalLink,
 } from "lucide-react";
 import { CopyButton } from "@/components/shared/copy-button";
+import { CommitmentSummary } from "@/components/shared/commitment-summary";
+import { CommitmentRelatedTransactions } from "@/components/shared/commitment-related-transactions";
+import { BatchList } from "@/components/shared/batch-list";
+import { commitmentBatchEntries } from "@/lib/commitment-batches";
 import { InfoRow } from "@/components/shared/info-row";
 import { MoneyDisplay } from "@/components/shared/money-display";
 import { TapscriptDetails } from "@/components/shared/tapscript-details";
@@ -275,99 +279,6 @@ function HexViewer({ hex: hexStr, label }: { hex: string; label: string }) {
     );
 }
 
-function ForfeitTxList({ txids }: { txids: string[] }) {
-    const [expanded, setExpanded] = useState(false);
-
-    if (txids.length === 0) {
-        return <span className="text-sm text-muted-foreground">None</span>;
-    }
-
-    const visible = expanded ? txids : txids.slice(0, 5);
-
-    return (
-        <div className="space-y-1.5">
-            {visible.map((txid) => (
-                <div key={txid} className="flex items-center gap-2">
-                    <Link
-                        to={`/tx/${txid}`}
-                        className="text-xs font-mono text-primary hover:text-primary/80 transition-colors duration-200 truncate"
-                        aria-label={`View forfeit transaction ${truncateHash(txid, 8, 8)}`}
-                    >
-                        {truncateHash(txid, 12, 12)}
-                    </Link>
-                    <CopyButton text={txid} />
-                </div>
-            ))}
-            {txids.length > 5 && (
-                <button
-                    onClick={() => setExpanded(!expanded)}
-                    aria-label={
-                        expanded
-                            ? "Show fewer forfeit transactions"
-                            : `Show all ${txids.length} forfeit transactions`
-                    }
-                    className="text-xs text-primary hover:text-primary/80 transition-colors duration-200 active:scale-[0.97]"
-                >
-                    {expanded ? "Show less" : `Show all ${txids.length} forfeit txs`}
-                </button>
-            )}
-        </div>
-    );
-}
-
-function ConnectorList({
-    connectors,
-}: {
-    connectors: Array<{ txid: string; children: Record<number, string> }>;
-}) {
-    const [expanded, setExpanded] = useState(false);
-
-    if (connectors.length === 0) {
-        return <span className="text-sm text-muted-foreground">None</span>;
-    }
-
-    const visible = expanded ? connectors : connectors.slice(0, 5);
-
-    return (
-        <div className="space-y-2">
-            {visible.map((conn) => (
-                <div key={conn.txid} className="flex items-start gap-2">
-                    <Link
-                        to={`/tx/${conn.txid}`}
-                        className="text-xs font-mono text-primary hover:text-primary/80 transition-colors duration-200 shrink-0"
-                        aria-label={`View connector ${truncateHash(conn.txid, 8, 8)}`}
-                    >
-                        {truncateHash(conn.txid, 12, 12)}
-                    </Link>
-                    <CopyButton text={conn.txid} />
-                    {Object.keys(conn.children).length > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                            ({Object.keys(conn.children).length} children)
-                        </span>
-                    )}
-                </div>
-            ))}
-            {connectors.length > 5 && (
-                <button
-                    onClick={() => setExpanded(!expanded)}
-                    aria-label={
-                        expanded
-                            ? "Show fewer connectors"
-                            : `Show all ${connectors.length} connectors`
-                    }
-                    className="text-xs text-primary hover:text-primary/80 transition-colors duration-200 active:scale-[0.97]"
-                >
-                    {expanded ? "Show less" : `Show all ${connectors.length} connectors`}
-                </button>
-            )}
-        </div>
-    );
-}
-
-// ---------------------------------------------------------------------------
-// Input card
-// ---------------------------------------------------------------------------
-
 function InputCard({
     input,
     assetPacket,
@@ -375,7 +286,9 @@ function InputCard({
     settlementTxId,
     mempoolUrl,
     spendPath,
+    compact = false,
 }: {
+    compact?: boolean;
     input: ParsedInput;
     spendPath?: SpendPath | null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -400,7 +313,13 @@ function InputCard({
     }
 
     return (
-        <div className="flex items-center gap-2">
+        <div
+            className={
+                compact
+                    ? "flex items-center gap-2 border-b border-border/60 py-3 last:border-b-0"
+                    : "flex items-center gap-2"
+            }
+        >
             <div className="w-7 flex items-center justify-center shrink-0">
                 {input.txid &&
                     (mempoolUrl ? (
@@ -408,7 +327,11 @@ function InputCard({
                             href={mempoolUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 transition-colors duration-200 active:scale-[0.97]"
+                            className={
+                                compact
+                                    ? "flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground"
+                                    : "flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 transition-colors duration-200 active:scale-[0.97]"
+                            }
                             aria-label={`View on mempool.space ${truncateHash(input.txid, 6, 6)}`}
                         >
                             <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -416,7 +339,11 @@ function InputCard({
                     ) : (
                         <Link
                             to={`/tx/${input.txid}`}
-                            className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 transition-colors duration-200 active:scale-[0.97]"
+                            className={
+                                compact
+                                    ? "flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground"
+                                    : "flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 transition-colors duration-200 active:scale-[0.97]"
+                            }
                             aria-label={`Go to input transaction ${truncateHash(input.txid, 6, 6)}`}
                         >
                             <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -424,7 +351,11 @@ function InputCard({
                     ))}
             </div>
             <div
-                className={`flex-1 min-w-0 rounded-lg border border-border bg-card p-3 ${CARD_SHADOW}`}
+                className={
+                    compact
+                        ? "min-w-0 flex-1"
+                        : `flex-1 min-w-0 rounded-lg border border-border bg-card p-3 ${CARD_SHADOW}`
+                }
             >
                 <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-muted-foreground font-medium">
@@ -495,7 +426,9 @@ function OutputCard({
     checkpointVtxo,
     pendingOutpoints,
     spendPath,
+    compact = false,
 }: {
+    compact?: boolean;
     output: ParsedOutput;
     txid: string;
     subtype: TxSubtype;
@@ -564,7 +497,11 @@ function OutputCard({
     return (
         <div className="flex items-center gap-2">
             <div
-                className={`flex-1 min-w-0 rounded-lg border border-border bg-card p-3 ${CARD_SHADOW} ${borderAccent}`}
+                className={
+                    compact
+                        ? `min-w-0 flex-1 border-b border-border/60 py-3 ${borderAccent}`
+                        : `flex-1 min-w-0 rounded-lg border border-border bg-card p-3 ${CARD_SHADOW} ${borderAccent}`
+                }
             >
                 {/* Header row */}
                 <div className="flex items-center justify-between mb-1">
@@ -958,6 +895,8 @@ export function TransactionDetail({
 }: TransactionDetailProps) {
     const txid = (type === "arkade" ? arkadeData?.txid : commitmentData?.txid) || "";
     const { serverInfo } = useServerInfo();
+    const [showAllCommitmentInputs, setShowAllCommitmentInputs] = useState(false);
+    useEffect(() => setShowAllCommitmentInputs(false), [txid]);
     const { isPinned, pinSearch, unpinSearch } = useRecentSearches();
 
     const pinned = txid ? isPinned(txid) : false;
@@ -1648,14 +1587,13 @@ export function TransactionDetail({
             </div>
 
             {/* Header card */}
-            <div className={`rounded-xl border border-border bg-card p-6 ${CARD_SHADOW}`}>
+            <div
+                className={`rounded-xl border border-border bg-card p-6 ${type === "commitment" ? "" : CARD_SHADOW}`}
+            >
                 <div className="flex items-center gap-3 mb-4 flex-wrap">
                     <FileText className="h-5 w-5 text-primary" aria-hidden="true" />
                     <h1 className="font-heading text-xl font-bold text-foreground">{title}</h1>
-                    <TxTypeBadge
-                        label={type === "arkade" ? "Arkade tx" : "Commitment tx"}
-                        variant={type === "arkade" ? "blue" : "purple"}
-                    />
+                    {type === "arkade" && <TxTypeBadge label="Arkade tx" variant="blue" />}
                     {type === "arkade" && subtype !== "generic" && subtypeBadge(subtype)}
                 </div>
 
@@ -1696,83 +1634,8 @@ export function TransactionDetail({
                     </div>
                 )}
 
-                {/* Commitment tx metadata */}
                 {type === "commitment" && commitmentData && (
-                    <div className="space-y-6">
-                        <dl className="divide-y-0">
-                            <InfoRow
-                                label="Started at"
-                                value={
-                                    commitmentData.metadata.startedAt
-                                        ? formatTimestamp(commitmentData.metadata.startedAt)
-                                        : "--"
-                                }
-                            />
-                            <InfoRow
-                                label="Ended at"
-                                value={
-                                    commitmentData.metadata.endedAt
-                                        ? formatTimestamp(commitmentData.metadata.endedAt)
-                                        : "--"
-                                }
-                            />
-                            <InfoRow
-                                label="Total input amount"
-                                value={
-                                    <MoneyDisplay
-                                        sats={parseInt(
-                                            commitmentData.metadata.totalInputAmount || "0",
-                                        )}
-                                        className="font-semibold"
-                                    />
-                                }
-                            />
-                            <InfoRow
-                                label="Total input VTXOs"
-                                value={
-                                    commitmentData.metadata.totalInputVtxos?.toLocaleString() ?? "0"
-                                }
-                            />
-                            <InfoRow
-                                label="Total output amount"
-                                value={
-                                    <MoneyDisplay
-                                        sats={parseInt(
-                                            commitmentData.metadata.totalOutputAmount || "0",
-                                        )}
-                                        className="font-semibold"
-                                    />
-                                }
-                            />
-                            <InfoRow
-                                label="Total output VTXOs"
-                                value={
-                                    commitmentData.metadata.totalOutputVtxos?.toLocaleString() ??
-                                    "0"
-                                }
-                            />
-                            <InfoRow
-                                label="Batches"
-                                value={Object.keys(
-                                    commitmentData.metadata.batches || {},
-                                ).length.toString()}
-                            />
-                        </dl>
-
-                        {/* Forfeit txs */}
-                        <div className="space-y-2">
-                            <h3 className="text-sm font-medium text-foreground">
-                                Forfeit transactions
-                            </h3>
-                            <ForfeitTxList txids={commitmentData.forfeitTxids} />
-                        </div>
-
-                        {/* Connectors */}
-                        <div className="space-y-2">
-                            <h3 className="text-sm font-medium text-foreground">Connectors</h3>
-                            <ConnectorList connectors={commitmentData.connectors} />
-                        </div>
-                    </div>
+                    <CommitmentSummary metadata={commitmentData.metadata} />
                 )}
 
                 {/* Arkade tx timestamps derived from vtxoData */}
@@ -1802,22 +1665,37 @@ export function TransactionDetail({
                 )}
             </div>
 
+            {type === "commitment" && commitmentData && (
+                <>
+                    <CommitmentRelatedTransactions
+                        forfeitTxids={commitmentData.forfeitTxids}
+                        connectors={commitmentData.connectors}
+                    />
+                    <BatchList
+                        batches={commitmentBatchEntries(txid, commitmentData.metadata.batches)}
+                    />
+                </>
+            )}
+
             {/* Inputs & Outputs */}
             {parsedTx && (inputs.length > 0 || outputs.length > 0) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
                     {/* Inputs */}
                     <div
-                        className={`rounded-xl border border-border bg-card p-5 overflow-x-auto ${CARD_SHADOW}`}
+                        className={`rounded-xl border border-border bg-card p-5 overflow-x-auto ${type === "commitment" ? "" : CARD_SHADOW}`}
                     >
                         <h2 className="text-sm font-semibold text-foreground mb-4">
-                            Inputs ({inputs.length}
-                            {type === "commitment" && commitmentData?.forfeitTxids?.length
-                                ? ` + ${commitmentData.forfeitTxids.length} forfeit`
-                                : ""}
-                            )
+                            Inputs ({inputs.length})
                         </h2>
-                        <div className="space-y-2">
-                            {inputs.map((input) => {
+                        <div
+                            className={
+                                type === "commitment" ? "max-h-96 overflow-y-auto" : "space-y-2"
+                            }
+                        >
+                            {(type === "commitment" && !showAllCommitmentInputs
+                                ? inputs.slice(0, 6)
+                                : inputs
+                            ).map((input) => {
                                 const inputKey = `${input.txid}:${input.vout}`;
                                 const inputVtxo = inputVtxoMap.get(inputKey);
                                 const inputMempoolUrl =
@@ -1828,6 +1706,7 @@ export function TransactionDetail({
                                     <InputCard
                                         key={`input-${input.index}`}
                                         input={input}
+                                        compact={type === "commitment"}
                                         assetPacket={assetPacket}
                                         txid={txid}
                                         settlementTxId={inputVtxo?.settledBy || undefined}
@@ -1836,55 +1715,23 @@ export function TransactionDetail({
                                     />
                                 );
                             })}
-
-                            {/* Forfeit transactions as additional inputs (commitment txs) */}
-                            {type === "commitment" &&
-                                commitmentData?.forfeitTxids?.map((fTxid, i) => {
-                                    const inputIndex = inputs.length + i;
-                                    return (
-                                        <div
-                                            key={`forfeit-input-${i}`}
-                                            className="flex items-center gap-2"
-                                        >
-                                            <div className="w-7 flex items-center justify-center shrink-0">
-                                                <Link
-                                                    to={`/tx/${fTxid}`}
-                                                    className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 transition-colors duration-200 active:scale-[0.97]"
-                                                    aria-label={`View forfeit transaction ${truncateHash(fTxid, 6, 6)}`}
-                                                >
-                                                    <ArrowRight
-                                                        className="h-3.5 w-3.5"
-                                                        aria-hidden="true"
-                                                    />
-                                                </Link>
-                                            </div>
-                                            <div
-                                                className={`flex-1 min-w-0 rounded-lg border border-border bg-card p-3 border-l-2 border-l-orange-500 ${CARD_SHADOW}`}
-                                            >
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-xs text-muted-foreground font-medium">
-                                                        Input #{inputIndex}
-                                                    </span>
-                                                    <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">
-                                                        Forfeit
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className="text-xs font-mono text-muted-foreground">
-                                                        {truncateHash(fTxid, 12, 12)}
-                                                    </span>
-                                                    <CopyButton text={fTxid} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
                         </div>
+                        {type === "commitment" && inputs.length > 6 && (
+                            <button
+                                onClick={() => setShowAllCommitmentInputs(!showAllCommitmentInputs)}
+                                aria-expanded={showAllCommitmentInputs}
+                                className="mt-3 rounded py-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+                            >
+                                {showAllCommitmentInputs
+                                    ? "Show fewer inputs"
+                                    : `Show all ${inputs.length} inputs`}
+                            </button>
+                        )}
                     </div>
 
                     {/* Outputs */}
                     <div
-                        className={`rounded-xl border border-border bg-card p-5 overflow-x-auto ${CARD_SHADOW}`}
+                        className={`rounded-xl border border-border bg-card p-5 overflow-x-auto ${type === "commitment" ? "" : CARD_SHADOW}`}
                     >
                         <h2 className="text-sm font-semibold text-foreground mb-4">
                             Outputs ({outputs.length})
@@ -1894,6 +1741,7 @@ export function TransactionDetail({
                                 <OutputCard
                                     key={`output-${output.index}`}
                                     output={output}
+                                    compact={type === "commitment"}
                                     txid={txid}
                                     subtype={subtype}
                                     forfeitAddress={forfeitAddress}

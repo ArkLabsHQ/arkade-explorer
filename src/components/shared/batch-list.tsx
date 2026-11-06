@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, ChevronRight, Layers, Leaf, TreePine } from "lucide-react";
+import { ChevronDown, ChevronRight, Leaf, TreePine } from "lucide-react";
 import { MoneyDisplay } from "@/components/shared/money-display";
 import {
     BadgeStatus,
@@ -69,7 +69,9 @@ function TreeNodeView({ node, depth }: { node: TreeNode; depth: number }) {
                 {hasChildren ? (
                     <button
                         onClick={() => setExpanded(!expanded)}
-                        className="p-0.5 text-muted-foreground hover:text-foreground transition-colors duration-200"
+                        aria-expanded={expanded}
+                        aria-label={`${expanded ? "Collapse" : "Expand"} transaction ${truncateHash(node.txid, 6, 6)}`}
+                        className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors duration-200"
                     >
                         {expanded ? (
                             <ChevronDown className="h-3 w-3" />
@@ -83,13 +85,14 @@ function TreeNodeView({ node, depth }: { node: TreeNode; depth: number }) {
                 <TreePine className="h-3 w-3 text-muted-foreground shrink-0" />
                 <Link
                     to={`/tx/${node.txid}`}
-                    className="text-xs font-mono text-primary hover:text-primary/80 transition-colors duration-200 truncate"
+                    className="min-w-0 text-xs font-mono text-foreground hover:underline truncate"
+                    title={node.txid}
                 >
                     {truncateHash(node.txid, 10, 10)}
                 </Link>
                 <CopyButton text={node.txid} />
                 {hasChildren && (
-                    <span className="text-xs text-muted-foreground">
+                    <span className="shrink-0 text-xs text-muted-foreground">
                         ({childEntries.length} outputs)
                     </span>
                 )}
@@ -105,7 +108,8 @@ function TreeNodeView({ node, depth }: { node: TreeNode; depth: number }) {
                             <span className="text-xs text-muted-foreground">:{vout}</span>
                             <Link
                                 to={`/tx/${childTxid}`}
-                                className="text-xs font-mono text-primary hover:text-primary/80 transition-colors duration-200 truncate"
+                                className="min-w-0 text-xs font-mono text-foreground hover:underline truncate"
+                                title={childTxid}
                             >
                                 {truncateHash(childTxid, 10, 10)}
                             </Link>
@@ -124,23 +128,26 @@ function LeafVtxoRow({ leaf, expiresAt }: { leaf: LeafVtxo; expiresAt?: string }
     const status = deriveVtxoStatus({ isSpent: leaf.isSpent });
 
     return (
-        <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-secondary/50 transition-colors duration-150">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 px-3 py-3 hover:bg-secondary/30">
             <Leaf className="h-3 w-3 text-muted-foreground shrink-0" />
             <Link
                 to={`/tx/${leaf.outpoint.txid}`}
-                className="text-xs font-mono text-primary hover:text-primary/80 transition-colors duration-200 truncate min-w-0"
+                className="min-w-0 truncate font-mono text-xs text-foreground hover:underline"
+                title={outpointStr}
             >
                 {truncateHash(outpointStr, 12, 12)}
             </Link>
             <CopyButton text={outpointStr} />
-            {leaf.amount && (
-                <MoneyDisplay
-                    sats={parseInt(leaf.amount)}
-                    className="text-xs text-foreground shrink-0"
-                />
-            )}
-            <BadgeStatus status={status} />
-            {recoverable && status !== "spent" && <BadgeRecoverable />}
+            <div className="col-span-2 col-start-2 flex min-w-0 flex-wrap items-center gap-2">
+                {leaf.amount && (
+                    <MoneyDisplay
+                        sats={parseInt(leaf.amount)}
+                        className="text-xs text-foreground"
+                    />
+                )}
+                <BadgeStatus status={status} />
+                {recoverable && status !== "spent" && <BadgeRecoverable />}
+            </div>
         </div>
     );
 }
@@ -243,45 +250,56 @@ function BatchItem({ batch }: { batch: BatchEntry }) {
     return (
         <div
             id={`batch-${batchIndex}`}
-            className="rounded-xl border border-border bg-card overflow-hidden shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_hsl(var(--border)/0.2)] scroll-mt-6"
+            className="overflow-hidden rounded-xl border border-border bg-card scroll-mt-20"
         >
             {/* Header (always visible) */}
             <button
                 onClick={handleToggle}
-                className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-secondary/30 transition-colors duration-200"
+                aria-expanded={expanded}
+                aria-controls={`batch-details-${batchIndex}`}
+                className="flex w-full items-start gap-3 px-4 py-4 text-left hover:bg-secondary/30 transition-colors duration-200 sm:px-5"
             >
                 {expanded ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <ChevronDown className="mt-0.5 h-4 w-4 text-muted-foreground shrink-0" />
                 ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <ChevronRight className="mt-0.5 h-4 w-4 text-muted-foreground shrink-0" />
                 )}
-                <Layers className="h-4 w-4 text-primary shrink-0" />
-
-                <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-                    <span className="text-sm font-mono text-foreground truncate">
-                        {outpoint ? truncateHash(batch.outpoint, 12, 12) : batch.outpoint}
-                    </span>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span>
-                            <MoneyDisplay sats={totalAmount} className="text-xs" />
+                <div className="min-w-0 flex-1 space-y-3">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                        <span className="text-sm font-medium text-foreground">
+                            Batch output {batchIndex}
                         </span>
-                        <span className="hidden sm:inline">&middot;</span>
-                        <span>{batch.info.totalOutputVtxos} VTXOs</span>
-                        <span className="hidden sm:inline">&middot;</span>
-                        <span className="hidden sm:inline">Expires {expiryDate}</span>
+                        {outpoint && (
+                            <span
+                                className="min-w-0 truncate font-mono text-xs text-muted-foreground"
+                                title={batch.outpoint}
+                            >
+                                {truncateHash(batch.outpoint, 8, 8)}
+                            </span>
+                        )}
+                        {batch.info.swept && (
+                            <span className="rounded-full border border-border bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
+                                Swept
+                            </span>
+                        )}
+                    </div>
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-2 text-xs text-muted-foreground sm:grid-cols-[minmax(0,1fr)_6rem_minmax(0,1fr)]">
+                        <MoneyDisplay
+                            sats={totalAmount}
+                            className="text-sm font-medium text-foreground"
+                        />
+                        <span className="tabular-nums">
+                            {batch.info.totalOutputVtxos} VTXO
+                            {batch.info.totalOutputVtxos !== 1 ? "s" : ""}
+                        </span>
+                        <span className="col-span-2 sm:col-span-1">Expires {expiryDate}</span>
                     </div>
                 </div>
-
-                {batch.info.swept && (
-                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full border bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 shrink-0">
-                        swept
-                    </span>
-                )}
             </button>
 
             {/* Expanded content */}
             {expanded && (
-                <div className="border-t border-border">
+                <div id={`batch-details-${batchIndex}`} className="border-t border-border">
                     {loading ? (
                         <div className="flex items-center justify-center py-8">
                             <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -290,9 +308,9 @@ function BatchItem({ batch }: { batch: BatchEntry }) {
                             </span>
                         </div>
                     ) : (
-                        <div className="p-4 space-y-4">
+                        <div className="space-y-5 p-4 sm:p-5">
                             {/* Batch metadata */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div className="grid grid-cols-2 gap-x-5 gap-y-3 rounded-lg bg-secondary/20 p-3 lg:grid-cols-4">
                                 <div>
                                     <span className="text-xs text-muted-foreground block mb-0.5">
                                         Amount
@@ -331,9 +349,10 @@ function BatchItem({ batch }: { batch: BatchEntry }) {
                                 <div className="space-y-2">
                                     <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
                                         <TreePine className="h-4 w-4 text-muted-foreground" />
-                                        VTXO tree ({tree.length} nodes)
+                                        VTXO tree ({tree.length}{" "}
+                                        {tree.length === 1 ? "node" : "nodes"})
                                     </h4>
-                                    <div className="rounded-lg bg-secondary/30 border border-border p-3 max-h-80 overflow-y-auto">
+                                    <div className="max-h-80 overflow-y-auto rounded-lg bg-secondary/20 p-3">
                                         {tree.map((node) => (
                                             <TreeNodeView key={node.txid} node={node} depth={0} />
                                         ))}
@@ -346,7 +365,7 @@ function BatchItem({ batch }: { batch: BatchEntry }) {
                                 <div className="space-y-2">
                                     <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
                                         <Leaf className="h-4 w-4 text-muted-foreground" />
-                                        VTXOs ({enrichedVtxos.length})
+                                        Leaf outputs ({enrichedVtxos.length})
                                     </h4>
                                     <VtxoList vtxos={enrichedVtxos} showScript />
                                 </div>
@@ -354,9 +373,9 @@ function BatchItem({ batch }: { batch: BatchEntry }) {
                                 <div className="space-y-2">
                                     <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
                                         <Leaf className="h-4 w-4 text-muted-foreground" />
-                                        Leaf VTXOs ({leaves.length})
+                                        Leaf outputs ({leaves.length})
                                     </h4>
-                                    <div className="rounded-lg bg-secondary/30 border border-border max-h-60 overflow-y-auto divide-y divide-border">
+                                    <div className="max-h-60 overflow-y-auto rounded-lg bg-secondary/20 divide-y divide-border">
                                         {leaves.map((leaf) => (
                                             <LeafVtxoRow
                                                 key={`${leaf.outpoint.txid}:${leaf.outpoint.vout}`}
@@ -388,8 +407,7 @@ function BatchItem({ batch }: { batch: BatchEntry }) {
 export function BatchList({ batches }: BatchListProps) {
     if (batches.length === 0) {
         return (
-            <div className="rounded-xl border border-border bg-card p-6 text-center shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_hsl(var(--border)/0.2)]">
-                <Layers className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+            <div className="rounded-xl border border-border bg-card p-6 text-center">
                 <p className="text-sm text-muted-foreground">
                     No batches found in this commitment transaction.
                 </p>
@@ -398,16 +416,18 @@ export function BatchList({ batches }: BatchListProps) {
     }
 
     return (
-        <div className="space-y-4">
-            <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
-                <Layers className="h-5 w-5 text-primary" />
-                Batches ({batches.length})
-            </h2>
+        <section className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+                <h2 className="font-heading text-lg font-semibold text-foreground">Batches</h2>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                    {batches.length.toLocaleString()} batch{batches.length !== 1 ? "es" : ""}
+                </span>
+            </div>
             <div className="space-y-3">
                 {batches.map((batch) => (
                     <BatchItem key={batch.outpoint} batch={batch} />
                 ))}
             </div>
-        </div>
+        </section>
     );
 }
