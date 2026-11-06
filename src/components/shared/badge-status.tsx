@@ -2,7 +2,7 @@ type SpentStatus = "spendable" | "spent" | "unfinalized";
 
 const SPENT_STYLES: Record<SpentStatus, string> = {
     spendable: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-    spent: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30",
+    spent: "bg-secondary/60 text-muted-foreground border-border",
     unfinalized: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
 };
 

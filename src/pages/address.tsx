@@ -5,7 +5,7 @@ import { Copy, Check, Pin, PinOff } from "lucide-react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
 import { indexerClient } from "@/lib/api/indexer";
-import { addressToScriptHex } from "@/lib/decode";
+import { addressToScriptHex, isHex } from "@/lib/decode";
 import { PAGINATION } from "@/lib/constants";
 import { sumVtxoValue, hasMorePages } from "@/lib/vtxo-aggregation";
 import { debounce } from "@/lib/debounce";
@@ -22,7 +22,7 @@ import { PageTransition } from "@/components/shared/page-transition";
 type VtxoFilter = "all" | "spendable" | "recoverable" | "spent";
 type StatusFilter = "all" | "preconfirmed" | "settled";
 
-function CopyableValue({ value, truncate }: { value: string; truncate?: boolean }) {
+function CopyableValue({ value }: { value: string }) {
     const [copied, setCopied] = useState(false);
 
     const handleCopy = useCallback(() => {
@@ -32,17 +32,16 @@ function CopyableValue({ value, truncate }: { value: string; truncate?: boolean 
     }, [value]);
 
     return (
-        <div className="flex items-center gap-2 min-w-0">
-            <span className="text-foreground font-mono text-xs break-all" title={value}>
-                {truncate && value.length > 20
-                    ? `${value.slice(0, 12)}...${value.slice(-12)}`
-                    : value.length > 60
-                      ? `${value.slice(0, 24)}...${value.slice(-24)}`
-                      : value}
+        <div className="flex items-start gap-3 min-w-0">
+            <span
+                className="min-w-0 flex-1 break-all font-mono text-xs leading-6 text-foreground sm:text-sm"
+                title={value}
+            >
+                {value}
             </span>
             <button
                 onClick={handleCopy}
-                className="text-muted-foreground hover:text-foreground transition-colors duration-150 shrink-0"
+                className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors duration-150"
                 title="Copy to clipboard"
                 aria-label={copied ? "Copied to clipboard" : "Copy to clipboard"}
             >
@@ -181,10 +180,8 @@ export function AddressPage() {
 
     const isDraining = hasNextPage || isFetchingNextPage;
 
-    const hasAssets = useMemo(
-        () => allVtxos.some((v) => v.assets && v.assets.length > 0),
-        [allVtxos],
-    );
+    const isScript = !!address && isHex(address) && address.length % 2 === 0;
+    const pageLabel = isScript ? "Script" : "Address";
 
     const pinned = address ? isPinned(address) : false;
 
@@ -200,8 +197,8 @@ export function AddressPage() {
     if (!scriptHex) {
         return (
             <div className="space-y-6">
-                <Breadcrumb />
-                <ErrorMessage message="Invalid address. Could not decode the provided address." />
+                <Breadcrumb label={pageLabel} />
+                <ErrorMessage message="Could not decode this address or script. Check the value and try again." />
             </div>
         );
     }
@@ -209,123 +206,119 @@ export function AddressPage() {
     return (
         <PageTransition>
             <div className="space-y-6">
-                <Breadcrumb />
+                <Breadcrumb label={pageLabel} />
 
-                <div
-                    className={cn(
-                        !isLoading && !error && allVtxos.length > 0 && hasAssets
-                            ? "flex flex-col lg:flex-row gap-4 lg:items-stretch"
-                            : "space-y-4",
+                <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
+                    <div className="mb-4 flex items-center justify-between gap-4">
+                        <h1 className="font-heading text-2xl font-semibold text-foreground">
+                            {pageLabel}
+                        </h1>
+                        <button
+                            onClick={handleTogglePin}
+                            className={cn(
+                                "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-colors duration-150",
+                                pinned
+                                    ? "bg-accent text-accent-foreground border-primary/20 hover:bg-accent/80"
+                                    : "text-muted-foreground border-border hover:bg-secondary hover:text-foreground",
+                            )}
+                            title={
+                                pinned
+                                    ? `Unpin ${pageLabel.toLowerCase()}`
+                                    : `Pin ${pageLabel.toLowerCase()}`
+                            }
+                            aria-label={
+                                pinned
+                                    ? `Unpin this ${pageLabel.toLowerCase()}`
+                                    : `Pin this ${pageLabel.toLowerCase()}`
+                            }
+                            aria-pressed={pinned}
+                        >
+                            {pinned ? (
+                                <PinOff className="h-3.5 w-3.5" />
+                            ) : (
+                                <Pin className="h-3.5 w-3.5" />
+                            )}
+                            {pinned ? "Pinned" : "Pin"}
+                        </button>
+                    </div>
+                    <CopyableValue value={address!} />
+                    {!isScript && (
+                        <details className="mt-4 border-t border-border pt-3">
+                            <summary className="w-fit cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+                                Script hex
+                            </summary>
+                            <div className="mt-2">
+                                <CopyableValue value={scriptHex} />
+                            </div>
+                        </details>
                     )}
-                >
-                    <div
-                        className={cn(
-                            "rounded-xl border border-border bg-card p-6 shadow-[0_0_0_1px_hsl(var(--border)),0_1px_2px_hsl(var(--border)/0.2)]",
-                            hasAssets && "lg:w-1/3 lg:min-w-[320px]",
-                        )}
-                    >
-                        <div className="flex items-center justify-between mb-4">
-                            <h1 className="font-heading text-xl font-bold text-foreground">
-                                Address details
-                            </h1>
-                            <button
-                                onClick={handleTogglePin}
-                                className={cn(
-                                    "flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-colors duration-150",
-                                    pinned
-                                        ? "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
-                                        : "text-muted-foreground border-border hover:text-foreground hover:border-foreground/20",
-                                )}
-                                title={pinned ? "Unpin address" : "Pin address"}
-                                aria-label={pinned ? "Unpin this address" : "Pin this address"}
-                                aria-pressed={pinned}
-                            >
-                                {pinned ? (
-                                    <PinOff className="h-3.5 w-3.5" />
-                                ) : (
-                                    <Pin className="h-3.5 w-3.5" />
-                                )}
-                                {pinned ? "Unpin" : "Pin"}
-                            </button>
+                </section>
+
+                {!isLoading && !error && allVtxos.length > 0 && (
+                    <AddressStats vtxos={allVtxos} isDraining={isDraining} />
+                )}
+
+                <div className="space-y-4">
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+                        <h2 className="font-heading text-xl font-semibold text-foreground">
+                            Virtual outputs
+                        </h2>
+                        <span className="text-sm text-muted-foreground">
+                            {filteredVtxos.length.toLocaleString()} output
+                            {filteredVtxos.length !== 1 ? "s" : ""}
+                        </span>
+                    </div>
+                    <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                            <span className="w-10 text-xs font-medium text-muted-foreground mr-1">
+                                Type
+                            </span>
+                            {FILTER_BUTTONS.map((btn) => (
+                                <button
+                                    key={btn.value}
+                                    onClick={() => setVtxoFilter(btn.value)}
+                                    aria-pressed={vtxoFilter === btn.value}
+                                    className={cn(
+                                        "text-xs px-3 py-2 rounded-lg border transition-colors duration-150",
+                                        vtxoFilter === btn.value
+                                            ? "bg-accent text-accent-foreground border-primary/20"
+                                            : "text-muted-foreground border border-border hover:text-foreground",
+                                    )}
+                                >
+                                    {btn.label}
+                                </button>
+                            ))}
                         </div>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1 block">
-                                    Address
-                                </label>
-                                <CopyableValue value={address!} />
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1 block">
-                                    Script hex
-                                </label>
-                                <CopyableValue value={scriptHex} truncate />
-                            </div>
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                            <span className="w-10 text-xs font-medium text-muted-foreground mr-1">
+                                Status
+                            </span>
+                            {STATUS_BUTTONS.map((btn) => (
+                                <button
+                                    key={btn.value}
+                                    onClick={() => setStatusFilter(btn.value)}
+                                    aria-pressed={statusFilter === btn.value}
+                                    className={cn(
+                                        "text-xs px-3 py-2 rounded-lg border transition-colors duration-150",
+                                        statusFilter === btn.value
+                                            ? "bg-accent text-accent-foreground border-primary/20"
+                                            : "text-muted-foreground border border-border hover:text-foreground",
+                                    )}
+                                >
+                                    {btn.label}
+                                </button>
+                            ))}
                         </div>
                     </div>
-
-                    {!isLoading && !error && allVtxos.length > 0 && (
-                        <AddressStats
-                            vtxos={allVtxos}
-                            isDraining={isDraining}
-                            className={hasAssets ? "flex-1 min-w-0" : undefined}
-                        />
-                    )}
                 </div>
 
-                <div className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground mr-1">
-                            Type
-                        </span>
-                        {FILTER_BUTTONS.map((btn) => (
-                            <button
-                                key={btn.value}
-                                onClick={() => setVtxoFilter(btn.value)}
-                                className={cn(
-                                    "text-xs px-3 py-1.5 rounded-lg transition-colors duration-150",
-                                    vtxoFilter === btn.value
-                                        ? "bg-primary text-primary-foreground"
-                                        : "text-muted-foreground border border-border hover:text-foreground",
-                                )}
-                            >
-                                {btn.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground mr-1">
-                            Status
-                        </span>
-                        {STATUS_BUTTONS.map((btn) => (
-                            <button
-                                key={btn.value}
-                                onClick={() => setStatusFilter(btn.value)}
-                                className={cn(
-                                    "text-xs px-3 py-1.5 rounded-lg transition-colors duration-150",
-                                    statusFilter === btn.value
-                                        ? "bg-primary text-primary-foreground"
-                                        : "text-muted-foreground border border-border hover:text-foreground",
-                                )}
-                            >
-                                {btn.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <h2 className="font-heading text-sm font-semibold text-foreground">Balance</h2>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+                    <span className="text-muted-foreground">Selected output value</span>
                     <MoneyDisplay
                         sats={filteredBalance}
                         className="text-foreground font-mono text-sm"
                     />
-                    <span className="text-xs text-muted-foreground">
-                        ({filteredVtxos.length} VTXO{filteredVtxos.length !== 1 ? "s" : ""})
-                    </span>
                     {isDraining && (
                         <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                             <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
@@ -360,7 +353,7 @@ export function AddressPage() {
     );
 }
 
-function Breadcrumb() {
+function Breadcrumb({ label }: { label: string }) {
     return (
         <div className="flex items-center gap-3">
             <Link
@@ -370,7 +363,7 @@ function Breadcrumb() {
                 Home
             </Link>
             <span className="text-muted-foreground">/</span>
-            <span className="text-sm text-foreground">Address</span>
+            <span className="text-sm text-foreground">{label}</span>
         </div>
     );
 }

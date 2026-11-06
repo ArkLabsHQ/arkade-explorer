@@ -129,7 +129,7 @@
 }
 
 @utility font-mono {
-    font-family: "Courier New", monospace;
+    font-family: ui-monospace, "Cascadia Code", "SFMono-Regular", Consolas, monospace;
 }
 
 @media (prefers-reduced-motion: reduce) {
