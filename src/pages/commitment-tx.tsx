@@ -5,7 +5,6 @@ import { indexerClient } from "@/lib/api/indexer";
 import { fetchAllPages } from "@/lib/api/fetchAllPages";
 import { useRecentSearches } from "@/hooks/use-recent-searches";
 import { TransactionDetail } from "@/components/shared/transaction-detail";
-import { BatchList } from "@/components/shared/batch-list";
 import { PageTransition } from "@/components/shared/page-transition";
 
 export function CommitmentTxPage() {
@@ -138,13 +137,6 @@ export function CommitmentTxPage() {
     const forfeitTxids = forfeitData?.txids || [];
     const connectors = connectorsData?.connectors || [];
 
-    const batchEntries = metadata.batches
-        ? Object.entries(metadata.batches).map(([outpoint, info]) => ({
-              outpoint,
-              info,
-          }))
-        : [];
-
     return (
         <PageTransition>
             <div className="space-y-8">
@@ -158,7 +150,6 @@ export function CommitmentTxPage() {
                         connectors,
                     }}
                 />
-                <BatchList batches={batchEntries} />
             </div>
         </PageTransition>
     );
